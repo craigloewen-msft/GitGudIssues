@@ -30,7 +30,7 @@ const routes = [
   {
     path: '/register',
     name: 'Register',
-    component: () =>import('../views/Register.vue'),
+    component: () => import('../views/Register.vue'),
     meta: {
       guestonly: true
     }
@@ -51,58 +51,35 @@ const routes = [
       requiresAuth: true
     }
   },
-  {
-    path: '/clickmine',
-    name: 'Clickmine',
-    component: () => import('../views/Clickmine.vue'),
-    meta: {
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/cashout',
-    name: 'Cashout',
-    component: () => import('../views/Cashout.vue'),
-    meta: {
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/cashin',
-    name: 'Cashin',
-    component: () => import('../views/Cashin.vue'),
-    meta: {
-      requiresAuth: true
-    }
-  },
 ]
 
 const router = new VueRouter({
-  mode: 'history',
+  // mode: 'history',
   base: process.env.BASE_URL,
+  linkActiveClass: "active",
   routes
 })
 
 router.beforeEach((to, from, next) => {
-    if(to.matched.some(record => record.meta.requiresAuth)) {
-        if (!store.getters.isLoggedIn) {
-            next({
-                path: '/login',
-                params: { nextUrl: to.fullPath }
-            })
-        } else {
-            next()
-        }
-    } else if(to.matched.some(record => record.meta.guestonly)) {
-        if(!store.getters.isLoggedIn){
-            next()
-        }
-        else{
-            next({ name: 'Home'})
-        }
-    }else {
-        next()
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!store.getters.isLoggedIn) {
+      next({
+        path: '/login',
+        params: { nextUrl: to.fullPath }
+      })
+    } else {
+      next()
     }
+  } else if (to.matched.some(record => record.meta.guestonly)) {
+    if (!store.getters.isLoggedIn) {
+      next()
+    }
+    else {
+      next({ name: 'Home' })
+    }
+  } else {
+    next()
+  }
 });
 
 

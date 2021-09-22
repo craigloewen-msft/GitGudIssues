@@ -1,29 +1,57 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link> |
-      <div v-if="isLoggedIn">
-        <router-link to="/clickmine">Mine Coin</router-link> |
-        <router-link to="/cashout">Cash out</router-link> | 
-        <router-link to="/cashin">Cash In</router-link> | 
-        <router-link :to="'/user/' + user.username">{{
-          user.username
-        }} ({{ user.coinAmount }})</router-link>
-        |
-        <router-link to="/logout">Logout</router-link>
-      </div>
-      <div v-if="!isLoggedIn">
-        <router-link to="/login">Login</router-link> |
-        <router-link to="/register">Register</router-link>
-      </div>
-    </div>
+    <b-navbar toggleable="lg" type="dark" variant="dark">
+      <b-container>
+        <router-link class="navbar-brand" to="/">WebsiteName</router-link>
+
+        <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+
+        <b-collapse id="nav-collapse" is-nav>
+          <b-navbar-nav>
+            <Bootstrapnavlinkcustom to="/about">About</Bootstrapnavlinkcustom>
+          </b-navbar-nav>
+          <b-navbar-nav v-if="isLoggedIn">
+            <!--- Add in items for logged in only --->
+          </b-navbar-nav>
+
+          <b-navbar-nav
+            v-if="isLoggedIn"
+            class="ml-auto"
+            style="margin-left: auto"
+            is-nav
+          >
+            <Bootstrapnavlinkcustom :to="'/user/' + user.username">{{
+              user.username
+            }}</Bootstrapnavlinkcustom>
+            <Bootstrapnavlinkcustom to="/logout">Logout</Bootstrapnavlinkcustom>
+          </b-navbar-nav>
+          <b-navbar-nav
+            v-if="!isLoggedIn"
+            class="ml-auto"
+            style="margin-left: auto"
+            is-nav
+          >
+            <Bootstrapnavlinkcustom to="/login">Login</Bootstrapnavlinkcustom>
+            <Bootstrapnavlinkcustom to="/register"
+              >Register</Bootstrapnavlinkcustom
+            >
+          </b-navbar-nav>
+        </b-collapse>
+      </b-container>
+    </b-navbar>
+
     <router-view />
   </div>
 </template>
 
 <script>
+import Bootstrapnavlinkcustom from "./components/BootstrapNavlinkCustom";
+
 export default {
+  name: "App",
+  components: {
+    Bootstrapnavlinkcustom,
+  },
   computed: {
     isLoggedIn: function () {
       return this.$store.getters.isLoggedIn;
@@ -61,23 +89,70 @@ export default {
 
 <style>
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  /* font-family: "Nunito", sans-serif; */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
 }
 
-#nav {
-  padding: 30px;
+body {
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-#nav a {
-  font-weight: bold;
-  color: #2c3e50;
+.pageContent {
+  margin-top: 150px;
 }
 
-#nav a.router-link-exact-active {
-  color: #42b983;
+.pageContent h1 {
+  color: rgb(13, 0, 78);
+}
+
+.topNavigateBackContainer {
+  display: flex;
+  margin-bottom: 5px;
+}
+
+.footer {
+  margin-top: auto;
+  bottom: 0;
+  width: 100%;
+  height: 60px;
+  line-height: 60px;
+  background-color: #212529;
+}
+
+.img-responsive {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.centered-info-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.max-width-form {
+  max-width: 400px;
+}
+
+.buttonSelect {
+  display: flex;
+  justify-content: center;
+}
+
+.buttonSelect a {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.buttonSelect button {
+  margin-left: 5px;
+  margin-right: 5px;
 }
 </style>

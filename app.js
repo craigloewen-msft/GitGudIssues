@@ -144,7 +144,8 @@ const IssueInfo = new Schema({
 
 const UserDetail = new Schema({
     username: String,
-    password: String
+    password: String,
+    email: String
 }, { collection: 'usercollection' });
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -294,7 +295,7 @@ app.post('/api/login', (req, res, next) => {
 });
 
 app.get('/api/user/:username/', authenticateToken, (req, res) => {
-    WalletDetails.find({ username: req.params.username }, function (err, docs) {
+    UserDetails.find({ username: req.params.username }, function (err, docs) {
         if (err) {
             return res.json(returnFailure('Server error'));
         } else {
@@ -304,8 +305,7 @@ app.get('/api/user/:username/', authenticateToken, (req, res) => {
                 var returnValue = {
                     success: true, auth: true,
                     user: {
-                        username: docs[0].username, walletID: docs[0].walletID,
-                        coinAmount: docs[0].coinAmount
+                        username: docs[0].username, email: docs[0].email
                     }
                 };
                 res.json(returnValue);
@@ -329,7 +329,7 @@ app.post('/api/register', function (req, res) {
             if (result) {
                 return res.json(returnFailure('User already exists'));
             } else {
-                UserDetails.register({ username: req.body.username, active: false }, req.body.password, function (err, user) {
+                UserDetails.register({ username: req.body.username, active: false, email: req.body.email }, req.body.password, function (err, user) {
                     if (err) {
                         console.log(err);
                         return res.json(returnFailure('Server failure on registering user'));

@@ -9,5 +9,5 @@
     "mongoose": "^6.0.7",
     "passport": "^0.4.1",
     "passport-local-mongoose": "^6.1.0"
-  },
+  }
 }
