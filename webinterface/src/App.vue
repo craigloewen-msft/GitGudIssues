@@ -2,7 +2,7 @@
   <div id="app">
     <b-navbar toggleable="lg" type="dark" variant="dark">
       <b-container>
-        <router-link class="navbar-brand" to="/">WebsiteName</router-link>
+        <router-link class="navbar-brand" to="/">GitGudIssues</router-link>
 
         <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 

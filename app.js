@@ -7,6 +7,8 @@ const MongoStore = require('connect-mongo')
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const connectEnsureLogin = require('connect-ensure-login');
+// Custom requires
+const WebDataHandler = require('./backendsrc/webDataHandler')
 // Get config
 const config = fs.existsSync('./config.js') ? require('./config') : require('./defaultconfig');
 
@@ -22,100 +24,6 @@ function PromiseTimeout(delayms) {
     });
 }
 
-class RefreshRepoTask {
-    constructor(inputUrl) {
-        this.pageNum = 1;
-        this.repoUrl = inputUrl;
-        this.perPageResults = 100;
-        this.lastUpdatedTime = null;
-        this.lastSeenItemUpdatedAt = null;
-        this.firstSeenUpdatedAt = null;
-        this.repoDocument = null;
-    }
-
-    async refreshData() {
-        var finishedRequest = false;
-
-        var repoItems = await RepoDetails.find({ url: this.repoUrl })
-
-        if (repoItems.length == 0) {
-            repoItems = [await RepoDetails.create({ url: urlOfInterest, lastUpdatedAt: new Date('1/1/1900') })]
-        }
-
-        this.repoDocument = repoItems[0];
-        this.lastUpdatedTime = this.repoDocument.lastUpdatedAt;
-
-        while (!finishedRequest) {
-            console.log("Making request page num: ", this.pageNum);
-            var response = await this.makeRequest(this.pageNum);
-
-            if (response.status == 200) {
-                // If no issues are reported then we are done
-                if (response.data.length == 0) {
-                    finishedRequest = true;
-                    this.repoDocument.lastUpdatedAt = this.firstSeenUpdatedAt;
-                    await this.repoDocument.save();
-                    console.log("Update Request Complete - No more issues");
-                } else {
-                    var dbSaveResult = await this.storeInDataBase(response.data);
-                    if (dbSaveResult == 'uptodate') {
-                        finishedRequest = true;
-                        this.repoDocument.lastUpdatedAt = this.firstSeenUpdatedAt;
-                        await this.repoDocument.save();
-                        console.log("Update Request Complete - Up to date");
-                    }
-                }
-            } else if (response.status == 403) {
-                var responseUnixTime = response.headers['x-ratelimit-reset'];
-                var currentTime = Math.floor(+new Date() / 1000);
-                var retryTime = new Date(Number(responseUnixTime) * 1000);
-                var retryDifference = responseUnixTime - currentTime;
-                console.log("Rate limited waiting until: ", retryTime);
-                await PromiseTimeout(retryDifference * 1000);
-            }
-
-            this.pageNum = this.pageNum + 1;
-        }
-    }
-
-    async makeRequest(pageNum) {
-        try {
-            const response = await axios.get(this.repoUrl, { params: { page: pageNum, per_page: this.perPageResults, sort: 'updated', state: 'all' } });
-            return response;
-        } catch (error) {
-            return error.response;
-        }
-    }
-
-    async storeInDataBase(data) {
-        var response = 'success';
-
-        await Promise.all(data.map(async (responseItem) => {
-            var updatedAtDate = new Date(responseItem['updated_at']);
-            this.lastSeenItemUpdatedAt = updatedAtDate;
-
-            if (this.firstSeenUpdatedAt == null) {
-                this.firstSeenUpdatedAt = updatedAtDate;
-            }
-
-            if (updatedAtDate > this.lastUpdatedTime) {
-                // TODO: Update the issue and store it in the database
-                console.log("Updating: ", responseItem.number);
-                var issueToSave = (await IssueDetails.find({ number: responseItem.number, repo: this.repoDocument.url }))[0];
-                if (issueToSave == null) {
-                    issueToSave = await IssueDetails.create({ number: responseItem.number, repo: this.repoDocument.url });
-                }
-                issueToSave.data = responseItem;
-                await issueToSave.save();
-            } else {
-                response = 'uptodate';
-            }
-        }));
-
-        return response;
-    }
-
-}
 
 // Set up Dev or Production
 let mongooseConnectionString = '';
@@ -134,6 +42,7 @@ const Schema = mongoose.Schema;
 const RepoInfo = new Schema({
     lastUpdatedAt: Date,
     url: String,
+    updating: Boolean,
 });
 
 const IssueInfo = new Schema({
@@ -145,7 +54,8 @@ const IssueInfo = new Schema({
 const UserDetail = new Schema({
     username: String,
     password: String,
-    email: String
+    email: String,
+    repoTitles: [String],
 }, { collection: 'usercollection' });
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -157,6 +67,8 @@ const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
+
+const dataHandler = new WebDataHandler(RepoDetails,IssueDetails);
 
 // App set up
 
@@ -192,12 +104,6 @@ passport.use(UserDetails.createStrategy());
 
 passport.serializeUser(UserDetails.serializeUser());
 passport.deserializeUser(UserDetails.deserializeUser());
-
-//======== Main Thread
-
-var urlOfInterest = 'https://api.github.com/repos/MicrosoftDocs/WSL/issues'
-var refreshRequest = new RefreshRepoTask(urlOfInterest);
-// await refreshRequest.refreshData();
 
 // Helper Functions
 
@@ -283,6 +189,8 @@ app.post('/api/login', (req, res, next) => {
                     return res.json(returnFailure('Failure to login'));
                 }
 
+                dataHandler.refreshData('microsoftdocs/wsl');
+
                 let token = jwt.sign({ id: user.username }, config.secret, { expiresIn: JWTTimeout });
 
                 returnBasicUserInfo(user.username, (userDataResponse) => {
@@ -329,7 +237,7 @@ app.post('/api/register', function (req, res) {
             if (result) {
                 return res.json(returnFailure('User already exists'));
             } else {
-                UserDetails.register({ username: req.body.username, active: false, email: req.body.email }, req.body.password, function (err, user) {
+                UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [req.body.repotitle] }, req.body.password, function (err, user) {
                     if (err) {
                         console.log(err);
                         return res.json(returnFailure('Server failure on registering user'));
@@ -347,3 +255,7 @@ app.post('/api/register', function (req, res) {
         }
     });
 });
+
+// Issue Data APIs
+
+

@@ -32,6 +32,14 @@
         v-model="input.passwordconfirm"
         placeholder="Confirm Password"
         @keyup.enter="register"
+      />
+      <input
+        class="form-control"
+        type="text"
+        name="repotitle"
+        v-model="input.repotitle"
+        placeholder="Repo title: e.g: microsoft/WSL"
+        @keyup.enter="register"
       /><br />
       <button class="btn btn-primary btn-lg btn-block" v-on:click="register">
         Register
@@ -55,6 +63,7 @@ export default {
         password: "",
         email: "",
         passwordconfirm: "",
+        repotitle: "",
       },
     };
   },
@@ -73,6 +82,7 @@ export default {
           username: this.input.username,
           password: this.input.password,
           email: this.input.email,
+          repotitle: this.input.repotitle,
         })
         .then((response) => {
           if (response.data.success) {
@@ -112,8 +122,8 @@ export default {
         this.failuretext = "Username must be more than 4 characters";
         return false;
       }
-      if (this.input.password.length < 8) {
-        this.failuretext = "Password must be 8 or more characters";
+      if (this.input.password.length < 4) {
+        this.failuretext = "Password must be 4 or more characters";
         return false;
       }
       if (!this.validateEmail(this.input.email)) {
