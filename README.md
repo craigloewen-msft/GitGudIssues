@@ -1,0 +1,1 @@
+This repository's goal is to make a web interface to more easily triage, manage and respond to Github Issues.
