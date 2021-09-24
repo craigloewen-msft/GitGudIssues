@@ -7,13 +7,15 @@
         <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
         <b-collapse id="nav-collapse" is-nav>
+          <b-navbar-nav v-if="isLoggedIn">
+            <!--- Add in items for logged in only --->
+            <Bootstrapnavlinkcustom to="/manageissues"
+              >Manage Issues</Bootstrapnavlinkcustom
+            >
+          </b-navbar-nav>
           <b-navbar-nav>
             <Bootstrapnavlinkcustom to="/about">About</Bootstrapnavlinkcustom>
           </b-navbar-nav>
-          <b-navbar-nav v-if="isLoggedIn">
-            <!--- Add in items for logged in only --->
-          </b-navbar-nav>
-
           <b-navbar-nav
             v-if="isLoggedIn"
             class="ml-auto"
@@ -46,6 +48,7 @@
 
 <script>
 import Bootstrapnavlinkcustom from "./components/BootstrapNavlinkCustom";
+import BootstrapNavlinkCustom from "./components/BootstrapNavlinkCustom.vue";
 
 export default {
   name: "App",
@@ -95,6 +98,15 @@ export default {
   text-align: center;
 }
 
+a {
+  color: #c9d1d9;
+}
+
+a:hover {
+  color: #58a6ff;
+}
+
+
 body {
   overflow-x: hidden;
   display: flex;
@@ -103,11 +115,7 @@ body {
 }
 
 .pageContent {
-  margin-top: 150px;
-}
-
-.pageContent h1 {
-  color: rgb(13, 0, 78);
+  margin-top: 20px;
 }
 
 .topNavigateBackContainer {
@@ -154,5 +162,13 @@ body {
 .buttonSelect button {
   margin-left: 5px;
   margin-right: 5px;
+}
+
+.Link--primary:hover {
+    color: #58a6ff !important;
+}
+
+.Link--muted:hover {
+    color: #58a6ff !important;
 }
 </style>

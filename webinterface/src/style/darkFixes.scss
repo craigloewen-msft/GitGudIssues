@@ -1,0 +1,59 @@
+///<reference path="variables.scss" />
+///<reference path="../node_modules/bootstrap/scss/bootstrap.scss" />
+
+// Includes fixes that couldn't be fixed with Sass variables alone.
+// When compiling Sass, this should be loaded after Bootstrap's Sass files
+
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.btn-close-white {
+    filter:none !important;
+}
+
+.dropdown-menu {
+    box-shadow: $box-shadow-lg;
+}
+
+.alert-primary {
+    color: $white;
+    background-color: $primary;
+    border-color: lighten($primary, 5);
+}
+
+.alert-secondary {
+    color: $white;
+    background-color: $secondary;
+    border-color: lighten($secondary, 5);
+}
+
+.alert-success {
+    color: $white;
+    background-color: $success;
+    border-color: lighten($success, 5);
+}
+
+.alert-danger {
+    color: $white;
+    background-color: $danger;
+    border-color: lighten($danger, 5);
+}
+
+.alert-warning {
+    color: $black;
+    background-color: $warning;
+    border-color: lighten($warning, 5);
+}
+
+.alert-info {
+    color: $black;
+    background-color: $info;
+    border-color: lighten($info, 5);
+}
+
+.alert-dark {
+    color: $white;
+    background-color: darken($dark, 2);
+    border-color: lighten($dark, 6);
+}

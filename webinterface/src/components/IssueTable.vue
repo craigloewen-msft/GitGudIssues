@@ -1,0 +1,151 @@
+<template>
+  <div class="issue-table">
+    <div class="table-header-buttons">
+      <div class="table-header-buttons-group">
+        <b-dropdown
+          id="dropdown-1"
+          text="State"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-item
+            :active="inputQuery.state == 'open'"
+            v-on:click="setQueryProperty('state', 'open')"
+            >Open</b-dropdown-item
+          >
+          <b-dropdown-item
+            :active="inputQuery.state == 'closed'"
+            v-on:click="setQueryProperty('state', 'closed')"
+            >Closed</b-dropdown-item
+          >
+          <b-dropdown-item
+            :active="inputQuery.state == 'all'"
+            v-on:click="setQueryProperty('state', 'all')"
+            >All</b-dropdown-item
+          >
+        </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
+          text="Sort"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-item
+            :active="inputQuery.sort == 'created'"
+            v-on:click="setQueryProperty('sort', 'created')"
+            >Created</b-dropdown-item
+          >
+          <b-dropdown-item
+            :active="inputQuery.sort == 'updated'"
+            v-on:click="setQueryProperty('sort', 'updated')"
+            >Updated</b-dropdown-item
+          >
+        </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
+          text="Author"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-form>
+            <b-form-input
+              placeholder="Author GH alias"
+              size="sm"
+              v-model="inputQuery.creator"
+              v-debounce:1s="refreshIssues"
+              @keyup.enter="refreshIssues"
+              >Created</b-form-input
+            >
+          </b-dropdown-form>
+        </b-dropdown>
+      </div>
+
+      <div class="page-search-box">
+        Page
+        <b-form-input
+          size="sm"
+          type="number"
+          v-model="inputQuery.page_num"
+          v-debounce:1s="refreshIssues"
+          @keyup.enter="refreshIssues"
+          class="page-number-input"
+          min="1"
+          :max="Math.ceil(totalIssueCount / inputQuery.limit)"
+        ></b-form-input>
+        of {{ Math.ceil(totalIssueCount / inputQuery.limit) }} - Total Issues:
+        {{ totalIssueCount }}
+      </div>
+    </div>
+    <div v-for="(issue, issueIndex) in newestOpenIssues" :key="issueIndex">
+      <IssueInfoBox v-bind:issueData="issue.data"></IssueInfoBox>
+    </div>
+  </div>
+</template>
+
+<script>
+import IssueInfoBox from "../components/IssueInfoBox";
+export default {
+  name: "IssueTable",
+  components: {
+    IssueInfoBox,
+  },
+  data() {
+    return {
+      newestOpenIssues: [],
+      totalIssueCount: 0,
+      inputQuery: {
+        repo: "microsoftdocs/wsl",
+        state: "all",
+        sort: "created",
+        limit: 25,
+        creator: null,
+        page_num: 1,
+      },
+    };
+  },
+  mounted() {
+    this.refreshIssues();
+  },
+  methods: {
+    setQueryProperty: function (inProperty, inValue) {
+      this.inputQuery[inProperty] = inValue;
+      this.refreshIssues();
+    },
+    refreshIssues: function () {
+      this.$http.post("/api/getissues", this.inputQuery).then((response) => {
+        if (response.data.success) {
+          console.log(response.data);
+          const returnedIssueList = response.data.queryData.issueData;
+          const returnedCount = response.data.queryData.count;
+          this.newestOpenIssues = returnedIssueList;
+          this.totalIssueCount = returnedCount;
+        } else {
+          // TODO Add in some error catching condition
+        }
+      });
+    },
+  },
+};
+</script>
+
+<style>
+.table-header-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-search-box {
+  display: flex;
+}
+
+.page-number-input {
+  height: 10px;
+  width: 55px;
+}
+</style>

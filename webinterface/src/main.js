@@ -7,8 +7,10 @@ import Axios from 'axios'
 import vueDebounce from 'vue-debounce'
 import VueGtag from "vue-gtag"
 
-import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue/dist/bootstrap-vue.css'
+// import 'bootstrap/dist/css/bootstrap.css'
+// import 'bootstrap-vue/dist/bootstrap-vue.css'
+
+import './style/darkStyle.scss'
 
 Vue.prototype.$http = Axios;
 

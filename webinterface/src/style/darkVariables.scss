@@ -1,0 +1,113 @@
+
+// Variable overrides for Bootstrap
+// When compiling Sass, this should be loaded before Bootstrap's Sass
+
+
+// Colors
+$primary: #007acc !default;
+
+$gray-900: darken(#212529, 2) !default;
+
+/*// Body*/
+$body-bg: #0d1117 !default;
+$body-color: #c9d1d9 !default;
+$border-color: lighten($body-bg, 15) !default;
+
+
+$link-color: #c9d1d9 !default;
+
+/*// Tables
+
+// Forms*/
+$input-bg: darken($body-bg, 2) !default;
+$input-disabled-bg: $body-bg !default;
+
+$input-color: $body-color !default;
+$input-border-color: lighten($body-bg, 5) !default;
+
+$form-check-input-bg: darken($body-bg, 5) !default;
+$form-check-input-border: 1px solid $input-border-color !default;
+
+$form-switch-color: $body-color !default;
+
+
+$form-select-indicator-color: $body-color !default;
+
+$input-group-addon-bg: darken($body-bg, 2) !default;
+
+$form-range-track-bg: darken($body-bg, 5) !default;
+
+
+// Navs
+$nav-tabs-link-active-bg: $body-bg !default;
+$nav-tabs-border-color: lighten($input-border-color, 10) !default;
+$nav-tabs-link-hover-border-color: $nav-tabs-border-color $nav-tabs-border-color $nav-tabs-border-color !default;
+$nav-tabs-link-active-color: $body-color !default;
+$nav-tabs-link-active-border-color: $nav-tabs-border-color $nav-tabs-border-color $nav-tabs-link-active-bg !default;
+
+// Navbar
+
+// Pagination*/
+$pagination-bg: darken($body-bg, 2) !default;
+$pagination-border-color: $input-border-color !default;
+
+$pagination-hover-bg: darken($pagination-bg, 2) !default;
+$pagination-hover-border-color: $pagination-border-color !default;
+
+$pagination-focus-bg: darken($pagination-hover-bg, 2) !default;
+
+$pagination-active-bg: darken($pagination-hover-bg, 2) !default;
+
+$pagination-disabled-bg: $input-disabled-bg !default;
+$pagination-disabled-border-color: $pagination-hover-border-color !default;
+
+
+// Cards*/
+$card-bg: darken($body-bg, 2) !default;
+$card-border-color: rgba(#fff, .15) !default;
+
+// Popovers
+$popover-bg: darken($body-bg, 2) !default;
+$popover-border-color: $input-border-color !default;
+$popover-header-bg: lighten($body-bg,3) !default;
+
+// Modals
+$modal-content-bg: $body-bg !default;
+
+// Progress bars*/
+$progress-bg: darken($body-bg, 5) !default;
+
+/*// List group*/
+$list-group-color: $body-color !default;
+$list-group-bg: darken($body-bg, 1) !default;
+$list-group-border-color: lighten($body-bg, 5) !default;
+
+$list-group-hover-bg: lighten($list-group-bg, 2) !default;
+
+$list-group-action-hover-color: darken($list-group-color, 4) !default;
+$list-group-action-active-color: $list-group-color !default;
+
+$list-group-action-active-bg: $list-group-bg !default;
+
+// Dropdowns
+$dropdown-color: $body-color !default;
+$dropdown-bg: $body-bg !default;
+
+$dropdown-link-color: $body-color !default;
+$dropdown-link-hover-color: #fff !default;
+$dropdown-link-hover-bg: lighten($body-bg,3) !default;
+
+// Code
+$kbd-bg: darken($body-bg, 5) !default;
+
+// Toasts
+$toast-background-color: darken($body-bg, 3) !default;
+$toast-header-background-color: lighten($body-bg, 3) !default;
+
+
+
+// Accordion
+$accordion-bg: darken($body-bg, 3) !default;
+$accordion-button-active-bg: $primary !default;
+$accordion-button-active-color: #fff !default;
+$accordion-border-color: $input-border-color !default;
