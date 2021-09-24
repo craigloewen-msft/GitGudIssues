@@ -2,24 +2,28 @@
   <div class="issuebox">
     <div class="gh-issue-box col-6">
       <div class="issue-state-box">
-        <IssueStateIndicator :state="issueData.state"></IssueStateIndicator>
+        <IssueStateIndicator :state="issue.data.state"></IssueStateIndicator>
       </div>
-      <div class="issue-info-box" v-on:click="markIssueAsRead">
+      <div
+        class="issue-info-box"
+        v-bind:class="{ 'read-issue': issue.readByUser }"
+        v-on:click="markIssueAsRead"
+      >
         <div class="issue-title-box">
           <a
             class="Link--primary"
             :href="
               'https://github.com/' +
-              issueData.url.split('https://api.github.com/repos/').pop()
+              issue.data.url.split('https://api.github.com/repos/').pop()
             "
-            >{{ issueData.title }}</a
+            >{{ issue.data.title }}</a
           >
         </div>
         <div class="issue-sub-info-box">
           <p>
-            {{ issueData.number }} by {{ issueData.user.login }} created
-            {{ getRelativeDate(issueData.created_at) }} updated
-            {{ getRelativeDate(issueData.updated_at) }}
+            {{ issue.data.number }} by {{ issue.data.user.login }} created
+            {{ getRelativeDate(issue.data.created_at) }} updated
+            {{ getRelativeDate(issue.data.updated_at) }}
           </p>
         </div>
       </div>
@@ -42,7 +46,7 @@
           </div>
         </span>
         <span class="ml-2 flex-1 flex-shrink-0">
-          <a :href="issueData.comments_url" class="Link--muted comment-bubble">
+          <a :href="issue.data.comments_url" class="Link--muted comment-bubble">
             <svg
               aria-hidden="true"
               height="16"
@@ -63,9 +67,19 @@
       </div>
     </div>
     <div class="issue-controls-box col-6">
-      <p>Issue label lists</p>
-      <p>Issue add to list</p>
-      <p>Issue is read or unread</p>
+      <div
+        v-for="(siteIssueLabel, siteIssueLabelIndex) in issue.siteLabels"
+        :key="siteIssueLabelIndex"
+        v-on:click="removeIssueLabel(siteIssueLabel)"
+      >
+        {{ siteIssueLabel }}
+      </div>
+      <b-form-input
+        size="sm"
+        v-model="input.label"
+        @keyup.enter="addIssueLabel"
+        class="page-number-input"
+      ></b-form-input>
       <p v-on:click="markIssueAsUnread">✉️</p>
     </div>
   </div>
@@ -75,11 +89,18 @@
 import IssueStateIndicator from "../components/IssueStateIndicator";
 export default {
   name: "IssueInfoBox",
+  data() {
+    return {
+      input: {
+        label: "",
+      },
+    };
+  },
   components: {
     IssueStateIndicator,
   },
   props: {
-    issueData: Object,
+    issue: Object,
   },
   methods: {
     getRelativeDate: function (inDate) {
@@ -119,12 +140,70 @@ export default {
 
       return fuzzy;
     },
-    markIssueAsRead: function() {
-
+    markIssueAsRead: function () {
+      if (!this.issue.readByUser) {
+        this.$http
+          .post("/api/setissueread", { issueID: this.issue._id })
+          .then((response) => {
+            if (response.data.success) {
+              this.issue.readByUser = true;
+            } else {
+              // TODO Add in some error catching condition
+              console.log(response);
+            }
+          });
+      }
     },
-    markIssueAsUnread: function() {
-
-    }
+    markIssueAsUnread: function () {
+      if (this.issue.readByUser) {
+        this.$http
+          .post("/api/setissueunread", { issueID: this.issue._id })
+          .then((response) => {
+            if (response.data.success) {
+              this.issue.readByUser = false;
+            } else {
+              console.log(response);
+              // TODO Add in some error catching condition
+            }
+          });
+      }
+    },
+    addIssueLabel: function () {
+      if (this.issue.siteLabels.indexOf(this.input.label) == -1) {
+        this.$http
+          .post("/api/setissuelabel", {
+            issueID: this.issue._id,
+            setLabel: this.input.label,
+          })
+          .then((response) => {
+            if (response.data.success) {
+              this.issue.siteLabels.push(this.input.label);
+            } else {
+              console.log(response);
+              // TODO Add in some error catching condition
+            }
+          });
+      }
+    },
+    removeIssueLabel: function (inIssueLabel) {
+      console.log("Starting request");
+      var indexOfIssueLabel = this.issue.siteLabels.indexOf(inIssueLabel);
+      if (indexOfIssueLabel != -1) {
+        this.$http
+          .post("/api/removeissuelabel", {
+            issueID: this.issue._id,
+            setLabel: inIssueLabel,
+          })
+          .then((response) => {
+            if (response.data.success) {
+              this.issue.siteLabels.splice(indexOfIssueLabel, 1);
+            } else {
+              console.log(response);
+              // TODO Add in some error catching condition
+            }
+          });
+      }
+    },
   },
 };
 </script>
@@ -223,8 +302,13 @@ export default {
 }
 
 .comment-bubble {
-    display: flex;
-    margin-top: 15px;
-    margin-right: 5px;
+  display: flex;
+  margin-top: 15px;
+  margin-right: 5px;
+}
+
+.read-issue a {
+  color: #9ba3aa;
+  font-weight: 100;
 }
 </style>

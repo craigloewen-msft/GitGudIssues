@@ -45,10 +45,54 @@ const RepoInfo = new Schema({
     updating: Boolean,
 });
 
+const labelSchema = new Schema({
+    id: Number,
+    node_id: String,
+    url: String,
+    name: String,
+    description: String,
+    color: String,
+    default: Boolean,
+});
+
+const GHUserSchema = new Schema({
+    login: String,
+    id: Number,
+    node_id: String,
+    avatar_url: String,
+    gravatar_id: String,
+    url: String,
+    html_url: String,
+})
+
 const IssueInfo = new Schema({
-    data: Object,
-    number: Number,
-    repo: String,
+    shortRepo: String,
+    data: {
+        created_at: Date,
+        updated_at: Date,
+        title: String,
+        user: GHUserSchema,
+        number: Number,
+        url: String,
+        repository_url: String,
+        labels_url: String,
+        comments_url: String,
+        labels: [labelSchema],
+        state: String,
+        locked: Boolean,
+        assignee: GHUserSchema,
+        assignees: [GHUserSchema],
+        milestone: String,
+        comments: Number,
+        closed_at: Date,
+        body: String,
+
+    }
+});
+
+const SiteIssueLabelSchema = new Schema({
+    name: String,
+    issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
 });
 
 const UserDetail = new Schema({
@@ -56,7 +100,14 @@ const UserDetail = new Schema({
     password: String,
     email: String,
     repoTitles: [String],
+    issueLabels: [SiteIssueLabelSchema],
 }, { collection: 'usercollection' });
+
+const issueReadDetail = new Schema({
+    readAt: Date,
+    userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
+    issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
+})
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -64,11 +115,12 @@ UserDetail.plugin(passportLocalMongoose);
 const RepoDetails = mongoose.model('repoInfo', RepoInfo, 'repoInfo');
 const IssueDetails = mongoose.model('issueInfo', IssueInfo, 'issueInfo');
 const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
+const issueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
-const dataHandler = new WebDataHandler(RepoDetails,IssueDetails);
+const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, issueReadDetails, UserDetails);
 
 // App set up
 
@@ -94,6 +146,8 @@ const port = hostPort;
 app.listen(port, () => console.log('App listening on port ' + port));
 
 const passport = require('passport');
+const { application } = require('express');
+const { stringify } = require('querystring');
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -121,7 +175,7 @@ function returnBasicUserInfo(inputUsername, callback) {
                 callback(null);
             } else {
                 var returnValue = {
-                    username: docs[0].username 
+                    username: docs[0].username
                 };
                 callback(returnValue);
             }
@@ -258,4 +312,52 @@ app.post('/api/register', function (req, res) {
 
 // Issue Data APIs
 
+app.post('/api/getissues', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var issueResponse = await dataHandler.getIssues(req.body);
+        return res.json({ success: true, queryData: issueResponse });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
 
+app.post('/api/setissueread', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { issueID: req.body.issueID, username: req.user.id }
+        var editResponse = await dataHandler.setIssueRead(inputData);
+        return res.json({ success: true, editResponse });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/setissueunread', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { issueID: req.body.issueID, username: req.user.id }
+        var editResponse = await dataHandler.setIssueUnread(inputData);
+        return res.json({ success: true, editResponse });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/setissuelabel', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { issueID: req.body.issueID, username: req.user.id, inLabel: req.body.setLabel };
+        var editResponse = await dataHandler.setIssueLabel(inputData);
+        return res.json({ success: true, editResponse });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/removeissuelabel', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { issueID: req.body.issueID, username: req.user.id, inLabel: req.body.setLabel };
+        var editResponse = await dataHandler.removeIssueLabel(inputData);
+        return res.json({ success: true, editResponse });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});

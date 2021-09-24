@@ -82,7 +82,7 @@
       </div>
     </div>
     <div v-for="(issue, issueIndex) in newestOpenIssues" :key="issueIndex">
-      <IssueInfoBox v-bind:issueData="issue.data"></IssueInfoBox>
+      <IssueInfoBox v-bind:issue="issue"></IssueInfoBox>
     </div>
   </div>
 </template>
@@ -119,7 +119,6 @@ export default {
     refreshIssues: function () {
       this.$http.post("/api/getissues", this.inputQuery).then((response) => {
         if (response.data.success) {
-          console.log(response.data);
           const returnedIssueList = response.data.queryData.issueData;
           const returnedCount = response.data.queryData.count;
           this.newestOpenIssues = returnedIssueList;

@@ -4,6 +4,7 @@ class RefreshRepoTask {
     constructor(inputUrl, inRepoDetails, inIssueDetails) {
         this.pageNum = 1;
         this.repoUrl = 'https://api.github.com/repos/' + inputUrl + '/issues';
+        this.shortRepoUrl = inputUrl;
         this.perPageResults = 100;
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
@@ -25,7 +26,7 @@ class RefreshRepoTask {
         this.repoDocument = repoItems[0];
         this.lastUpdatedTime = this.repoDocument.lastUpdatedAt;
 
-        this.repoDocument.updating = true; 
+        this.repoDocument.updating = true;
         await this.repoDocument.save();
 
         while (!finishedRequest) {
@@ -65,7 +66,12 @@ class RefreshRepoTask {
 
     async makeRequest(pageNum) {
         try {
-            const response = await axios.get(this.repoUrl, { params: { page: pageNum, per_page: this.perPageResults, sort: 'updated', state: 'all' } });
+            const response = await axios.get(this.repoUrl, {
+                params: {
+                    page: pageNum, per_page: this.perPageResults,
+                    sort: 'updated', state: 'all', type: 'issue'
+                }
+            });
             return response;
         } catch (error) {
             return error.response;
@@ -76,24 +82,26 @@ class RefreshRepoTask {
         var response = 'success';
 
         await Promise.all(data.map(async (responseItem) => {
-            var updatedAtDate = new Date(responseItem['updated_at']);
-            this.lastSeenItemUpdatedAt = updatedAtDate;
+            if (responseItem.pull_request == null) {
+                var updatedAtDate = new Date(responseItem['updated_at']);
+                this.lastSeenItemUpdatedAt = updatedAtDate;
 
-            if (this.firstSeenUpdatedAt == null) {
-                this.firstSeenUpdatedAt = updatedAtDate;
-            }
-
-            if (updatedAtDate > this.lastUpdatedTime) {
-                // TODO: Update the issue and store it in the database
-                console.log("Updating: ", responseItem.number);
-                var issueToSave = (await this.IssueDetails.find({ number: responseItem.number, repo: this.repoDocument.url }))[0];
-                if (issueToSave == null) {
-                    issueToSave = await this.IssueDetails.create({ number: responseItem.number, repo: this.repoDocument.url });
+                if (this.firstSeenUpdatedAt == null) {
+                    this.firstSeenUpdatedAt = updatedAtDate;
                 }
-                issueToSave.data = responseItem;
-                await issueToSave.save();
-            } else {
-                response = 'uptodate';
+
+                if (updatedAtDate > this.lastUpdatedTime) {
+                    // TODO: Update the issue and store it in the database
+                    console.log("Updating: ", responseItem.number);
+                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, repo: this.shortRepoUrl }))[0];
+                    if (issueToSave == null) {
+                        issueToSave = await this.IssueDetails.create({ repo: this.shortRepoUrl });
+                    }
+                    issueToSave.data = responseItem;
+                    await issueToSave.save();
+                } else {
+                    response = 'uptodate';
+                }
             }
         }));
 
