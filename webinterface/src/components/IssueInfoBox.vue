@@ -8,6 +8,7 @@
         class="issue-info-box"
         v-bind:class="{ 'read-issue': issue.readByUser }"
         v-on:click="markIssueAsRead"
+        v-on:click.middle="markIssueAsRead"
       >
         <div class="issue-title-box">
           <a
@@ -18,6 +19,14 @@
             "
             >{{ issue.data.title }}</a
           >
+          <div
+            class="gh-issue-label"
+            v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.data.labels"
+            :key="ghIssueLabelIndex"
+            v-bind:style="{ backgroundColor: '#' + ghIssueLabel.color }"
+          >
+            {{ ghIssueLabel.name }}
+          </div>
         </div>
         <div class="issue-sub-info-box">
           <p>
@@ -42,7 +51,31 @@
                 mt-1
               "
               aria-label="Assigned to "
-            ></div>
+            >
+              <div v-if="issue.data.assignee"
+                class="
+                  AvatarStack-body
+                  tooltipped
+                  tooltipped-sw
+                  tooltipped-multiline
+                  tooltipped-align-right-1
+                  mt-1
+                "
+              >
+                <a
+                  class="avatar avatar-user"
+                  :href="getUserAssignedIssuesURL(issue.data.assignee.login)"
+                >
+                  <img
+                    class="from-avatar avatar-user"
+                    src="https://avatars.githubusercontent.com/u/42221804?s=40&amp;v=4"
+                    width="20"
+                    height="20"
+                    :alt="issue.data.assignee.login"
+                  />
+                </a>
+              </div>
+            </div>
           </div>
         </span>
         <span class="ml-2 flex-1 flex-shrink-0">
@@ -140,6 +173,10 @@ export default {
 
       return fuzzy;
     },
+    getUserAssignedIssuesURL: function (inLogin) {
+        var returnString = 'https://github.com/MicrosoftDocs/WSL/issues?q=assignee%3A' + inLogin + '+is%3Aopen';
+        return returnString;
+    },
     markIssueAsRead: function () {
       if (!this.issue.readByUser) {
         this.$http
@@ -178,6 +215,7 @@ export default {
           .then((response) => {
             if (response.data.success) {
               this.issue.siteLabels.push(this.input.label);
+              this.input.label = "";
             } else {
               console.log(response);
               // TODO Add in some error catching condition
@@ -186,7 +224,6 @@ export default {
       }
     },
     removeIssueLabel: function (inIssueLabel) {
-      console.log("Starting request");
       var indexOfIssueLabel = this.issue.siteLabels.indexOf(inIssueLabel);
       if (indexOfIssueLabel != -1) {
         this.$http
@@ -310,5 +347,20 @@ export default {
 .read-issue a {
   color: #9ba3aa;
   font-weight: 100;
+}
+
+.gh-issue-label {
+  padding: 0 7px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  border: 1px solid transparent;
+  border-radius: 2em;
+  padding-top: 2px;
+  margin-left: 4px;
+}
+
+.avatar-user {
+    border-radius: 50%;
 }
 </style>

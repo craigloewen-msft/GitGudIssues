@@ -63,6 +63,44 @@
             >
           </b-dropdown-form>
         </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
+          text="Assignee"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-form>
+            <b-form-input
+              placeholder="Assignee GH alias"
+              size="sm"
+              v-model="inputQuery.assignee"
+              v-debounce:1s="refreshIssues"
+              @keyup.enter="refreshIssues"
+              >Created</b-form-input
+            >
+          </b-dropdown-form>
+        </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
+          text="Labels"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-form>
+            <b-form-input
+              placeholder="e.g: bug,docs"
+              size="sm"
+              v-model="inputQuery.labels"
+              v-debounce:1s="refreshIssues"
+              @keyup.enter="refreshIssues"
+              >Created</b-form-input
+            >
+          </b-dropdown-form>
+        </b-dropdown>
       </div>
 
       <div class="page-search-box">
@@ -94,18 +132,13 @@ export default {
   components: {
     IssueInfoBox,
   },
+  props: {
+    inputQuery: Object,
+  },
   data() {
     return {
       newestOpenIssues: [],
       totalIssueCount: 0,
-      inputQuery: {
-        repo: "microsoftdocs/wsl",
-        state: "all",
-        sort: "created",
-        limit: 25,
-        creator: null,
-        page_num: 1,
-      },
     };
   },
   mounted() {

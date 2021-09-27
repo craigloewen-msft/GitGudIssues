@@ -63,6 +63,16 @@ class WebDataHandler {
             findQuery['data.user.login'] = { "$regex": queryData.creator, "$options": "gi" }
         }
 
+        if (queryData.assignee) {
+            findQuery['data.assignee.login'] = { "$regex": queryData.assignee, "$options": "gi" }
+        }
+
+        if (queryData.labels) {
+            var labelList = queryData.labels.split(',');
+            var bugMatchObject = { 'name': { '$in': labelList } }
+            findQuery['data.labels'] = { "$elemMatch": bugMatchObject };
+        }
+
         var queryResults = await Promise.all([this.IssueDetails.count(findQuery).exec(), this.IssueDetails.find(findQuery).sort(sortQuery).skip(skipNum).limit(limitNum).exec()]);
 
         // Get a return array
@@ -94,7 +104,7 @@ class WebDataHandler {
 
         }));
 
-        var [readResult, siteLabelResult] = await Promise.all([getIssueReadPromise,getIssueSiteLabelsPromise]);
+        var [readResult, siteLabelResult] = await Promise.all([getIssueReadPromise, getIssueSiteLabelsPromise]);
 
         // Return the values
         var returnResult = { count: queryResults[0], issueData: returnIssueResultsArray };
@@ -160,7 +170,6 @@ class WebDataHandler {
             await inUser.save();
         }
 
-
         return true;
     }
 
@@ -181,18 +190,17 @@ class WebDataHandler {
         var containsThisIssue = issueLabel.issueList.indexOf(inIssue._id);
 
         if (containsThisIssue != -1) {
-            issueLabel.issueList.splice(containsThisIssue,1);
+            issueLabel.issueList.splice(containsThisIssue, 1);
 
             if (issueLabel.issueList.length == 0) {
                 var issueLabelIndex = inUser.issueLabels.indexOf(issueLabel);
                 if (issueLabelIndex != -1) {
-                    inUser.issueLabels.splice(issueLabelIndex,1);
+                    inUser.issueLabels.splice(issueLabelIndex, 1);
                 }
             }
 
             await inUser.save();
         }
-
 
         return true;
     }
