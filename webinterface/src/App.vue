@@ -106,7 +106,6 @@ a:hover {
   color: #58a6ff;
 }
 
-
 body {
   overflow-x: hidden;
   display: flex;
@@ -165,10 +164,34 @@ body {
 }
 
 .Link--primary:hover {
-    color: #58a6ff !important;
+  color: #58a6ff !important;
 }
 
 .Link--muted:hover {
-    color: #58a6ff !important;
+  color: #58a6ff !important;
 }
+
+.custom-tag-box {
+  margin-left: 2px;
+  background-color: #454749;
+  border-radius: 2em;
+  padding: 0 7px;
+  font-size: 14px;
+  display:inline-block;
+  text-decoration: none;
+}
+
+.custom-tag-collection {
+  display: inline-block;
+}
+
+.custom-tag-box a:hover {
+  font-weight: 900;
+  color: #58a6ff;
+} 
+
+.custom-tag-box a {
+  text-decoration: none;
+}
+
 </style>

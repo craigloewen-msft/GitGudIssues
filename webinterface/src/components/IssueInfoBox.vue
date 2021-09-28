@@ -52,7 +52,8 @@
               "
               aria-label="Assigned to "
             >
-              <div v-if="issue.data.assignee"
+              <div
+                v-if="issue.data.assignee"
                 class="
                   AvatarStack-body
                   tooltipped
@@ -100,12 +101,20 @@
       </div>
     </div>
     <div class="issue-controls-box col-6">
-      <div
-        v-for="(siteIssueLabel, siteIssueLabelIndex) in issue.siteLabels"
-        :key="siteIssueLabelIndex"
-        v-on:click="removeIssueLabel(siteIssueLabel)"
-      >
-        {{ siteIssueLabel }}
+      <div class="custom-tag-collection">
+        <div
+          class="custom-tag-box"
+          v-for="(siteIssueLabel, siteIssueLabelIndex) in issue.siteLabels"
+          :key="siteIssueLabelIndex"
+        >
+          {{ siteIssueLabel }}
+          <a
+            class="custom-tag-box-link"
+            href="#"
+            v-on:click="removeIssueLabel(siteIssueLabel)"
+            >&times;</a
+          >
+        </div>
       </div>
       <b-form-input
         size="sm"
@@ -174,8 +183,11 @@ export default {
       return fuzzy;
     },
     getUserAssignedIssuesURL: function (inLogin) {
-        var returnString = 'https://github.com/MicrosoftDocs/WSL/issues?q=assignee%3A' + inLogin + '+is%3Aopen';
-        return returnString;
+      var returnString =
+        "https://github.com/MicrosoftDocs/WSL/issues?q=assignee%3A" +
+        inLogin +
+        "+is%3Aopen";
+      return returnString;
     },
     markIssueAsRead: function () {
       if (!this.issue.readByUser) {
@@ -361,6 +373,6 @@ export default {
 }
 
 .avatar-user {
-    border-radius: 50%;
+  border-radius: 50%;
 }
 </style>

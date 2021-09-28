@@ -175,7 +175,8 @@ function returnBasicUserInfo(inputUsername, callback) {
                 callback(null);
             } else {
                 var returnValue = {
-                    username: docs[0].username
+                    username: docs[0].username,
+                    repos: docs[0].repoTitles,
                 };
                 callback(returnValue);
             }
@@ -267,7 +268,7 @@ app.get('/api/user/:username/', authenticateToken, (req, res) => {
                 var returnValue = {
                     success: true, auth: true,
                     user: {
-                        username: docs[0].username, email: docs[0].email
+                        username: docs[0].username, email: docs[0].email, repos: docs[0].repoTitles
                     }
                 };
                 res.json(returnValue);
@@ -357,6 +358,55 @@ app.post('/api/removeissuelabel', authenticateToken, async function (req, res) {
         const inputData = { issueID: req.body.issueID, username: req.user.id, inLabel: req.body.setLabel };
         var editResponse = await dataHandler.removeIssueLabel(inputData);
         return res.json({ success: true, editResponse });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+// User data APIs
+
+app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { username: req.user.id, inRepo: req.body.repo };
+
+        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
+
+        if (inputUser) {
+            if (inputUser.repoTitles.indexOf(inputData.inRepo) == -1) {
+                inputUser.repoTitles.push(inputData.inRepo);
+                await inputUser.save();
+            } else {
+                return res.json(returnFailure("Failed setting repo"));
+            }
+        } else {
+            return res.json(returnFailure("Failed setting repo"));
+        }
+
+        return res.json({ success: true });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/removeuserrepo', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { username: req.user.id, inRepo: req.body.repo };
+
+        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
+
+        if (inputUser) {
+            var repoIndex = inputUser.repoTitles.indexOf(inputData.inRepo);
+            if (repoIndex != -1) {
+                inputUser.repoTitles.splice(repoIndex, 1);
+                await inputUser.save();
+            } else {
+                return res.json(returnFailure("Failed getting repo"));
+            }
+        } else {
+            return res.json(returnFailure("Failed getting repo"));
+        }
+
+        return res.json({ success: true });
     } catch (error) {
         return res.json(returnFailure(error));
     }
