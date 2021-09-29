@@ -31,8 +31,6 @@ class WebDataHandler {
         var limitNum = 30;
         var skipNum = 0;
 
-        findQuery.repo = queryData.repo;
-
         if (queryData.per_page) {
             limitNum = queryData.per_page;
         }
@@ -69,8 +67,20 @@ class WebDataHandler {
 
         if (queryData.labels) {
             var labelList = queryData.labels.split(',');
-            var bugMatchObject = { 'name': { '$in': labelList } }
-            findQuery['data.labels'] = { "$elemMatch": bugMatchObject };
+            var labelMatchObject = { 'name': { '$in': labelList } }
+            findQuery['data.labels'] = { "$elemMatch": labelMatchObject };
+        }
+
+        if (queryData.repos) {
+            var repoList = queryData.repos.split(',');
+            var regexString = "";
+            for (let i = 0; i < repoList.length; i++) {
+                if (i != 0) {
+                    regexString = regexString + "|";
+                }
+                regexString = regexString +  "https://api.github.com/repos/" + repoList[i];
+            }
+            findQuery['data.repository_url'] = { "$regex": regexString, "$options": "gi" };
         }
 
         var queryResults = await Promise.all([this.IssueDetails.count(findQuery).exec(), this.IssueDetails.find(findQuery).sort(sortQuery).skip(skipNum).limit(limitNum).exec()]);

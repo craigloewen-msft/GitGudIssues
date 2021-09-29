@@ -1,7 +1,39 @@
 <template>
   <div class="issue-table">
+    <div class="title-row-controls">
+      <div class="title-row-controls-left">
+        <h3 v-if="!editMode">{{ inputQuery.title }}</h3>
+        <div v-if="!editMode">
+          <b-button size="sm" v-on:click="enterEditMode">Edit</b-button>
+        </div>
+        <b-form-input v-if="editMode" v-model="inputQuery.title"></b-form-input>
+      </div>
+      <div v-if="editMode" class="title-row-controls-right">
+        <b-button size="sm" v-on:click="saveQuery">Save</b-button>
+        <b-button size="sm" v-on:click="deleteQuery">Delete</b-button>
+        <b-button size="sm" v-on:click="cancelEditMode">Cancel</b-button>
+      </div>
+    </div>
     <div class="table-header-buttons">
       <div class="table-header-buttons-group">
+        <b-dropdown
+          id="dropdown-1"
+          text="Repo"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-form>
+            <b-form-input
+              placeholder="microsoft/wsl,microsoft/vscode"
+              size="sm"
+              v-model="inputQuery.repos"
+              v-debounce:1s="refreshIssues"
+              @keyup.enter="refreshIssues"
+            ></b-form-input>
+          </b-dropdown-form>
+        </b-dropdown>
+
         <b-dropdown
           id="dropdown-1"
           text="State"
@@ -59,8 +91,7 @@
               v-model="inputQuery.creator"
               v-debounce:1s="refreshIssues"
               @keyup.enter="refreshIssues"
-              >Created</b-form-input
-            >
+            ></b-form-input>
           </b-dropdown-form>
         </b-dropdown>
 
@@ -139,6 +170,7 @@ export default {
     return {
       newestOpenIssues: [],
       totalIssueCount: 0,
+      editMode: false,
     };
   },
   mounted() {
@@ -161,6 +193,42 @@ export default {
         }
       });
     },
+    saveQuery: function () {
+      this.$http
+        .post("/api/modifyusermanageissuequery", {
+          action: "save",
+          query: this.inputQuery,
+        })
+        .then((response) => {
+          if (response.data.success) {
+            console.log("Success!");
+            console.log(response.data);
+            this.inputQuery._id = response.data.issueID;
+          } else {
+            console.log(response);
+          }
+        });
+    },
+    deleteQuery: function () {
+      this.$http
+        .post("/api/modifyusermanageissuequery", {
+          action: "delete",
+          query: this.inputQuery,
+        })
+        .then((response) => {
+          if (response.data.success) {
+            this.$emit("deleteQueryEvent");
+          } else {
+            console.log(response);
+          }
+        });
+    },
+    cancelEditMode: function () {
+      this.editMode = false;
+    },
+    enterEditMode: function () {
+      this.editMode = true;
+    },
   },
 };
 </script>
@@ -179,5 +247,24 @@ export default {
 .page-number-input {
   height: 10px;
   width: 55px;
+}
+
+.title-row-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title-row-controls-left {
+  display: flex;
+  align-items: center;
+}
+
+.title-row-controls-right {
+  display: inline-block;
+}
+
+.title-row-controls button {
+  margin-left: 5px;
 }
 </style>

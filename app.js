@@ -16,15 +16,6 @@ const config = fs.existsSync('./config.js') ? require('./config') : require('./d
 const app = express();
 app.use(express.static(__dirname + "/dist"));
 
-//======== Functions and definitions
-
-function PromiseTimeout(delayms) {
-    return new Promise(function (resolve, reject) {
-        setTimeout(resolve, delayms);
-    });
-}
-
-
 // Set up Dev or Production
 let mongooseConnectionString = '';
 let hostPort = 3000;
@@ -66,7 +57,6 @@ const GHUserSchema = new Schema({
 })
 
 const IssueInfo = new Schema({
-    shortRepo: String,
     data: {
         created_at: Date,
         updated_at: Date,
@@ -82,7 +72,7 @@ const IssueInfo = new Schema({
         locked: Boolean,
         assignee: GHUserSchema,
         assignees: [GHUserSchema],
-        milestone: String,
+        milestone: Object,
         comments: Number,
         closed_at: Date,
         body: String,
@@ -95,11 +85,23 @@ const SiteIssueLabelSchema = new Schema({
     issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
 });
 
+const searchQueryDetail = new Schema({
+    title: String,
+    state: String,
+    sort: String,
+    limit: Number,
+    creator: String,
+    assignee: String,
+    labels: String,
+    repos: String,
+});
+
 const UserDetail = new Schema({
     username: String,
     password: String,
     email: String,
     repoTitles: [String],
+    manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
     issueLabels: [SiteIssueLabelSchema],
 }, { collection: 'usercollection' });
 
@@ -116,6 +118,7 @@ const RepoDetails = mongoose.model('repoInfo', RepoInfo, 'repoInfo');
 const IssueDetails = mongoose.model('issueInfo', IssueInfo, 'issueInfo');
 const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
 const issueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
+const searchQueryDetails = mongoose.model('searchQueryInfo', searchQueryDetail, 'searchQueryInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
@@ -244,6 +247,7 @@ app.post('/api/login', (req, res, next) => {
                     return res.json(returnFailure('Failure to login'));
                 }
 
+                dataHandler.refreshData('microsoft/wsl');
                 dataHandler.refreshData('microsoftdocs/wsl');
 
                 let token = jwt.sign({ id: user.username }, config.secret, { expiresIn: JWTTimeout });
@@ -407,6 +411,51 @@ app.post('/api/removeuserrepo', authenticateToken, async function (req, res) {
         }
 
         return res.json({ success: true });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.get('/api/getusermanageissuequeries', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { username: req.user.id };
+
+        var inputUser = (await UserDetails.find({ 'username': inputData.username }).populate('manageIssueSearchQueries'))[0];
+
+        if (inputUser) {
+            return res.json({ success: true, queries: inputUser.manageIssueSearchQueries });
+        } else {
+            return res.json(returnFailure("Failed getting user"));
+        }
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/modifyusermanageissuequery', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { username: req.user.id, inAction: req.body.action, inQuery: req.body.query };
+        const { _id: inQueryID, ...inQueryData } = inputData.inQuery;
+        var returnID = null;
+
+        if (inputData.inAction == "save") {
+            var updatedSearchQuery = await searchQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
+            if (updatedSearchQuery == null) {
+                var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
+                var newSearchQuery = await searchQueryDetails.create(inputData.inQuery);
+                await newSearchQuery.save();
+                inputUser.manageIssueSearchQueries.push(newSearchQuery);
+                await inputUser.save();
+                returnID = newSearchQuery.id.toString()
+            } else {
+                returnID = updatedSearchQuery.id.toString();
+            }
+        } else if (inputData.inAction == "delete") {
+            var deletedSearchQuery = await searchQueryDetails.findByIdAndDelete(inQueryID);
+            returnID = inQueryID;
+        }
+
+        return res.json({ success: true, issueID: returnID });
     } catch (error) {
         return res.json(returnFailure(error));
     }

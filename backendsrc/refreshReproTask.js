@@ -5,6 +5,7 @@ class RefreshRepoTask {
         this.pageNum = 1;
         this.repoUrl = 'https://api.github.com/repos/' + inputUrl + '/issues';
         this.shortRepoUrl = inputUrl;
+        this.longRepoUrl = 'https://api.github.com/repos/' + inputUrl;
         this.perPageResults = 100;
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
@@ -12,6 +13,12 @@ class RefreshRepoTask {
         this.lastSeenItemUpdatedAt = null;
         this.firstSeenUpdatedAt = null;
         this.repoDocument = null;
+    }
+
+    PromiseTimeout(delayms) {
+        return new Promise(function (resolve, reject) {
+            setTimeout(resolve, delayms);
+        });
     }
 
     async refreshData() {
@@ -57,7 +64,7 @@ class RefreshRepoTask {
                 var retryTime = new Date(Number(responseUnixTime) * 1000);
                 var retryDifference = responseUnixTime - currentTime;
                 console.log("Rate limited waiting until: ", retryTime);
-                await PromiseTimeout(retryDifference * 1000);
+                await this.PromiseTimeout(retryDifference * 1000);
             }
 
             this.pageNum = this.pageNum + 1;
@@ -93,9 +100,9 @@ class RefreshRepoTask {
                 if (updatedAtDate > this.lastUpdatedTime) {
                     // TODO: Update the issue and store it in the database
                     console.log("Updating: ", responseItem.number);
-                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, repo: this.shortRepoUrl }))[0];
+                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': this.longRepoUrl }))[0];
                     if (issueToSave == null) {
-                        issueToSave = await this.IssueDetails.create({ repo: this.shortRepoUrl });
+                        issueToSave = await this.IssueDetails.create({});
                     }
                     issueToSave.data = responseItem;
                     await issueToSave.save();

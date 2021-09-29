@@ -19,14 +19,14 @@
             "
             >{{ issue.data.title }}</a
           >
-          <div
+          <span
             class="gh-issue-label"
             v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.data.labels"
             :key="ghIssueLabelIndex"
-            v-bind:style="{ backgroundColor: '#' + ghIssueLabel.color }"
+            v-bind:style="{ backgroundColor: shadeColor('#' + ghIssueLabel.color,-75) }"
           >
             {{ ghIssueLabel.name }}
-          </div>
+          </span>
         </div>
         <div class="issue-sub-info-box">
           <p>
@@ -189,6 +189,30 @@ export default {
         "+is%3Aopen";
       return returnString;
     },
+    shadeColor: function (color, percent) {
+      // Credit to this Stack overflow https://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
+      // Thank you Pablo! :)
+      var R = parseInt(color.substring(1, 3), 16);
+      var G = parseInt(color.substring(3, 5), 16);
+      var B = parseInt(color.substring(5, 7), 16);
+
+      R = parseInt((R * (100 + percent)) / 100);
+      G = parseInt((G * (100 + percent)) / 100);
+      B = parseInt((B * (100 + percent)) / 100);
+
+      R = R < 255 ? R : 255;
+      G = G < 255 ? G : 255;
+      B = B < 255 ? B : 255;
+
+      var RR =
+        R.toString(16).length == 1 ? "0" + R.toString(16) : R.toString(16);
+      var GG =
+        G.toString(16).length == 1 ? "0" + G.toString(16) : G.toString(16);
+      var BB =
+        B.toString(16).length == 1 ? "0" + B.toString(16) : B.toString(16);
+
+      return "#" + RR + GG + BB;
+    },
     markIssueAsRead: function () {
       if (!this.issue.readByUser) {
         this.$http
@@ -291,7 +315,7 @@ export default {
 }
 
 .issue-title-box {
-  display: flex;
+  display: inline-block;
   font-weight: 600;
   font-size: 16px;
 }
@@ -370,9 +394,14 @@ export default {
   border-radius: 2em;
   padding-top: 2px;
   margin-left: 4px;
+  display: inline-block;
 }
 
 .avatar-user {
   border-radius: 50%;
+}
+
+.gh-issue-label-box {
+  display: inline;
 }
 </style>
