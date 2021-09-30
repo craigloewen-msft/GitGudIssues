@@ -57,6 +57,7 @@ const GHUserSchema = new Schema({
 })
 
 const IssueInfo = new Schema({
+    siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
     data: {
         created_at: Date,
         updated_at: Date,
@@ -80,9 +81,10 @@ const IssueInfo = new Schema({
     }
 });
 
-const SiteIssueLabelSchema = new Schema({
+const siteIssueLabelDetail = new Schema({
     name: String,
     issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
+    owner: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
 });
 
 const searchQueryDetail = new Schema({
@@ -94,6 +96,7 @@ const searchQueryDetail = new Schema({
     assignee: String,
     labels: String,
     repos: String,
+    siteLabels: String,
 });
 
 const UserDetail = new Schema({
@@ -102,7 +105,7 @@ const UserDetail = new Schema({
     email: String,
     repoTitles: [String],
     manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
-    issueLabels: [SiteIssueLabelSchema],
+    issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
 }, { collection: 'usercollection' });
 
 const issueReadDetail = new Schema({
@@ -119,11 +122,12 @@ const IssueDetails = mongoose.model('issueInfo', IssueInfo, 'issueInfo');
 const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
 const issueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
 const searchQueryDetails = mongoose.model('searchQueryInfo', searchQueryDetail, 'searchQueryInfo');
+const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabelDetail, 'siteIssueLabelInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
-const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, issueReadDetails, UserDetails);
+const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, issueReadDetails, UserDetails, siteIssueLabelDetails);
 
 // App set up
 
@@ -361,7 +365,11 @@ app.post('/api/removeissuelabel', authenticateToken, async function (req, res) {
     try {
         const inputData = { issueID: req.body.issueID, username: req.user.id, inLabel: req.body.setLabel };
         var editResponse = await dataHandler.removeIssueLabel(inputData);
-        return res.json({ success: true, editResponse });
+        if (editResponse) {
+            return res.json({ success: true, editResponse });
+        } else {
+            return res.json(returnFailure("Failure removing"));
+        }
     } catch (error) {
         return res.json(returnFailure(error));
     }

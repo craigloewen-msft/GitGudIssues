@@ -1,11 +1,12 @@
 const RefreshRepoTask = require('./refreshReproTask')
 
 class WebDataHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueReadDetails, inUserDetails) {
+    constructor(inRepoDetails, inIssueDetails, inIssueReadDetails, inUserDetails, inSiteIssueLabelDetails) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueReadDetails = inIssueReadDetails;
         this.UserDetails = inUserDetails;
+        this.siteIssueLabelDetails = inSiteIssueLabelDetails;
     }
 
     async refreshData(inUrl) {
@@ -16,8 +17,8 @@ class WebDataHandler {
     async getIssues(queryData) {
 
         // Get User Data
-        var inUser = (await this.UserDetails.find({ username: queryData.username }))[0];
-        const userIssueLabelList = JSON.parse(JSON.stringify(inUser.issueLabels));
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels'))[0];
+        let userIssueLabelList = inUser.issueLabels;
 
         if (inUser == null) {
             throw "User can't be found";
@@ -66,21 +67,54 @@ class WebDataHandler {
         }
 
         if (queryData.labels) {
-            var labelList = queryData.labels.split(',');
-            var labelMatchObject = { 'name': { '$in': labelList } }
-            findQuery['data.labels'] = { "$elemMatch": labelMatchObject };
+            let andLabelList = queryData.labels.split('&');
+            let labelMatchObject = [];
+            for (let i = 0; i < andLabelList.length; i++) {
+                let labelList = andLabelList[i].split(',');
+                let regexString = "";
+                for (let j = 0; j < labelList.length; j++) {
+                    if (j != 0) {
+                        regexString = regexString + "|";
+                    }
+                    regexString = regexString + labelList[j];
+                }
+                labelMatchObject.push({ "data.labels": { "$elemMatch": { 'name': { "$regex": regexString, "$options": "gi" } } } });
+            }
+            if (findQuery["$and"] == null) {
+                findQuery["$and"] = [];
+            }
+            for (let i = 0; i < labelMatchObject.length; i++) {
+                findQuery["$and"].push(labelMatchObject[i]);
+            }
         }
 
         if (queryData.repos) {
-            var repoList = queryData.repos.split(',');
-            var regexString = "";
+            let repoList = queryData.repos.split(',');
+            let regexString = "";
             for (let i = 0; i < repoList.length; i++) {
                 if (i != 0) {
                     regexString = regexString + "|";
                 }
-                regexString = regexString +  "https://api.github.com/repos/" + repoList[i];
+                regexString = regexString + "https://api.github.com/repos/" + repoList[i];
             }
             findQuery['data.repository_url'] = { "$regex": regexString, "$options": "gi" };
+        }
+
+        if (queryData.siteLabels) {
+            let andLabelList = queryData.siteLabels.split('&');
+            let labelMatchObject = [];
+            for (let i = 0; i < andLabelList.length; i++) {
+                let siteLabelList = andLabelList[i].split(',');
+                let orIssueLabels = await this.siteIssueLabelDetails.find({ 'name': { '$in': siteLabelList }, owner: inUser._id });
+                labelMatchObject.push({ "siteIssueLabels": { "$in": orIssueLabels } });
+            }
+
+            if (findQuery["$and"] == null) {
+                findQuery["$and"] = [];
+            }
+            for (let i = 0; i < labelMatchObject.length; i++) {
+                findQuery["$and"].push(labelMatchObject[i]);
+            }
         }
 
         var queryResults = await Promise.all([this.IssueDetails.count(findQuery).exec(), this.IssueDetails.find(findQuery).sort(sortQuery).skip(skipNum).limit(limitNum).exec()]);
@@ -160,24 +194,27 @@ class WebDataHandler {
 
     async setIssueLabel(queryData) {
         var inIssue = await this.IssueDetails.findById(queryData.issueID);
-        var inUser = (await this.UserDetails.find({ username: queryData.username }))[0];
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels'))[0];
 
         if (inUser == null || inIssue == null) {
             return false;
         }
 
-        var issueLabel = inUser.issueLabels.find(object => object.name == queryData.inLabel);
+        var issueLabel = inUser.issueLabels.find(obj => obj.name == queryData.inLabel);
+        var siteIssueLabelID = null;
 
         if (issueLabel == null) {
-            issueLabel = { name: queryData.inLabel, issueList: [] };
-            inUser.issueLabels.push(issueLabel);
+            issueLabel = await this.siteIssueLabelDetails.create({ name: queryData.inLabel, issueList: [], owner: inUser._id });
+            inUser.issueLabels.push(issueLabel._id);
         }
 
         var containsThisIssue = issueLabel.issueList.indexOf(inIssue._id);
 
         if (containsThisIssue == -1) {
             issueLabel.issueList.push(inIssue._id);
-            await inUser.save();
+            inIssue.siteIssueLabels.push(issueLabel._id);
+            await issueLabel.save();
+            await Promise.all([inUser.save(), inIssue.save()]);
         }
 
         return true;
@@ -185,33 +222,40 @@ class WebDataHandler {
 
     async removeIssueLabel(queryData) {
         var inIssue = await this.IssueDetails.findById(queryData.issueID);
-        var inUser = (await this.UserDetails.find({ username: queryData.username }))[0];
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels'))[0];
 
         if (inUser == null || inIssue == null) {
             return false;
         }
 
-        var issueLabel = inUser.issueLabels.find(object => object.name == queryData.inLabel);
+        var issueLabel = inUser.issueLabels.find(obj => obj.name == queryData.inLabel);
 
         if (issueLabel == null) {
             return false;
         }
 
-        var containsThisIssue = issueLabel.issueList.indexOf(inIssue._id);
+        var siteIssueLabelID = issueLabel._id.toString();
+        var siteIssueLabelIssueIndex = issueLabel.issueList.indexOf(inIssue._id);
+        var issueSiteIssueLabelIndex = inIssue.siteIssueLabels.indexOf(issueLabel._id);
 
-        if (containsThisIssue != -1) {
-            issueLabel.issueList.splice(containsThisIssue, 1);
+        if (issueSiteIssueLabelIndex != -1) {
+            inIssue.siteIssueLabels.splice(issueSiteIssueLabelIndex, 1);
+            await inIssue.save();
+        }
+
+        if (siteIssueLabelIssueIndex != -1) {
+            issueLabel.issueList.splice(siteIssueLabelIssueIndex, 1);
 
             if (issueLabel.issueList.length == 0) {
                 var issueLabelIndex = inUser.issueLabels.indexOf(issueLabel);
                 if (issueLabelIndex != -1) {
                     inUser.issueLabels.splice(issueLabelIndex, 1);
+                    inUser.save();
                 }
+                await this.siteIssueLabelDetails.findByIdAndDelete(siteIssueLabelID);
             }
-
-            await inUser.save();
+            await issueLabel.save();
         }
-
         return true;
     }
 

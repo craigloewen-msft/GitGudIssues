@@ -2,10 +2,11 @@
   <div class="pageContent">
     <div class="container issues-container">
       <IssueTable
-        v-for="(issueQuery, issueQueryIndex) in issueQueries"
+        v-for="(issueQuery, issueQueryIndex) in issueQueryObjects"
         :key="issueQueryIndex"
-        v-bind:inputQuery="issueQuery"
+        v-bind:inputQuery="issueQuery.query"
         @deleteQueryEvent="deleteQuery(issueQuery)"
+        v-bind:editMode="issueQuery.startEdit"
       >
       </IssueTable>
       <b-button v-on:click="addNewQuery">New Query</b-button>
@@ -23,7 +24,7 @@ export default {
   },
   data() {
     return {
-      issueQueries: [
+      issueQueryObjects: [
         // {
         //   title: "Newest Issues",
         //   repo: "microsoftdocs/wsl",
@@ -55,25 +56,28 @@ export default {
   },
   methods: {
     addNewQuery: function () {
-      this.issueQueries.push({
-        title: "New Query",
-        repo: null,
-        state: null,
-        sort: null,
-        limit: 5,
-        creator: null,
-        assignee: null,
-        labels: null,
-        repos: null,
-        page_num: 1,
+      this.issueQueryObjects.push({
+        startEdit: true,
+        query: {
+          title: "New Query",
+          repo: null,
+          state: null,
+          sort: null,
+          limit: 5,
+          creator: null,
+          assignee: null,
+          labels: null,
+          repos: null,
+          page_num: 1,
+        },
       });
     },
     deleteQuery: function (inputDeleteQuery) {
       var searchID = inputDeleteQuery._id;
       var deleteQueryIndex = -1;
 
-      for (let i = 0; i < this.issueQueries.length; i++) {
-        if (this.issueQueries[i]._id == searchID) {
+      for (let i = 0; i < this.issueQueryObjects.length; i++) {
+        if (this.issueQueryObjects[i]._id == searchID) {
           deleteQueryIndex = i;
           break;
         }
@@ -81,14 +85,19 @@ export default {
 
       console.log(deleteQueryIndex);
       if (deleteQueryIndex != -1) {
-        this.issueQueries.splice(deleteQueryIndex, 1);
+        this.issueQueryObjects.splice(deleteQueryIndex, 1);
       }
     },
     refreshQueryList: function () {
       this.$http.get("/api/getusermanageissuequeries").then((response) => {
         if (response.data.success) {
           const returnedQueries = response.data.queries;
-          this.issueQueries = returnedQueries;
+          for (let i = 0; i < returnedQueries.length; i++) {
+            this.issueQueryObjects.push({
+              startEdit: false,
+              query: returnedQueries[i],
+            });
+          }
         } else {
           // TODO Add in some error catching condition
           console.log(response);

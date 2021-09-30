@@ -123,12 +123,31 @@
         >
           <b-dropdown-form>
             <b-form-input
-              placeholder="e.g: bug,docs"
+              placeholder="bug,docs&gpu"
               size="sm"
               v-model="inputQuery.labels"
               v-debounce:1s="refreshIssues"
               @keyup.enter="refreshIssues"
-              >Created</b-form-input
+              ></b-form-input
+            >
+          </b-dropdown-form>
+        </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
+          text="Site Labels"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-form>
+            <b-form-input
+              placeholder="debug,test"
+              size="sm"
+              v-model="inputQuery.siteLabels"
+              v-debounce:1s="refreshIssues"
+              @keyup.enter="refreshIssues"
+              ></b-form-input
             >
           </b-dropdown-form>
         </b-dropdown>
@@ -165,12 +184,12 @@ export default {
   },
   props: {
     inputQuery: Object,
+    editMode: { type: Boolean, required: false, default: false}
   },
   data() {
     return {
       newestOpenIssues: [],
       totalIssueCount: 0,
-      editMode: false,
     };
   },
   mounted() {
@@ -201,9 +220,8 @@ export default {
         })
         .then((response) => {
           if (response.data.success) {
-            console.log("Success!");
-            console.log(response.data);
             this.inputQuery._id = response.data.issueID;
+            this.cancelEditMode();
           } else {
             console.log(response);
           }
