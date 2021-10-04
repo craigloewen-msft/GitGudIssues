@@ -1,18 +1,19 @@
 const axios = require('axios')
 
 class RefreshRepoTask {
-    constructor(inputUrl, inRepoDetails, inIssueDetails) {
+    constructor(inRepo, inRepoDetails, inIssueDetails) {
         this.pageNum = 1;
-        this.repoUrl = 'https://api.github.com/repos/' + inputUrl + '/issues';
-        this.shortRepoUrl = inputUrl;
-        this.longRepoUrl = 'https://api.github.com/repos/' + inputUrl;
+        this.repoUrl = inRepo.url;
+        this.repoIssuesUrl = inRepo.url + '/issues';
+        this.shortRepoUrl = inRepo.shortURL;
+        this.dataRepositoryUrl = 'https://api.github.com/repos/' + inRepo.shortURL;
         this.perPageResults = 100;
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.lastUpdatedTime = null;
         this.lastSeenItemUpdatedAt = null;
         this.firstSeenUpdatedAt = null;
-        this.repoDocument = null;
+        this.repoDocument = inRepo;
     }
 
     PromiseTimeout(delayms) {
@@ -22,17 +23,17 @@ class RefreshRepoTask {
     }
 
     async refreshData() {
-        var finishedRequest = false;
 
-        var repoItems = await this.RepoDetails.find({ url: this.repoUrl })
-
-        if (repoItems.length == 0) {
-            repoItems = [await this.RepoDetails.create({ url: this.repoUrl, lastUpdatedAt: new Date('1/1/1900'), updating: true })]
+        if (this.repoDocument == null) {
+            return;
         }
 
-        this.repoDocument = repoItems[0];
-        this.lastUpdatedTime = this.repoDocument.lastUpdatedAt;
+        if (this.repoDocument.updating) {
+            return;
+        }
 
+        var finishedRequest = false;
+        this.lastUpdatedTime = this.repoDocument.lastUpdatedAt;
         this.repoDocument.updating = true;
         await this.repoDocument.save();
 
@@ -73,7 +74,7 @@ class RefreshRepoTask {
 
     async makeRequest(pageNum) {
         try {
-            const response = await axios.get(this.repoUrl, {
+            const response = await axios.get(this.repoIssuesUrl, {
                 params: {
                     page: pageNum, per_page: this.perPageResults,
                     sort: 'updated', state: 'all', type: 'issue'
@@ -99,8 +100,8 @@ class RefreshRepoTask {
 
                 if (updatedAtDate > this.lastUpdatedTime) {
                     // TODO: Update the issue and store it in the database
-                    console.log("Updating: ", responseItem.number);
-                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': this.longRepoUrl }))[0];
+                    console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
+                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" }}))[0];
                     if (issueToSave == null) {
                         issueToSave = await this.IssueDetails.create({});
                     }

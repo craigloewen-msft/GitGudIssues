@@ -184,16 +184,18 @@ export default {
   },
   props: {
     inputQuery: Object,
-    editMode: { type: Boolean, required: false, default: false}
+    inEditMode: { type: Boolean, required: false, default: false}
   },
   data() {
     return {
       newestOpenIssues: [],
       totalIssueCount: 0,
+      editMode: false,
     };
   },
   mounted() {
     this.refreshIssues();
+    this.editMode = this.inEditMode;
   },
   methods: {
     setQueryProperty: function (inProperty, inValue) {

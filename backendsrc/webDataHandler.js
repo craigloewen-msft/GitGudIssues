@@ -9,9 +9,21 @@ class WebDataHandler {
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
     }
 
-    async refreshData(inUrl) {
-        var refreshTask = new RefreshRepoTask(inUrl, this.RepoDetails, this.IssueDetails);
-        await refreshTask.refreshData();
+    isValidGithubShortURL(inString) {
+        let splitStringArray = inString.split("/");
+
+        return splitStringArray.length == 2;
+    }
+
+    async refreshData(inUsername) {
+        var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
+        let refreshTaskList = [];
+        for (let i = 0; i < inUser.repos.length; i++) {
+            let inputRepo = inUser.repos[i];
+            var refreshTask = new RefreshRepoTask(inputRepo, this.RepoDetails, this.IssueDetails);
+            refreshTaskList.push(refreshTask.refreshData());
+        }
+        await Promise.all(refreshTaskList);
     }
 
     async getIssues(queryData) {
@@ -253,11 +265,79 @@ class WebDataHandler {
                     inUser.save();
                 }
                 await this.siteIssueLabelDetails.findByIdAndDelete(siteIssueLabelID);
+            } else {
+                await issueLabel.save();
             }
-            await issueLabel.save();
         }
         return true;
     }
+
+    async setUserRepo(queryData) {
+        const inputData = { username: queryData.username, inRepoShortURL: queryData.inRepoShortURL.toLowerCase() };
+
+        if (!this.isValidGithubShortURL(inputData.inRepoShortURL)) {
+            return false;
+        }
+
+        var inputUser = (await this.UserDetails.find({ 'username': inputData.username }))[0];
+        var inputRepo = (await this.RepoDetails.find({ "shortURL": inputData.inRepoShortURL }))[0];
+
+        if (inputRepo == null) {
+            inputRepo = await this.RepoDetails.create({
+                'shortURL': inputData.inRepoShortURL, 'url': 'https://api.github.com/repos/' + inputData.inRepoShortURL + '/issues',
+                updating: false, lastUpdatedAt: new Date('1/1/1900')
+            });
+        }
+
+        if (inputUser) {
+            if (inputUser.repos.indexOf(inputRepo._id) == -1) {
+                inputUser.repos.push(inputRepo._id);
+                inputRepo.userList.push(inputUser._id);
+                await inputUser.save();
+                await inputRepo.save();
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    async removeUserRepo(queryData) {
+        const inputData = { username: queryData.username, inRepoShortURL: queryData.inRepoShortURL.toLowerCase() };
+
+        var inputUser = (await this.UserDetails.find({ 'username': inputData.username }))[0];
+        var inputRepo = (await this.RepoDetails.find({ 'shortURL': inputData.inRepoShortURL }))[0];
+
+        if (inputUser && inputRepo) {
+            var repoIndex = inputUser.repos.indexOf(inputRepo._id);
+            if (repoIndex != -1) {
+                inputUser.repos.splice(repoIndex, 1);
+                await inputUser.save();
+            } else {
+                return false;
+            }
+
+            var userIndex = inputRepo.userList.indexOf(inputUser._id);
+            if (userIndex != -1) {
+                inputRepo.userList.splice(userIndex, 1);
+                if (inputRepo.userList.length == 0) {
+                    await this.RepoDetails.findByIdAndDelete(inputRepo._id);
+                } else {
+                    await inputRepo.save();
+                }
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
 
 }
 

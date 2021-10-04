@@ -1,39 +1,43 @@
 <template>
   <div class="issuebox">
-    <div class="gh-issue-box col-6">
-      <div class="issue-state-box">
-        <IssueStateIndicator :state="issue.data.state"></IssueStateIndicator>
-      </div>
-      <div
-        class="issue-info-box"
-        v-bind:class="{ 'read-issue': issue.readByUser }"
-        v-on:click="markIssueAsRead"
-        v-on:click.middle="markIssueAsRead"
-      >
-        <div class="issue-title-box">
-          <a
-            class="Link--primary"
-            :href="
-              'https://github.com/' +
-              issue.data.url.split('https://api.github.com/repos/').pop()
-            "
-            >{{ issue.data.title }}</a
-          >
-          <span
-            class="gh-issue-label"
-            v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.data.labels"
-            :key="ghIssueLabelIndex"
-            v-bind:style="{ backgroundColor: shadeColor('#' + ghIssueLabel.color,-75) }"
-          >
-            {{ ghIssueLabel.name }}
-          </span>
+    <div class="gh-issue-box col-8">
+      <div class="issue-state-and-info-box">
+        <div class="issue-state-box">
+          <IssueStateIndicator :state="issue.data.state"></IssueStateIndicator>
         </div>
-        <div class="issue-sub-info-box">
-          <p>
-            {{ issue.data.number }} by {{ issue.data.user.login }} created
-            {{ getRelativeDate(issue.data.created_at) }} updated
-            {{ getRelativeDate(issue.data.updated_at) }}
-          </p>
+        <div
+          class="issue-info-box"
+          v-bind:class="{ 'read-issue': issue.readByUser }"
+          v-on:click="markIssueAsRead"
+          v-on:click.middle="markIssueAsRead"
+        >
+          <div class="issue-title-box">
+            <a
+              class="Link--primary"
+              :href="
+                'https://github.com/' +
+                issue.data.url.split('https://api.github.com/repos/').pop()
+              "
+              >{{ issue.data.title }}</a
+            >
+            <span
+              class="gh-issue-label"
+              v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.data.labels"
+              :key="ghIssueLabelIndex"
+              v-bind:style="{
+                backgroundColor: shadeColor('#' + ghIssueLabel.color, -75),
+              }"
+            >
+              {{ ghIssueLabel.name }}
+            </span>
+          </div>
+          <div class="issue-sub-info-box">
+            <p>
+              {{ issue.data.number }} by {{ issue.data.user.login }} created
+              {{ getRelativeDate(issue.data.created_at) }} updated
+              {{ getRelativeDate(issue.data.updated_at) }}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -80,7 +84,13 @@
           </div>
         </span>
         <span class="ml-2 flex-1 flex-shrink-0">
-          <a :href="issue.data.comments_url" class="Link--muted comment-bubble">
+          <a
+            :href="
+              'https://github.com/' +
+              issue.data.url.split('https://api.github.com/repos/').pop()
+            "
+            class="Link--muted comment-bubble"
+          >
             <svg
               aria-hidden="true"
               height="16"
@@ -95,12 +105,14 @@
                 d="M2.75 2.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 01.75.75v2.19l2.72-2.72a.75.75 0 01.53-.22h4.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25H2.75zM1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0113.25 12H9.06l-2.573 2.573A1.457 1.457 0 014 13.543V12H2.75A1.75 1.75 0 011 10.25v-7.5z"
               ></path>
             </svg>
-            <span class="text-small text-bold comment-num">1</span>
+            <span class="text-small text-bold comment-num">{{
+              issue.data.comments
+            }}</span>
           </a>
         </span>
       </div>
     </div>
-    <div class="issue-controls-box col-6">
+    <div class="issue-controls-box col-4">
       <div class="custom-tag-collection">
         <div
           class="custom-tag-box"
@@ -116,13 +128,15 @@
           >
         </div>
       </div>
-      <b-form-input
-        size="sm"
-        v-model="input.label"
-        @keyup.enter="addIssueLabel"
-        class="page-number-input"
-      ></b-form-input>
-      <p v-on:click="markIssueAsUnread">✉️</p>
+      <div class="site-controls-box">
+        <b-form-input
+          size="sm"
+          v-model="input.label"
+          @keyup.enter="addIssueLabel"
+          class="page-number-input"
+        ></b-form-input>
+        <p v-on:click="markIssueAsUnread">✉️</p>
+      </div>
     </div>
   </div>
 </template>
@@ -298,7 +312,7 @@ export default {
 
 .gh-issue-box {
   display: flex;
-  justify-content: left;
+  justify-content: space-between;
 }
 
 .issue-state-box {
@@ -306,6 +320,10 @@ export default {
   padding-left: 16px;
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+.issue-state-and-info-box {
+  display: flex;
 }
 
 .issue-info-box {
@@ -333,6 +351,7 @@ export default {
 
 .issue-controls-box {
   display: flex;
+  justify-content: space-between;
 }
 
 .ml-2 {
@@ -403,5 +422,9 @@ export default {
 
 .gh-issue-label-box {
   display: inline;
+}
+
+.site-controls-box {
+  display: flex;
 }
 </style>

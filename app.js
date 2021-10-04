@@ -34,6 +34,8 @@ const RepoInfo = new Schema({
     lastUpdatedAt: Date,
     url: String,
     updating: Boolean,
+    shortURL: String,
+    userList: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
 });
 
 const labelSchema = new Schema({
@@ -103,7 +105,7 @@ const UserDetail = new Schema({
     username: String,
     password: String,
     email: String,
-    repoTitles: [String],
+    repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
     manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
     issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
 }, { collection: 'usercollection' });
@@ -174,13 +176,17 @@ function returnFailure(messageString) {
 
 function returnBasicUserInfo(inputUsername, callback) {
 
-    UserDetails.find({ username: inputUsername }, function (err, docs) {
+    UserDetails.find({ username: inputUsername }).populate('repos').exec(function (err, docs) {
         if (err) {
             callback(null);
         } else {
             if (!docs[0]) {
                 callback(null);
             } else {
+                let repoTitles = [];
+                for (let i = 0; i < docs[0].repos.length; i++) {
+                    repoTitles.push(docs[0].repos[i].shortURL)
+                }
                 var returnValue = {
                     username: docs[0].username,
                     repos: docs[0].repoTitles,
@@ -251,8 +257,7 @@ app.post('/api/login', (req, res, next) => {
                     return res.json(returnFailure('Failure to login'));
                 }
 
-                dataHandler.refreshData('microsoft/wsl');
-                dataHandler.refreshData('microsoftdocs/wsl');
+                dataHandler.refreshData(user.username);
 
                 let token = jwt.sign({ id: user.username }, config.secret, { expiresIn: JWTTimeout });
 
@@ -266,17 +271,21 @@ app.post('/api/login', (req, res, next) => {
 });
 
 app.get('/api/user/:username/', authenticateToken, (req, res) => {
-    UserDetails.find({ username: req.params.username }, function (err, docs) {
+    UserDetails.find({ username: req.params.username }).populate('repos').exec(function (err, docs) {
         if (err) {
             return res.json(returnFailure('Server error'));
         } else {
             if (!docs[0]) {
                 return res.json(returnFailure("Error while obtaining user"));
             } else {
+                let repoTitles = [];
+                for (let i = 0; i < docs[0].repos.length; i++) {
+                    repoTitles.push(docs[0].repos[i].shortURL)
+                }
                 var returnValue = {
                     success: true, auth: true,
                     user: {
-                        username: docs[0].username, email: docs[0].email, repos: docs[0].repoTitles
+                        username: docs[0].username, email: docs[0].email, repos: repoTitles
                     }
                 };
                 res.json(returnValue);
@@ -290,33 +299,28 @@ app.get('/api/logout', function (req, res) {
     res.redirect('/api/');
 });
 
-app.post('/api/register', function (req, res) {
+app.post('/api/register', async function (req, res) {
+    try {
+        let doesUserExist = await UserDetails.exists({ username: req.body.username });
 
-    UserDetails.exists({ username: req.body.username }, function (err, result) {
-        if (err) {
-            return res.json(returnFailure("Server error finding user"));
-        } else {
-
-            if (result) {
-                return res.json(returnFailure('User already exists'));
-            } else {
-                UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [req.body.repotitle] }, req.body.password, function (err, user) {
-                    if (err) {
-                        console.log(err);
-                        return res.json(returnFailure('Server failure on registering user'));
-                    }
-
-                    // DO some magic here to create any new repo information
-
-                    let token = jwt.sign({ id: req.body.username }, config.secret, { expiresIn: JWTTimeout });
-                    returnBasicUserInfo(user.username, (userDataResponse) => {
-                        let response = { success: true, auth: true, token: token, user: userDataResponse };
-                        return res.json(response);
-                    });
-                });
-            }
+        if (doesUserExist) {
+            return res.json(returnFailure("User already exists"));
         }
-    });
+
+        let registeredUser = await UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [] }, req.body.password);
+        await dataHandler.setUserRepo({ username: req.body.username, inRepoShortURL: req.body.repotitle });
+        dataHandler.refreshData(req.body.username);
+
+        let token = jwt.sign({ id: req.body.username }, config.secret, { expiresIn: JWTTimeout });
+        returnBasicUserInfo(registeredUser.username, (userDataResponse) => {
+            let response = { success: true, auth: true, token: token, user: userDataResponse };
+            return res.json(response);
+        });
+    }
+    catch (error) {
+        return res.json(returnFailure(error));
+    }
+
 });
 
 // Issue Data APIs
@@ -379,22 +383,14 @@ app.post('/api/removeissuelabel', authenticateToken, async function (req, res) {
 
 app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
     try {
-        const inputData = { username: req.user.id, inRepo: req.body.repo };
+        const inputData = { username: req.user.id, inRepoShortURL: req.body.repo };
 
-        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
-
-        if (inputUser) {
-            if (inputUser.repoTitles.indexOf(inputData.inRepo) == -1) {
-                inputUser.repoTitles.push(inputData.inRepo);
-                await inputUser.save();
-            } else {
-                return res.json(returnFailure("Failed setting repo"));
-            }
+        var result = await dataHandler.setUserRepo(inputData);
+        if (result) {
+            return res.json({ success: true });
         } else {
-            return res.json(returnFailure("Failed setting repo"));
+            return res.json(returnFailure("Server error"));
         }
-
-        return res.json({ success: true });
     } catch (error) {
         return res.json(returnFailure(error));
     }
@@ -402,23 +398,15 @@ app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
 
 app.post('/api/removeuserrepo', authenticateToken, async function (req, res) {
     try {
-        const inputData = { username: req.user.id, inRepo: req.body.repo };
+        const inputData = { username: req.user.id, inRepoShortURL: req.body.repo };
 
-        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
+        var result = await dataHandler.removeUserRepo(inputData);
 
-        if (inputUser) {
-            var repoIndex = inputUser.repoTitles.indexOf(inputData.inRepo);
-            if (repoIndex != -1) {
-                inputUser.repoTitles.splice(repoIndex, 1);
-                await inputUser.save();
-            } else {
-                return res.json(returnFailure("Failed getting repo"));
-            }
+        if (result) {
+            return res.json({ success: true });
         } else {
-            return res.json(returnFailure("Failed getting repo"));
+            return res.json(returnFailure("Server error"));
         }
-
-        return res.json({ success: true });
     } catch (error) {
         return res.json(returnFailure(error));
     }

@@ -1,12 +1,16 @@
 <template>
   <div class="pageContent">
     <div class="container issues-container">
+      <div class="page-header">
+        <h2>Manage Issue Queries</h2>
+        <b-button v-on:click="refreshQueryList">Refresh Queries</b-button>
+      </div>
       <IssueTable
         v-for="(issueQuery, issueQueryIndex) in issueQueryObjects"
         :key="issueQueryIndex"
         v-bind:inputQuery="issueQuery.query"
         @deleteQueryEvent="deleteQuery(issueQuery)"
-        v-bind:editMode="issueQuery.startEdit"
+        v-bind:inEditMode="issueQuery.startEdit"
       >
       </IssueTable>
       <b-button v-on:click="addNewQuery">New Query</b-button>
@@ -89,10 +93,12 @@ export default {
       }
     },
     refreshQueryList: function () {
+      this.issueQueryObjects = [];
       this.$http.get("/api/getusermanageissuequeries").then((response) => {
         if (response.data.success) {
           const returnedQueries = response.data.queries;
           for (let i = 0; i < returnedQueries.length; i++) {
+            returnedQueries[i].page_num = 1;
             this.issueQueryObjects.push({
               startEdit: false,
               query: returnedQueries[i],
@@ -111,5 +117,10 @@ export default {
 <style>
 .issues-container {
   text-align: left;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
 }
 </style>
