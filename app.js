@@ -25,7 +25,7 @@ if (process.env.NODE_ENV == 'production') {
     config.secret = process.env.secret;
     config.sessionSecret = process.env.sessionSecret;
     config.ghToken = process.env.ghToken;
-    hostPort = 80;
+    hostPort = 8080;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;
     hostPort = 3000;
