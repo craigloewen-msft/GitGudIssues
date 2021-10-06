@@ -1,10 +1,10 @@
 const axios = require('axios')
 
 class RefreshRepoTask {
-    constructor(inRepo, inRepoDetails, inIssueDetails) {
+    constructor(inRepo, inRepoDetails, inIssueDetails, inGHToken) {
         this.pageNum = 1;
         this.repoUrl = inRepo.url;
-        this.repoIssuesUrl = inRepo.url + '/issues';
+        this.repoIssuesUrl = inRepo.url;
         this.shortRepoUrl = inRepo.shortURL;
         this.dataRepositoryUrl = 'https://api.github.com/repos/' + inRepo.shortURL;
         this.perPageResults = 100;
@@ -14,6 +14,7 @@ class RefreshRepoTask {
         this.lastSeenItemUpdatedAt = null;
         this.firstSeenUpdatedAt = null;
         this.repoDocument = inRepo;
+        this.ghToken = inGHToken;
     }
 
     PromiseTimeout(delayms) {
@@ -38,7 +39,7 @@ class RefreshRepoTask {
         await this.repoDocument.save();
 
         while (!finishedRequest) {
-            console.log("Making request page num: ", this.pageNum);
+            console.log("Making " + this.shortRepoUrl  + " page num: ", this.pageNum);
             var response = await this.makeRequest(this.pageNum);
 
             if (response.status == 200) {
@@ -48,7 +49,7 @@ class RefreshRepoTask {
                     this.repoDocument.lastUpdatedAt = this.firstSeenUpdatedAt;
                     this.repoDocument.updating = false;
                     await this.repoDocument.save();
-                    console.log("Update Request Complete - No more issues");
+                    console.log("Update Request Complete - " + this.shortRepoUrl + " - No more issues");
                 } else {
                     var dbSaveResult = await this.storeInDataBase(response.data);
                     if (dbSaveResult == 'uptodate') {
@@ -56,7 +57,7 @@ class RefreshRepoTask {
                         this.repoDocument.lastUpdatedAt = this.firstSeenUpdatedAt;
                         this.repoDocument.updating = false;
                         await this.repoDocument.save();
-                        console.log("Update Request Complete - Up to date");
+                        console.log("Update Request Complete -  " + this.shortRepoUrl + " - Up to date");
                     }
                 }
             } else if (response.status == 403) {
@@ -66,6 +67,11 @@ class RefreshRepoTask {
                 var retryDifference = responseUnixTime - currentTime;
                 console.log("Rate limited waiting until: ", retryTime);
                 await this.PromiseTimeout(retryDifference * 1000);
+            } else {
+                console.log("Saw unexpected response");
+                this.repoDocument.updating = false;
+                await this.repoDocument.save();
+                return;
             }
 
             this.pageNum = this.pageNum + 1;
@@ -74,12 +80,25 @@ class RefreshRepoTask {
 
     async makeRequest(pageNum) {
         try {
-            const response = await axios.get(this.repoIssuesUrl, {
-                params: {
-                    page: pageNum, per_page: this.perPageResults,
-                    sort: 'updated', state: 'all', type: 'issue'
-                }
-            });
+            let response = null;
+            if (this.ghToken) {
+                response = await axios.get(this.repoIssuesUrl, {
+                    headers: {
+                        "Authorization": "token " + this.ghToken,
+                    },
+                    params: {
+                        page: pageNum, per_page: this.perPageResults,
+                        sort: 'updated', state: 'all', type: 'issue'
+                    }
+                });
+            } else {
+                response = await axios.get(this.repoIssuesUrl, {
+                    params: {
+                        page: pageNum, per_page: this.perPageResults,
+                        sort: 'updated', state: 'all', type: 'issue'
+                    }
+                });
+            }
             return response;
         } catch (error) {
             return error.response;
@@ -101,7 +120,7 @@ class RefreshRepoTask {
                 if (updatedAtDate > this.lastUpdatedTime) {
                     // TODO: Update the issue and store it in the database
                     console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
-                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" }}))[0];
+                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" } }))[0];
                     if (issueToSave == null) {
                         issueToSave = await this.IssueDetails.create({});
                     }

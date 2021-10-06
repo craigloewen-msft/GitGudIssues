@@ -1,8 +1,7 @@
 <template>
   <div class="pageContent">
     <b-container>
-      <h1>User details</h1>
-      <h3>Username: {{ user.username }}</h3>
+      <h1>Welcome {{ user.username }} !</h1>
       <h2>Your followed repositories</h2>
       <div class="user-repo-control-box">
         <div class="custom-tag-collection">
@@ -20,13 +19,18 @@
             >
           </div>
         </div>
-        <b-form-input
-          size="sm"
-          v-model="input.repo"
-          @keyup.enter="addUserRepo"
-          class="page-number-input"
-        ></b-form-input>
+        <div class="small-input-form-box">
+          <b-form-input
+            size="sm"
+            v-model="input.repo"
+            @keyup.enter="addUserRepo"
+          ></b-form-input>
+        </div>
       </div>
+      <p class="text-muted">
+        You can add repos that you're interested in here by typing them in above and pressing enter.
+      </p>
+      <router-link class="btn btn-primary" to="/manageissues">Start triaging issues!</router-link>
     </b-container>
   </div>
 </template>
@@ -71,7 +75,7 @@ export default {
           })
           .then((response) => {
             if (response.data.success) {
-              this.user.repos.splice(repoIndex);
+              this.user.repos.splice(repoIndex,1);
             } else {
               console.log(response);
               // TODO Add in some error catching condition

@@ -1,12 +1,13 @@
 const RefreshRepoTask = require('./refreshReproTask')
 
 class WebDataHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueReadDetails, inUserDetails, inSiteIssueLabelDetails) {
+    constructor(inRepoDetails, inIssueDetails, inIssueReadDetails, inUserDetails, inSiteIssueLabelDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueReadDetails = inIssueReadDetails;
         this.UserDetails = inUserDetails;
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
+        this.ghToken = inGHToken;
     }
 
     isValidGithubShortURL(inString) {
@@ -20,7 +21,7 @@ class WebDataHandler {
         let refreshTaskList = [];
         for (let i = 0; i < inUser.repos.length; i++) {
             let inputRepo = inUser.repos[i];
-            var refreshTask = new RefreshRepoTask(inputRepo, this.RepoDetails, this.IssueDetails);
+            var refreshTask = new RefreshRepoTask(inputRepo, this.RepoDetails, this.IssueDetails, this.ghToken);
             refreshTaskList.push(refreshTask.refreshData());
         }
         await Promise.all(refreshTaskList);
@@ -29,8 +30,9 @@ class WebDataHandler {
     async getIssues(queryData) {
 
         // Get User Data
-        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels'))[0];
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
         let userIssueLabelList = inUser.issueLabels;
+        let userRepoList = inUser.repos;
 
         if (inUser == null) {
             throw "User can't be found";
@@ -103,11 +105,20 @@ class WebDataHandler {
         if (queryData.repos) {
             let repoList = queryData.repos.split(',');
             let regexString = "";
-            for (let i = 0; i < repoList.length; i++) {
-                if (i != 0) {
-                    regexString = regexString + "|";
-                }
-                regexString = regexString + "https://api.github.com/repos/" + repoList[i];
+            if (repoList.length > 0) {
+                regexString = regexString + "https://api.github.com/repos/" + repoList[0];
+            }
+            for (let i = 1; i < repoList.length; i++) {
+                regexString = regexString + "|" + "https://api.github.com/repos/" + repoList[i];
+            }
+            findQuery['data.repository_url'] = { "$regex": regexString, "$options": "gi" };
+        } else {
+            let regexString = "";
+            if (userRepoList.length > 0) {
+                regexString = userRepoList[0].url.split('/issues')[0];
+            }
+            for (let i = 1; i < userRepoList.length; i++) {
+                regexString = regexString + "|" + userRepoList[i].url.split('/issues')[0];
             }
             findQuery['data.repository_url'] = { "$regex": regexString, "$options": "gi" };
         }
@@ -324,6 +335,8 @@ class WebDataHandler {
             if (userIndex != -1) {
                 inputRepo.userList.splice(userIndex, 1);
                 if (inputRepo.userList.length == 0) {
+                    let deleteRepoUrl = inputRepo.shortURL.split("/issues")[0];
+                    await this.IssueDetails.deleteMany({ 'data.repository_url' : { "$regex": deleteRepoUrl, "$options": "gi" }});
                     await this.RepoDetails.findByIdAndDelete(inputRepo._id);
                 } else {
                     await inputRepo.save();

@@ -3,7 +3,7 @@
     <div class="jumbotron header-container">
       <div class="header-text-container">
         <h2>GitGudIssues</h2>
-        <h4>Tagline</h4>
+        <h4>Manage your Github presence</h4>
         <div v-if="!this.$store.getters.isLoggedIn" class="loginSelect">
           <router-link class="btn btn-primary" to="/login">Login</router-link>
           <router-link class="btn btn-primary" to="/register"
@@ -17,7 +17,7 @@
         </div>
       </div>
     </div>
-
+    <!-- 
     <b-container class="section-slides">
       <header class="section-header">
         <h2>Why GitGudIssues?</h2>
@@ -46,7 +46,8 @@
           </div>
         </div>
       </div>
-    </b-container>
+    </b-container> 
+    -->
   </div>
 </template>
 
@@ -86,7 +87,7 @@ export default {
   background-attachment: fixed;
   background-repeat: no-repeat;
   background-size: cover;
-  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, 0.925);
   height: 80vh;
   display: flex;
   align-items: center;

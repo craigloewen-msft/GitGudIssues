@@ -129,7 +129,7 @@ const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabe
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
-const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, issueReadDetails, UserDetails, siteIssueLabelDetails);
+const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, issueReadDetails, UserDetails, siteIssueLabelDetails, config.ghToken);
 
 // App set up
 
@@ -387,6 +387,7 @@ app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
 
         var result = await dataHandler.setUserRepo(inputData);
         if (result) {
+            dataHandler.refreshData(inputData.username);
             return res.json({ success: true });
         } else {
             return res.json(returnFailure("Server error"));

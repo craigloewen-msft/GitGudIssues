@@ -177,7 +177,7 @@ body {
   border-radius: 2em;
   padding: 0 7px;
   font-size: 14px;
-  display:inline-block;
+  display: inline-block;
   text-decoration: none;
 }
 
@@ -188,10 +188,13 @@ body {
 .custom-tag-box a:hover {
   font-weight: 900;
   color: #58a6ff;
-} 
+}
 
 .custom-tag-box a {
   text-decoration: none;
 }
 
+.small-input-form-box {
+  width: 100px;
+}
 </style>
