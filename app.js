@@ -31,6 +31,9 @@ if (process.env.NODE_ENV == 'production') {
     hostPort = 3000;
 }
 
+console.log("Config: ");
+console.log(config);
+
 // Set up Mongoose connection
 const Schema = mongoose.Schema;
 const RepoInfo = new Schema({
