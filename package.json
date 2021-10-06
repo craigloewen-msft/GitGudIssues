@@ -12,6 +12,6 @@
     "passport-local-mongoose": "^6.1.0"
   },
   "scripts": {
-    "build": "cd webinterface; npm install; npm run build; cd ..; rm -rf ./dist; mv ./webinterface/dist .; node app.js"
+    "build": "cd webinterface; npm install; npm run build; cd ..; rm -rf ./dist; mv ./webinterface/dist ."
   }
 }
