@@ -73,7 +73,7 @@
                 >
                   <img
                     class="from-avatar avatar-user"
-                    src="https://avatars.githubusercontent.com/u/42221804?s=40&amp;v=4"
+                    :src="issue.data.assignee.avatar_url"
                     width="20"
                     height="20"
                     :alt="issue.data.assignee.login"
