@@ -64,8 +64,8 @@ const GHUserSchema = new Schema({
 const IssueInfo = new Schema({
     siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
     data: {
-        created_at: Date,
-        updated_at: Date,
+        created_at: { type: Date, index: true},
+        updated_at: { type: Date, index: true},
         title: String,
         user: GHUserSchema,
         number: Number,
@@ -310,6 +310,9 @@ app.post('/api/register', async function (req, res) {
             return res.json(returnFailure("User already exists"));
         }
 
+        let newIssueQuery = {};
+        let recentlyUpdatedQuery = {};
+
         let registeredUser = await UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [] }, req.body.password);
         await dataHandler.setUserRepo({ username: req.body.username, inRepoShortURL: req.body.repotitle });
         dataHandler.refreshData(req.body.username);
@@ -334,6 +337,7 @@ app.post('/api/getissues', authenticateToken, async function (req, res) {
         var issueResponse = await dataHandler.getIssues(req.body);
         return res.json({ success: true, queryData: issueResponse });
     } catch (error) {
+        let errorToString = error.toString();
         return res.json(returnFailure(error));
     }
 });
