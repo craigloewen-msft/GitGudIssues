@@ -1,7 +1,8 @@
-const axios = require('axios')
+const axios = require('axios');
+const helperFunctions = require('./helpers');
 
 class RefreshRepoTask {
-    constructor(inRepo, inRepoDetails, inIssueDetails, inGHToken) {
+    constructor(inRepo, inRepoDetails, inIssueDetails, inGHToken, inRequestThrottler) {
         this.pageNum = 1;
         this.repoUrl = inRepo.url;
         this.repoIssuesUrl = inRepo.url;
@@ -15,12 +16,17 @@ class RefreshRepoTask {
         this.firstSeenUpdatedAt = null;
         this.repoDocument = inRepo;
         this.ghToken = inGHToken;
-    }
+        this.requestThrottler = inRequestThrottler;
 
-    PromiseTimeout(delayms) {
-        return new Promise(function (resolve, reject) {
-            setTimeout(resolve, delayms);
-        });
+        this.issueDataListMax = 10;
+        if (process.env.NODE_ENV == "production") {
+            this.issueDataListTimeout = 10000;
+        } else {
+            this.issueDataListTimeout = 5000;
+        }
+        this.issueDataListToInsert = [];
+        this.bulkInsertIssuesPromise = null;
+        this.lastBulkInsertTime = new Date();
     }
 
     async refreshData() {
@@ -39,7 +45,7 @@ class RefreshRepoTask {
         await this.repoDocument.save();
 
         while (!finishedRequest) {
-            console.log("Making " + this.shortRepoUrl  + " page num: ", this.pageNum);
+            console.log("Making " + this.shortRepoUrl + " page num: ", this.pageNum);
             var response = await this.makeRequest(this.pageNum);
 
             if (response.status == 200) {
@@ -66,7 +72,7 @@ class RefreshRepoTask {
                 var retryTime = new Date(Number(responseUnixTime) * 1000);
                 var retryDifference = responseUnixTime - currentTime;
                 console.log("Rate limited waiting until: ", retryTime);
-                await this.PromiseTimeout(retryDifference * 1000);
+                await this.helperFunctions.PromiseTimeout(retryDifference * 1000);
             } else {
                 console.log("Saw unexpected response");
                 this.repoDocument.updating = false;
@@ -118,14 +124,12 @@ class RefreshRepoTask {
                 }
 
                 if (updatedAtDate > this.lastUpdatedTime) {
-                    // TODO: Update the issue and store it in the database
+                    await this.requestThrottler.requestToPost();
                     console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
-                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" } }))[0];
-                    if (issueToSave == null) {
-                        issueToSave = await this.IssueDetails.create({});
+                    var issueToSave = (await this.IssueDetails.updateOne({ 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" } }, { 'data': responseItem }));
+                    if (issueToSave.modifiedCount == 0) {
+                        this.addIssueToBulkInsert({ 'data': responseItem });
                     }
-                    issueToSave.data = responseItem;
-                    await issueToSave.save();
                 } else {
                     response = 'uptodate';
                 }
@@ -133,6 +137,40 @@ class RefreshRepoTask {
         }));
 
         return response;
+    }
+
+    async addIssueToBulkInsert(inIssueData) {
+        this.issueDataListToInsert.push(inIssueData);
+
+        if (this.issueDataListToInsert.length >= this.issueDataListMax) {
+            this.lastBulkInsertTime = new Date();
+            return await this.bulkInsertIssues();
+        }
+
+        this.bulkInsertIssuesPromise = this.bulkInsertAfterDelay(this.nullifyBulkInsertCheck);
+    }
+
+    async bulkInsertAfterDelay(checkObject) {
+        await helperFunctions.PromiseTimeout(this.issueDataListTimeout);
+        let result = null;
+        let timeFromLastInsert = new Date() - this.lastBulkInsertTime;
+        if (timeFromLastInsert > this.issueDataListTimeout) {
+            result = this.bulkInsertIssues();
+        }
+        this.bulkInsertIssuesPromise = null;
+        return result;
+    }
+
+    async bulkInsertIssues() {
+        if (this.issueDataListToInsert.length > 0) {
+            console.log("Inserting: ", this.issueDataListToInsert.length, " issues into database");
+            let inIssueCopy = this.issueDataListToInsert;
+            this.issueDataListToInsert = [];
+            let result = await this.IssueDetails.insertMany(inIssueCopy, { ordered: false });
+            return result;
+        } else {
+            return null;
+        }
     }
 
 }

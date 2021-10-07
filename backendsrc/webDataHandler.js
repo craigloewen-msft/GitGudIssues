@@ -1,4 +1,5 @@
-const RefreshRepoTask = require('./refreshReproTask')
+const RefreshRepoTask = require('./refreshReproTask');
+const RequestThrottler = require('./requestThrottler');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inIssueReadDetails, inUserDetails, inSiteIssueLabelDetails, inGHToken) {
@@ -8,6 +9,12 @@ class WebDataHandler {
         this.UserDetails = inUserDetails;
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
         this.ghToken = inGHToken;
+
+        if (process.env.NODE_ENV == "production") {
+            this.requestThrottler = new RequestThrottler(1, 1000);
+        } else {
+            this.requestThrottler = new RequestThrottler(1, 10);
+        }
     }
 
     isValidGithubShortURL(inString) {
@@ -21,7 +28,7 @@ class WebDataHandler {
         let refreshTaskList = [];
         for (let i = 0; i < inUser.repos.length; i++) {
             let inputRepo = inUser.repos[i];
-            var refreshTask = new RefreshRepoTask(inputRepo, this.RepoDetails, this.IssueDetails, this.ghToken);
+            var refreshTask = new RefreshRepoTask(inputRepo, this.RepoDetails, this.IssueDetails, this.ghToken, this.requestThrottler);
             refreshTaskList.push(refreshTask.refreshData());
         }
         await Promise.all(refreshTaskList);
@@ -336,7 +343,7 @@ class WebDataHandler {
                 inputRepo.userList.splice(userIndex, 1);
                 if (inputRepo.userList.length == 0) {
                     let deleteRepoUrl = inputRepo.shortURL.split("/issues")[0];
-                    await this.IssueDetails.deleteMany({ 'data.repository_url' : { "$regex": deleteRepoUrl, "$options": "gi" }});
+                    await this.IssueDetails.deleteMany({ 'data.repository_url': { "$regex": deleteRepoUrl, "$options": "gi" } });
                     await this.RepoDetails.findByIdAndDelete(inputRepo._id);
                 } else {
                     await inputRepo.save();
