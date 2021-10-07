@@ -50,7 +50,7 @@ class WebDataHandler {
         // Start getting issue data
         var findQuery = {};
         var sortQuery = { "data.created_at": -1 };
-        var limitNum = 30;
+        var limitNum = 10;
         var skipNum = 0;
 
         if (queryData.per_page) {
@@ -70,8 +70,9 @@ class WebDataHandler {
         }
 
         if (queryData.limit) {
-            if (queryData.limit < 30) {
-                limitNum = queryData.limit
+            let inputLimit = parseInt(queryData.limit);
+            if (inputLimit < 30) {
+                limitNum = inputLimit;
             }
         }
 

@@ -67,7 +67,7 @@ export default {
           repo: null,
           state: null,
           sort: null,
-          limit: 5,
+          limit: 10,
           creator: null,
           assignee: null,
           labels: null,

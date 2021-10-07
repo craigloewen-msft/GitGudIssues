@@ -151,6 +151,25 @@
             >
           </b-dropdown-form>
         </b-dropdown>
+
+         <b-dropdown
+          id="dropdown-1"
+          text="Limit"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-form>
+            <b-form-input
+              placeholder="debug,test"
+              size="sm"
+              v-model="inputQuery.limit"
+              v-debounce:1s="refreshIssues"
+              @keyup.enter="refreshIssues"
+              ></b-form-input
+            >
+          </b-dropdown-form>
+        </b-dropdown>
       </div>
 
       <div class="page-search-box">
