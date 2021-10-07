@@ -19,7 +19,11 @@ class RefreshRepoTask {
         this.requestThrottler = inRequestThrottler;
 
         this.issueDataListMax = 10;
-        this.issueDataListTimeout = 15000;
+        if (process.env.NODE_ENV == "production") {
+            this.issueDataListTimeout = 10000;
+        } else {
+            this.issueDataListTimeout = 5000;
+        }
         this.issueDataListToInsert = [];
         this.bulkInsertIssuesPromise = null;
         this.lastBulkInsertTime = new Date();
