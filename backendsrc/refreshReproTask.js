@@ -17,7 +17,7 @@ class RefreshRepoTask {
         this.repoDocument = inRepo;
         this.ghToken = inGHToken;
 
-        this.maxBulkWriteCount = 10000;
+        this.maxBulkWriteCount = 100;
         this.bulkWriteDelayTimeout = 5000;
         this.lastBulkModifyTime = new Date();
         this.bulkWriteData = [];
@@ -166,8 +166,9 @@ class RefreshRepoTask {
         if (this.bulkWriteData.length > 0) {
             let bulkWriteDataCopy = this.bulkWriteData;
             this.bulkWriteData = [];
+            console.log("Starting bulk Write request insert request");
             result = await this.IssueDetails.bulkWrite(bulkWriteDataCopy, { ordered: false });
-            console.log("Write request for ", this.shortRepoUrl, " completed nModified: ", result.nModified, " nUpserted: ", result.nUpserted);
+            console.log("Write request for ", this.shortRepoUrl, " completed nModified: ", result.nModified, " nUpserted: ", result.nUpserted, " nMatched: ", result.nMatched);
         }
         return result;
     }
