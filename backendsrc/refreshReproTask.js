@@ -1,4 +1,5 @@
-const axios = require('axios')
+const axios = require('axios');
+const helperFunctions = require('./helpers');
 
 class RefreshRepoTask {
     constructor(inRepo, inRepoDetails, inIssueDetails, inGHToken) {
@@ -15,12 +16,11 @@ class RefreshRepoTask {
         this.firstSeenUpdatedAt = null;
         this.repoDocument = inRepo;
         this.ghToken = inGHToken;
-    }
 
-    PromiseTimeout(delayms) {
-        return new Promise(function (resolve, reject) {
-            setTimeout(resolve, delayms);
-        });
+        this.maxBulkWriteCount = 10000;
+        this.bulkWriteDelayTimeout = 5000;
+        this.lastBulkModifyTime = new Date();
+        this.bulkWriteData = [];
     }
 
     async refreshData() {
@@ -39,7 +39,7 @@ class RefreshRepoTask {
         await this.repoDocument.save();
 
         while (!finishedRequest) {
-            console.log("Making " + this.shortRepoUrl  + " page num: ", this.pageNum);
+            console.log("Making " + this.shortRepoUrl + " page num: ", this.pageNum);
             var response = await this.makeRequest(this.pageNum);
 
             if (response.status == 200) {
@@ -76,6 +76,8 @@ class RefreshRepoTask {
 
             this.pageNum = this.pageNum + 1;
         }
+
+        return await this.bulkWriteAfterDelay();
     }
 
     async makeRequest(pageNum) {
@@ -121,11 +123,20 @@ class RefreshRepoTask {
                     // TODO: Update the issue and store it in the database
                     console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
                     var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" } }))[0];
+                    let bulkRequestData = null;
                     if (issueToSave == null) {
-                        issueToSave = await this.IssueDetails.create({});
+                        bulkRequestData = {
+                            insertOne: { document: { "data": responseItem } },
+                        };
+                    } else {
+                        bulkRequestData = {
+                            updateOne: {
+                                filter: { id: issueToSave._id.toString() },
+                                update: { data: responseItem },
+                            }
+                        }
                     }
-                    issueToSave.data = responseItem;
-                    await issueToSave.save();
+                    await this.addRequestToBulkWrite(bulkRequestData);
                 } else {
                     response = 'uptodate';
                 }
@@ -134,6 +145,48 @@ class RefreshRepoTask {
 
         return response;
     }
+
+    async addRequestToBulkWrite(inData) {
+        this.bulkWriteData.push(inData);
+        this.lastBulkModifyTime = new Date();
+
+        if (this.bulkWriteData.length >= this.maxBulkWriteCount) {
+            return await this.bulkWriteDataRequest();
+        }
+
+        this.bulkWriteAfterDelay();
+    }
+
+    async bulkWriteAfterDelay() {
+        await helperFunctions.PromiseTimeout(this.bulkWriteDelayTimeout);
+        let result = null;
+        let timeFromLastInsert = new Date() - this.lastBulkModifyTime;
+        if (timeFromLastInsert > this.bulkWriteDelayTimeout) {
+            result = this.bulkWriteDataRequest();
+        }
+        return result;
+    }
+
+    async pollWritingMutex() {
+        while (true) {
+            await helperFunctions.PromiseTimeout(this.writingMutexPollingDelay);
+            if (!this.writingMutex) {
+                return true;
+            }
+        }
+    }
+
+    async bulkWriteDataRequest() {
+        let result = null;
+        if (this.bulkWriteData.length > 0) {
+            let bulkWriteDataCopy = this.bulkWriteData;
+            this.bulkWriteData = [];
+            result = await this.IssueDetails.bulkWrite(bulkWriteDataCopy);
+        }
+        return result;
+    }
+
+
 
 }
 
