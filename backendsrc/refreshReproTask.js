@@ -122,20 +122,14 @@ class RefreshRepoTask {
                 if (updatedAtDate > this.lastUpdatedTime) {
                     // TODO: Update the issue and store it in the database
                     console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
-                    var issueToSave = (await this.IssueDetails.find({ 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" } }))[0];
                     let bulkRequestData = null;
-                    if (issueToSave == null) {
-                        bulkRequestData = {
-                            insertOne: { document: { "data": responseItem } },
-                        };
-                    } else {
-                        bulkRequestData = {
-                            updateOne: {
-                                filter: { id: issueToSave._id.toString() },
-                                update: { data: responseItem },
-                            }
+                    bulkRequestData = {
+                        updateOne: {
+                            filter: { 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" }  },
+                            update: { data: responseItem },
+                            upsert: true,
                         }
-                    }
+                    };
                     await this.addRequestToBulkWrite(bulkRequestData);
                 } else {
                     response = 'uptodate';
@@ -182,6 +176,7 @@ class RefreshRepoTask {
             let bulkWriteDataCopy = this.bulkWriteData;
             this.bulkWriteData = [];
             result = await this.IssueDetails.bulkWrite(bulkWriteDataCopy, { ordered: false });
+            console.log("Write request for ", this.shortRepoUrl, " completed nModified: ", result.nModified, " nUpserted: ", result.nUpserted);
         }
         return result;
     }
