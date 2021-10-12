@@ -181,7 +181,7 @@ class RefreshRepoTask {
         if (this.bulkWriteData.length > 0) {
             let bulkWriteDataCopy = this.bulkWriteData;
             this.bulkWriteData = [];
-            result = await this.IssueDetails.bulkWrite(bulkWriteDataCopy);
+            result = await this.IssueDetails.bulkWrite(bulkWriteDataCopy, { ordered: false });
         }
         return result;
     }
