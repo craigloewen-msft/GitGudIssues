@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - gitgidissues
+name: Build and deploy Node.js app to Azure Web App - gitgudissues
 
 on:
   push:
@@ -27,16 +27,11 @@ jobs:
           npm run build --if-present
           npm run test --if-present
 
-      - name: Zip to tar
-        run: |
-          touch build-artifact.tar.gz
-          tar -czf build-artifact.tar.gz --exclude=build-artifact.tar.gz .
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v2
         with:
           name: node-app
-          path: ./build-artifact.tar.gz
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
@@ -51,16 +46,11 @@ jobs:
         with:
           name: node-app
 
-      - name: Unzip from tar
-        run: |
-          tar -xzf build-artifact.tar.gz
-          rm build-artifact.tar.gz
-
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'gitgudissues'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_10DF18F0EF3D47368693D810275615CC }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_66F4D9B0E7494EDFB1AFA28C36543D16 }}
           package: .
