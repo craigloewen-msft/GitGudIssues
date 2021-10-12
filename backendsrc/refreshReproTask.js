@@ -161,15 +161,6 @@ class RefreshRepoTask {
         return result;
     }
 
-    async pollWritingMutex() {
-        while (true) {
-            await helperFunctions.PromiseTimeout(this.writingMutexPollingDelay);
-            if (!this.writingMutex) {
-                return true;
-            }
-        }
-    }
-
     async bulkWriteDataRequest() {
         let result = null;
         if (this.bulkWriteData.length > 0) {
