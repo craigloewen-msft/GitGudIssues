@@ -214,8 +214,10 @@ class RefreshRepoHandler {
             let bulkWriteDataCopy = this.bulkWriteData;
             this.bulkWriteData = [];
             console.log("Starting bulk Write request insert request");
-            result = await this.IssueDetails.bulkWrite(bulkWriteDataCopy, { ordered: false });
-            console.log("Write request completed nModified: ", result.nModified, " nUpserted: ", result.nUpserted, " nMatched: ", result.nMatched);
+            for (let i = 0; i < bulkWriteDataCopy.length; i++) {
+                let updateResult = await this.IssueDetails.updateOne(bulkWriteDataCopy[i].updateOne.filter, bulkWriteDataCopy[i].updateOne.update, { upsert: true });
+            }
+            result = true;
         }
         return result;
     }
