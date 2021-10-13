@@ -1,4 +1,4 @@
-const RefreshRepoTask = require('./refreshReproTask')
+const RefreshRepoHandler = require('./refreshRepoHandler')
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inIssueReadDetails, inUserDetails, inSiteIssueLabelDetails, inGHToken) {
@@ -8,6 +8,7 @@ class WebDataHandler {
         this.UserDetails = inUserDetails;
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
         this.ghToken = inGHToken;
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.ghToken);
     }
 
     isValidGithubShortURL(inString) {
@@ -17,14 +18,11 @@ class WebDataHandler {
     }
 
     async refreshData(inUsername) {
-        var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
-        let refreshTaskList = [];
+        var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];        
         for (let i = 0; i < inUser.repos.length; i++) {
-            let inputRepo = inUser.repos[i];
-            var refreshTask = new RefreshRepoTask(inputRepo, this.RepoDetails, this.IssueDetails, this.ghToken);
-            refreshTaskList.push(refreshTask.refreshData());
+            this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
-        await Promise.all(refreshTaskList);
+        await this.refreshRepoHandler.startRefreshingRepos();;
     }
 
     async getIssues(queryData) {
