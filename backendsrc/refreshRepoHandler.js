@@ -7,7 +7,7 @@ class RefreshRepoTask {
         this.repoUrl = inRepo.url;
         this.repoIssuesUrl = inRepo.url;
         this.shortRepoUrl = inRepo.shortURL;
-        this.dataRepositoryUrl = 'https://api.github.com/repos/' + inRepo.shortURL;
+        this.dataRepositoryUrl = 'https://api.github.com/repos/' + inRepo.shortURL.toLowerCase();
         this.perPageResults = 100;
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
@@ -123,10 +123,12 @@ class RefreshRepoTask {
                 if (updatedAtDate > this.lastUpdatedTime) {
                     // TODO: Update the issue and store it in the database
                     console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
+                    // Turn the datarepositoryURL to all lower case
+                    responseItem.repository_url = responseItem.repository_url.toLowerCase();
                     let bulkRequestData = null;
                     bulkRequestData = {
                         updateOne: {
-                            filter: { 'data.number': responseItem.number, 'data.repository_url': { "$regex": this.dataRepositoryUrl, "$options": "gi" } },
+                            filter: { 'data.repository_url': this.dataRepositoryUrl, 'data.number': responseItem.number },
                             update: { data: responseItem },
                             upsert: true,
                         }

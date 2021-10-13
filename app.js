@@ -86,6 +86,8 @@ const IssueInfo = new Schema({
     }
 });
 
+IssueInfo.index({'data.repository_url':1,'data.number':-1});
+
 const siteIssueLabelDetail = new Schema({
     name: String,
     issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
