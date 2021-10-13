@@ -215,7 +215,6 @@ class RefreshRepoHandler {
             this.bulkWriteData = [];
             console.log("Starting bulk Write request insert request");
             result = await this.IssueDetails.bulkWrite(bulkWriteDataCopy, { ordered: false });
-            await helperFunctions.PromiseTimeout(10000);
             console.log("Write request completed nModified: ", result.nModified, " nUpserted: ", result.nUpserted, " nMatched: ", result.nMatched);
         }
         return result;
