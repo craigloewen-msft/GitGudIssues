@@ -146,7 +146,7 @@ app.use(session({
         mongoUrl: mongooseConnectionString,
         ttl: 24 * 60 * 60 * 1000,
         autoRemove: 'interval',
-        autoRemoveInterval: 10
+        autoRemoveInterval: 60 * 24 * 7 // Once a week
     }),
     secret: config.sessionSecret,
     resave: false,
