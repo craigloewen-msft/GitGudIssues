@@ -1,10 +1,9 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 
 class WebDataHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueReadDetails, inUserDetails, inSiteIssueLabelDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
-        this.IssueReadDetails = inIssueReadDetails;
         this.UserDetails = inUserDetails;
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
         this.ghToken = inGHToken;

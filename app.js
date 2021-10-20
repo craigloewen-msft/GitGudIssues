@@ -126,14 +126,13 @@ UserDetail.plugin(passportLocalMongoose);
 const RepoDetails = mongoose.model('repoInfo', RepoInfo, 'repoInfo');
 const IssueDetails = mongoose.model('issueInfo', IssueInfo, 'issueInfo');
 const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
-const issueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
 const searchQueryDetails = mongoose.model('searchQueryInfo', searchQueryDetail, 'searchQueryInfo');
 const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabelDetail, 'siteIssueLabelInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
-const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, issueReadDetails, UserDetails, siteIssueLabelDetails, config.ghToken);
+const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, config.ghToken);
 
 // App set up
 
