@@ -18,7 +18,7 @@ class WebDataHandler {
     }
 
     async refreshData(inUsername) {
-        var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];        
+        var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
         for (let i = 0; i < inUser.repos.length; i++) {
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
@@ -146,10 +146,10 @@ class WebDataHandler {
 
         // For each issue get whether it's read or unread
         var getIssueReadPromise = Promise.all(returnIssueResultsArray.map(async (issueItem) => {
-            var issueReadItem = (await this.IssueReadDetails.find({ issueRef: issueItem._id, userRef: userID }))[0];
+            var issueReadItem = issueItem.readByArray.find(obj => obj.userRef == inUser._id.toString());
             if (issueReadItem == null) {
                 issueItem.readByUser = false;
-            } else if (issueReadItem.readAt >= new Date(issueItem.data.updated_at)) {
+            } else if (new Date(issueReadItem.readAt) >= new Date(issueItem.data.updated_at)) {
                 issueItem.readByUser = true;
             } else {
                 issueItem.readByUser = false;
@@ -185,14 +185,14 @@ class WebDataHandler {
             return false;
         }
 
-        var returnIssueRead = (await this.IssueReadDetails.find({ issueRef: inIssue, userRef: inUser }))[0];
+        var returnIssueRead = inIssue.readByArray.find(obj => obj.userRef == inUser._id.toString());
         if (returnIssueRead == null) {
-            returnIssueRead = await this.IssueReadDetails.create({ readAt: new Date(), issueRef: inIssue, userRef: inUser });
+            inIssue.readByArray.push({ readAt: new Date(), userRef: inUser._id.toString() });
         } else {
             returnIssueRead.readAt = new Date();
-            await returnIssueRead.save();
         }
 
+        await inIssue.save();
         return true;
     }
 
@@ -204,11 +204,12 @@ class WebDataHandler {
             return false;
         }
 
-        var returnIssueRead = (await this.IssueReadDetails.find({ issueRef: inIssue, userRef: inUser }))[0];
+        var returnIssueRead = inIssue.readByArray.find(obj => obj.userRef == inUser._id.toString());
         if (returnIssueRead == null) {
             return false;
         } else {
-            await this.IssueReadDetails.deleteOne({ id: returnIssueRead.id });
+            inIssue.readByArray = inIssue.readByArray.filter(item => item != returnIssueRead);
+            await inIssue.save();
         }
 
         return true;
@@ -335,7 +336,7 @@ class WebDataHandler {
                 inputRepo.userList.splice(userIndex, 1);
                 if (inputRepo.userList.length == 0) {
                     let deleteRepoUrl = inputRepo.shortURL.split("/issues")[0];
-                    await this.IssueDetails.deleteMany({ 'data.repository_url' : { "$regex": deleteRepoUrl, "$options": "gi" }});
+                    await this.IssueDetails.deleteMany({ 'data.repository_url': { "$regex": deleteRepoUrl, "$options": "gi" } });
                     await this.RepoDetails.findByIdAndDelete(inputRepo._id);
                 } else {
                     await inputRepo.save();
