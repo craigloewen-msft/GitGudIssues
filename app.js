@@ -86,7 +86,7 @@ const IssueInfo = new Schema({
     }
 });
 
-IssueInfo.index({'data.repository_url':1,'data.number':-1});
+IssueInfo.index({'data.repository_url':1, 'data.state': 1,'data.number':-1});
 
 const siteIssueLabelDetail = new Schema({
     name: String,
@@ -107,7 +107,7 @@ const searchQueryDetail = new Schema({
 });
 
 const UserDetail = new Schema({
-    username: String,
+    username: { type: String, index: true},
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
