@@ -115,12 +115,4 @@ export default {
 </script>
 
 <style>
-.issues-container {
-  text-align: left;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-}
 </style>

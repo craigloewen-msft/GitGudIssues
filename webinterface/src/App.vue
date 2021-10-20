@@ -12,6 +12,9 @@
             <Bootstrapnavlinkcustom to="/manageissues"
               >Manage Issues</Bootstrapnavlinkcustom
             >
+            <Bootstrapnavlinkcustom to="/managementions"
+              >Manage Mentions</Bootstrapnavlinkcustom
+            >
           </b-navbar-nav>
           <b-navbar-nav>
             <Bootstrapnavlinkcustom to="/about">About</Bootstrapnavlinkcustom>
@@ -196,5 +199,14 @@ body {
 
 .small-input-form-box {
   width: 100px;
+}
+
+.issues-container {
+  text-align: left;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
 }
 </style>

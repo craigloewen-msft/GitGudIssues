@@ -106,6 +106,11 @@ const searchQueryDetail = new Schema({
     siteLabels: String,
 });
 
+const UserMentionDetail = new Schema({
+    issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo'},
+    date: Date,
+});
+
 const UserDetail = new Schema({
     username: String,
     password: String,
@@ -113,6 +118,7 @@ const UserDetail = new Schema({
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
     manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
     issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
+    mentions: [{ type: Schema.Types.ObjectId, ref: 'userMentionInfo'}],
 }, { collection: 'usercollection' });
 
 const issueReadDetail = new Schema({
