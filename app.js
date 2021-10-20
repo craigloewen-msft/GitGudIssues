@@ -59,6 +59,11 @@ const GHUserSchema = new Schema({
     gravatar_id: String,
     url: String,
     html_url: String,
+}) 
+
+const issueReadDetail = new Schema({
+    readAt: Date,
+    userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 })
 
 const IssueInfo = new Schema({
@@ -82,8 +87,8 @@ const IssueInfo = new Schema({
         comments: Number,
         closed_at: Date,
         body: String,
-
-    }
+    },
+   readByArray: [ issueReadDetail], 
 });
 
 IssueInfo.index({'data.repository_url':1, 'data.state': 1,'data.number':-1});
@@ -120,12 +125,6 @@ const UserDetail = new Schema({
     issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
     mentions: [{ type: Schema.Types.ObjectId, ref: 'userMentionInfo'}],
 }, { collection: 'usercollection' });
-
-const issueReadDetail = new Schema({
-    readAt: Date,
-    userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
-    issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
-})
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
