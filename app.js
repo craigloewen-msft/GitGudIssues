@@ -111,11 +111,6 @@ const searchQueryDetail = new Schema({
     siteLabels: String,
 });
 
-const UserMentionDetail = new Schema({
-    issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo'},
-    date: Date,
-});
-
 const UserDetail = new Schema({
     username: { type: String, index: true},
     password: String,
