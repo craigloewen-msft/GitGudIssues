@@ -8,7 +8,7 @@ class WebDataHandler {
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
         this.ghToken = inGHToken;
-        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.ghToken);
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, inUserDetails, this.ghToken);
     }
 
     isValidGithubShortURL(inString) {

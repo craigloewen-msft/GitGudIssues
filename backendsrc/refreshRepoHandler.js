@@ -128,7 +128,7 @@ class RefreshRepoTask {
                 }
 
                 if (this.lastUpdatedTime == null || updatedAtDate > this.lastUpdatedTime) {
-                    console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
+                    // console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
                     // Turn the datarepositoryURL to all lower case
                     responseItem.repository_url = responseItem.repository_url.toLowerCase();
 
@@ -260,9 +260,9 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
     async storeInArray(data, inBulkWriteList) {
         var response = 'success';
 
-        // await Promise.all(data.map(async (responseItem) => {
-        for (let i = 0; i < data.length; i++) {
-            let responseItem = data[i];
+        await Promise.all(data.map(async (responseItem) => {
+            // for (let i = 0; i < data.length; i++) {
+            //     let responseItem = data[i];
 
             if (!responseItem.html_url.includes('/pull/')) {
                 var updatedAtDate = new Date(responseItem['updated_at']);
@@ -276,13 +276,17 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                     // TODO: Update the comment and store it in the database
                     let issueURLArray = responseItem.issue_url.split('/');
                     let issueNumber = issueURLArray[issueURLArray.length - 1];
-                    console.log("Updating comment for: ", this.shortRepoUrl, " : ", issueNumber);
-                    // Turn the datarepositoryURL to all lower case
+                    // console.log("Updating comment for: ", this.shortRepoUrl, " : ", issueNumber);
+
+                    // Get parent issue ID
+                    let parentIssueFilter = { 'data.repository_url': this.dataRepositoryUrl, 'data.number': issueNumber };
+                    let parentIssue = await this.IssueDetails.find(parentIssueFilter, { projection: { _id: 1 } });
+
                     let bulkRequestData = {};
                     bulkRequestData.commentUpdate = {
                         updateOne: {
                             filter: { 'repositoryID': this.repoDocument._id.toString(), 'data.id': responseItem.id },
-                            update: { data: responseItem, repositoryID: this.repoDocument._id.toString() },
+                            update: { data: responseItem, repositoryID: this.repoDocument._id.toString(), issueRef: parentIssue._id },
                             upsert: true,
                         }
                     };
@@ -306,7 +310,8 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                     response = 'uptodate';
                 }
             }
-        }
+            // dangling } reminder if you want to go back to the for statement instead }
+        }));
 
         return response;
     }
@@ -315,10 +320,11 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 }
 
 class RefreshRepoHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
+        this.UserDetails = inUserDetails;
         this.ghToken = inGHToken;
 
         this.maxBulkWriteCount = 100; // This is trigger limit, absolute limit is maxBulkWriteCount + perPageResults
@@ -440,12 +446,25 @@ class RefreshRepoHandler {
             for (let i = 0; i < bulkWriteDataCopy.length; i++) {
                 let commentUpdate = bulkWriteDataCopy[i].commentUpdate;
                 let issueUpdate = bulkWriteDataCopy[i].issueUpdate;
-                let updateResult = await this.IssueCommentDetails.updateOne(commentUpdate.updateOne.filter, commentUpdate.updateOne.update, { upsert: true });
+                // Update Comment
+                let updateResult = await this.IssueCommentDetails.findOneAndUpdate(commentUpdate.updateOne.filter, commentUpdate.updateOne.update, { returnDocument: 'after', upsert: true });
 
                 // If we inserted a new comment, then make sure to add it to the issues' comment list!
-                if (updateResult.upsertedId != null) {
-                    let inCommentID = updateResult.upsertedId._id.toString();
+                if (updateResult.isNew) {
+                    let inCommentID = updateResult._id;
                     issueUpdate.updateOne.update['$addToSet'].issueCommentsArray = inCommentID;
+                }
+
+                // Update user mentions for each mention
+                let userUpdatePromiseList = [];
+                if (issueUpdate.updateOne.update['$addToSet'].userMentionsList) {
+                    let userMentionList = issueUpdate.updateOne.update['$addToSet'].userMentionsList['$each'];
+                    for (let i = 0; i < userMentionList.length; i++) {
+                        let inFilter = { githubUsername: userMentionList[i] };
+                        let inUpdate = { '$push': { mentionList: updateResult._id.toString() } };
+                        let userMentionUpdatePromise = this.UserDetails.updateOne(inFilter, inUpdate);
+                        userUpdatePromiseList.push(userMentionUpdatePromise);
+                    }
                 }
 
                 // Update issue with comment details
@@ -453,6 +472,9 @@ class RefreshRepoHandler {
                 if (issueUpdateResult.matchedCount == 0 && issueUpdateResult.modifiedCount == 0) {
                     console.log("Didn't update the parent issue from comment");
                 }
+
+                // Finish waiting for rest of the tasks to finish
+                await Promise.all(userUpdatePromiseList);
             }
             result = true;
         }

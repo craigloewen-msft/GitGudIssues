@@ -10,6 +10,9 @@ module.exports = {
             return null;
         }
         let mentionsArray = inputString.match(mentionsPattern);
+        if (mentionsArray != null) {
+            mentionsArray = mentionsArray.map(el => el.slice(1));
+        }
         return mentionsArray;
     }
 }

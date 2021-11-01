@@ -69,6 +69,7 @@ const issueReadDetail = new Schema({
 
 const IssueCommentDetail = new Schema({
     repositoryID: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
+    issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
     data: {
         author_association: String,
         body: String,
@@ -138,12 +139,13 @@ const searchQueryDetail = new Schema({
 
 const UserDetail = new Schema({
     username: { type: String, index: true },
+    githubUsername: { type: String, index: true},
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
     manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
     issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
-    mentions: [{ type: Schema.Types.ObjectId, ref: 'userMentionInfo' }],
+    mentionList: [{ type: Schema.Types.ObjectId, ref: 'issueCommentInfo'}],
 }, { collection: 'usercollection' });
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -340,7 +342,7 @@ app.post('/api/register', async function (req, res) {
         let newIssueQuery = {};
         let recentlyUpdatedQuery = {};
 
-        let registeredUser = await UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [] }, req.body.password);
+        let registeredUser = await UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [], githubUsername: req.body.githubUsername }, req.body.password);
         await dataHandler.setUserRepo({ username: req.body.username, inRepoShortURL: req.body.repotitle });
         dataHandler.refreshData(req.body.username);
 

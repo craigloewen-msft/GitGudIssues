@@ -19,6 +19,13 @@
       />
       <input
         class="form-control"
+        type="text"
+        name="githubUsername"
+        v-model="input.githubUsername"
+        placeholder="Github Username"
+      />
+      <input
+        class="form-control"
         type="password"
         name="password"
         v-model="input.password"
@@ -64,6 +71,7 @@ export default {
         email: "",
         passwordconfirm: "",
         repotitle: "",
+        githubUsername: "",
       },
     };
   },
@@ -83,6 +91,7 @@ export default {
           password: this.input.password,
           email: this.input.email,
           repotitle: this.input.repotitle,
+          githubUsername: this.input.githubUsername,
         })
         .then((response) => {
           if (response.data.success) {
@@ -132,6 +141,10 @@ export default {
       }
       if (this.input.username.length > 20) {
           this.failuretext = "Username is too long";
+          return false;
+      }
+      if (this.input.githubUsername.length == 0) {
+          this.failuretext = "Github username required";
           return false;
       }
       if (this.input.password.length > 30) {
