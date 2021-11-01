@@ -3,5 +3,13 @@ module.exports = {
         return new Promise(function (resolve, reject) {
             setTimeout(resolve, delayms);
         });
+    },
+    GetMentions(inputString) {
+        let mentionsPattern = /\B@[a-z0-9_-]+/gi;
+        if (inputString == null) {
+            return null;
+        }
+        let mentionsArray = inputString.match(mentionsPattern);
+        return mentionsArray;
     }
 }

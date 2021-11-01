@@ -1,13 +1,14 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 
 class WebDataHandler {
-    constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.UserDetails = inUserDetails;
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
+        this.IssueCommentDetails = inIssueCommentDetails;
         this.ghToken = inGHToken;
-        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.ghToken);
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.ghToken);
     }
 
     isValidGithubShortURL(inString) {
@@ -295,7 +296,7 @@ class WebDataHandler {
         if (inputRepo == null) {
             inputRepo = await this.RepoDetails.create({
                 'shortURL': inputData.inRepoShortURL, 'url': 'https://api.github.com/repos/' + inputData.inRepoShortURL + '/issues',
-                updating: false, lastUpdatedAt: new Date('1/1/1900')
+                updating: false, lastUpdatedAt: new Date('1/1/1900'), lastUpdatedCommentsAt: new Date('1/1/1900')
             });
         }
 
@@ -336,6 +337,7 @@ class WebDataHandler {
                 if (inputRepo.userList.length == 0) {
                     let deleteRepoUrl = inputRepo.shortURL.split("/issues")[0];
                     await this.IssueDetails.deleteMany({ 'data.repository_url': { "$regex": deleteRepoUrl, "$options": "gi" } });
+                    await this.IssueCommentDetails.deleteMany({ repositoryID: inputRepo._id });
                     await this.RepoDetails.findByIdAndDelete(inputRepo._id);
                 } else {
                     await inputRepo.save();

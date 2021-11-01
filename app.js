@@ -35,6 +35,7 @@ if (process.env.NODE_ENV == 'production') {
 const Schema = mongoose.Schema;
 const RepoInfo = new Schema({
     lastUpdatedAt: Date,
+    lastUpdatedCommentsAt: Date,
     url: String,
     updating: Boolean,
     shortURL: String,
@@ -59,18 +60,39 @@ const GHUserSchema = new Schema({
     gravatar_id: String,
     url: String,
     html_url: String,
-}) 
+})
 
 const issueReadDetail = new Schema({
     readAt: Date,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 })
 
+const IssueCommentDetail = new Schema({
+    repositoryID: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
+    data: {
+        author_association: String,
+        body: String,
+        created_at: Date,
+        html_url: String,
+        id: Number,
+        issue_url: String,
+        node_id: String,
+        reactions: Object,
+        updated_at: Date,
+        url: String,
+        user: GHUserSchema,
+    }
+});
+
+IssueCommentDetail.index({ 'data.updated_at': 1, type: -1 });
+IssueCommentDetail.index({ 'data.created_at': 1, type: -1 });
+IssueCommentDetail.index({ 'repositoryID': 1, 'data.id': -1 });
+
 const IssueInfo = new Schema({
     siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
     data: {
-        created_at: { type: Date, index: true},
-        updated_at: { type: Date, index: true},
+        created_at: { type: Date, index: true },
+        updated_at: { type: Date, index: true },
         title: String,
         user: GHUserSchema,
         number: Number,
@@ -88,10 +110,13 @@ const IssueInfo = new Schema({
         closed_at: Date,
         body: String,
     },
-   readByArray: [ issueReadDetail], 
+    readByArray: [issueReadDetail],
+    userMentionsList: [String],
+    userCommentsList: [String],
+    issueCommentsArray: [{ type: Schema.Types.ObjectId, ref: 'issueCommentInfo' }],
 });
 
-IssueInfo.index({'data.repository_url':1, 'data.state': 1,'data.number':-1});
+IssueInfo.index({ 'data.repository_url': 1, 'data.state': 1, 'data.number': -1 });
 
 const siteIssueLabelDetail = new Schema({
     name: String,
@@ -112,13 +137,13 @@ const searchQueryDetail = new Schema({
 });
 
 const UserDetail = new Schema({
-    username: { type: String, index: true},
+    username: { type: String, index: true },
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
     manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
     issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
-    mentions: [{ type: Schema.Types.ObjectId, ref: 'userMentionInfo'}],
+    mentions: [{ type: Schema.Types.ObjectId, ref: 'userMentionInfo' }],
 }, { collection: 'usercollection' });
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -129,11 +154,12 @@ const IssueDetails = mongoose.model('issueInfo', IssueInfo, 'issueInfo');
 const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
 const searchQueryDetails = mongoose.model('searchQueryInfo', searchQueryDetail, 'searchQueryInfo');
 const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabelDetail, 'siteIssueLabelInfo');
+const IssueCommentDetails = mongoose.model('issueCommentInfo', IssueCommentDetail, 'issueCommentInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
-const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, config.ghToken);
+const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, config.ghToken);
 
 // App set up
 
