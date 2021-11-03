@@ -65,7 +65,10 @@ const GHUserSchema = new Schema({
 const issueReadDetail = new Schema({
     readAt: Date,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
+    issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
 })
+
+issueReadDetail.index({ 'userRef': -1, 'issueRef': -1 });
 
 const IssueCommentMentionDetail = new Schema({
     commentRef: { type: Schema.Types.ObjectId, ref: 'issueCommentInfo' },
@@ -124,15 +127,20 @@ const IssueInfo = new Schema({
         closed_at: Date,
         body: String,
     },
-    readByArray: [issueReadDetail],
     userMentionsList: [String],
     userCommentsList: [String],
-});
+}, { toJSON: { virtuals: true } });
 
 IssueInfo.index({ 'data.repository_url': 1, 'data.state': 1, 'data.number': -1 });
 
 IssueInfo.virtual('issueCommentsArray', {
     ref: 'issueCommentInfo',
+    localField: '_id',
+    foreignField: 'issueRef'
+});
+
+IssueInfo.virtual('readByArray', {
+    ref: 'issueReadInfo',
     localField: '_id',
     foreignField: 'issueRef'
 });
@@ -203,7 +211,6 @@ UserDetail.virtual('manageIssueSearchQueries', {
     foreignField: 'userRef'
 });
 
-
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
 UserDetail.plugin(passportLocalMongoose);
@@ -215,11 +222,13 @@ const mentionQueryDetails = mongoose.model('mentionQueryInfo', mentionQueryDetai
 const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabelDetail, 'siteIssueLabelInfo');
 const IssueCommentDetails = mongoose.model('issueCommentInfo', IssueCommentDetail, 'issueCommentInfo');
 const IssueCommentMentionDetails = mongoose.model('issueCommentMentionInfo', IssueCommentMentionDetail, 'issueCommentMentionInfo');
+const IssueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
-const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails, config.ghToken);
+const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
+    IssueReadDetails, config.ghToken);
 
 // App set up
 

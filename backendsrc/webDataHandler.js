@@ -1,13 +1,15 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 
 class WebDataHandler {
-    constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
+        inIssueReadDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.UserDetails = inUserDetails;
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
+        this.IssueReadDetails = inIssueReadDetails;
         this.ghToken = inGHToken;
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.ghToken);
     }
@@ -132,9 +134,9 @@ class WebDataHandler {
         return [findQuery, sortQuery, limitNum, skipNum];
     }
 
-    setIfIssuesAreRead(inputIssueArray, inUser) {
-        inputIssueArray.map((issueItem) => {
-            var issueReadItem = issueItem.readByArray.find(obj => obj.userRef == inUser._id.toString());
+    async setIfIssuesAreRead(inputIssueArray, inUser) {
+        await Promise.all(inputIssueArray.map(async (issueItem) => {
+            let issueReadItem = await this.IssueReadDetails.findOne({ issueRef: issueItem._id, userRef: inUser._id });
             if (issueReadItem == null) {
                 issueItem.readByUser = false;
             } else if (new Date(issueReadItem.readAt) >= new Date(issueItem.data.updated_at)) {
@@ -142,7 +144,7 @@ class WebDataHandler {
             } else {
                 issueItem.readByUser = false;
             }
-        });
+        }));
     }
 
     setIssueLabelsForUser(inputIssueArray, inUser) {
@@ -180,7 +182,7 @@ class WebDataHandler {
         var returnIssueResultsArray = JSON.parse(JSON.stringify(queryResults[1]));
 
         // For each issue get whether it's read or unread
-        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
+        await this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
 
         // Get what issues have what labels for this user (can be done in parallel with above)
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
@@ -198,14 +200,14 @@ class WebDataHandler {
             return false;
         }
 
-        var returnIssueRead = inIssue.readByArray.find(obj => obj.userRef == inUser._id.toString());
+        var returnIssueRead = await this.IssueReadDetails.findOne({ issueRef: inIssue._id, userRef: inUser._id });
         if (returnIssueRead == null) {
-            inIssue.readByArray.push({ readAt: new Date(), userRef: inUser._id.toString() });
+            returnIssueRead = await this.IssueReadDetails.create({ issueRef: inIssue._id, userRef: inUser._id, readAt: new Date() });
         } else {
             returnIssueRead.readAt = new Date();
         }
 
-        await inIssue.save();
+        await returnIssueRead.save();
         return true;
     }
 
@@ -217,12 +219,11 @@ class WebDataHandler {
             return false;
         }
 
-        var returnIssueRead = inIssue.readByArray.find(obj => obj.userRef == inUser._id.toString());
+        var returnIssueRead = await this.IssueReadDetails.findOne({ issueRef: inIssue._id, userRef: inUser._id });
         if (returnIssueRead == null) {
             return false;
         } else {
-            inIssue.readByArray = inIssue.readByArray.filter(item => item != returnIssueRead);
-            await inIssue.save();
+            var deleteReturn = await this.IssueReadDetails.deleteOne({ '_id': returnIssueRead._id });
         }
 
         return true;
@@ -392,29 +393,33 @@ class WebDataHandler {
 
         // var testIssueFind = await this.IssueCommentMentionDetails.find({ 'userRef': inUser._id }).populate({ "path": 'issueRef', "match": { 'data.number': 536 }});
         var countQuery = this.IssueCommentMentionDetails.aggregate([
-            { "$match": {"userRef": inUser._id}},
-            { "$lookup" : {
-                "from": "issueInfo",
-                "localField": "issueRef",
-                "foreignField": "_id",
-                "as": "issueResult"
-            }},
-            { "$match": findQuery},
-            { "$count": "resultCount"},
+            { "$match": { "userRef": inUser._id } },
+            {
+                "$lookup": {
+                    "from": "issueInfo",
+                    "localField": "issueRef",
+                    "foreignField": "_id",
+                    "as": "issueResult"
+                }
+            },
+            { "$match": findQuery },
+            { "$count": "resultCount" },
         ]);
         var mentionQuery = this.IssueCommentMentionDetails.aggregate([
-            { "$match": {"userRef": inUser._id}},
-            { "$lookup" : {
-                "from": "issueInfo",
-                "localField": "issueRef",
-                "foreignField": "_id",
-                "as": "issueResult"
-            }},
-            { "$match": findQuery},
-            { "$unwind" : "$issueResult"},
-            { "$sort" : sortQuery},
-            { "$skip" : skipNum},
-            { "$limit": limitNum},
+            { "$match": { "userRef": inUser._id } },
+            {
+                "$lookup": {
+                    "from": "issueInfo",
+                    "localField": "issueRef",
+                    "foreignField": "_id",
+                    "as": "issueResult"
+                }
+            },
+            { "$match": findQuery },
+            { "$unwind": "$issueResult" },
+            { "$sort": sortQuery },
+            { "$skip": skipNum },
+            { "$limit": limitNum },
         ]);
 
         var queryResults = await Promise.all([countQuery, mentionQuery]);
@@ -430,7 +435,7 @@ class WebDataHandler {
         }
 
         // For each issue get whether it's read or unread
-        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
+        await this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
 
         // Get what issues have what labels for this user (can be done in parallel with above)
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
