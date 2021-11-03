@@ -34,7 +34,7 @@ class RefreshRepoTask {
         await this.repoDocument.save();
     }
 
-    async getNewRepoPage(inBulkWriteList) {
+    async getNewRepoPage(inBulkWriteList, inPageNum) {
 
         if (this.repoDocument == null) {
             return true;
@@ -44,25 +44,25 @@ class RefreshRepoTask {
             return true;
         }
 
-        if (this.pageNum == 1) {
-            await this.setRepoToUpdating();
+        let pageNum = inPageNum;
+
+        if (inPageNum == null) {
+            pageNum = this.pageNum;
         }
 
         console.log("Making " + this.shortRepoUrl + " page num: ", this.pageNum);
-        var response = await this.makeRequest(this.pageNum);
+        this.pageNum = this.pageNum + 1;
+        var response = await this.makeRequest(pageNum);
 
         if (response.status == 200) {
-            this.pageNum = this.pageNum + 1;
             // If no issues are reported then we are done
             if (response.data.length == 0) {
-                await this.endRepoUpdating();
                 console.log("Update Request Complete - " + this.shortRepoUrl + " - No more issues");
                 return true;
             } else {
                 var dbSaveResult = await this.storeInArray(response.data, inBulkWriteList);
                 // If up to date after saving we are done
                 if (dbSaveResult == 'uptodate') {
-                    await this.endRepoUpdating();
                     console.log("Update Request Complete -  " + this.shortRepoUrl + " - Up to date");
                     return true;
                 } else {
@@ -77,7 +77,7 @@ class RefreshRepoTask {
             var retryDifference = responseUnixTime - currentTime;
             console.log("Rate limited waiting until: ", retryTime);
             await helperFunctions.PromiseTimeout(retryDifference * 1000);
-            return this.getNewRepoPage(inBulkWriteList);
+            return this.getNewRepoPage(inBulkWriteList, pageNum);
         } else {
             console.log("Saw unexpected response");
             this.repoDocument.updating = false;
@@ -176,7 +176,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
         await this.repoDocument.save();
     }
 
-    async getNewRepoPage(inBulkWriteList) {
+    async getNewRepoPage(inBulkWriteList, inPageNum) {
 
         if (this.repoDocument == null) {
             return true;
@@ -186,25 +186,25 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
             return true;
         }
 
-        if (this.pageNum == 1) {
-            await this.setRepoToUpdating();
+        let pageNum = inPageNum;
+
+        if (inPageNum == null) {
+            pageNum = this.pageNum;
         }
 
         console.log("Making comments " + this.shortRepoUrl + " page num: ", this.pageNum);
-        var response = await this.makeRequest(this.pageNum);
+        this.pageNum = this.pageNum + 1;
+        var response = await this.makeRequest(pageNum);
 
         if (response.status == 200) {
-            this.pageNum = this.pageNum + 1;
             // If no issues are reported then we are done
             if (response.data.length == 0) {
-                await this.endRepoUpdating();
                 console.log("Update Request Complete - " + this.shortRepoUrl + " - No more issues");
                 return true;
             } else {
                 var dbSaveResult = await this.storeInArray(response.data, inBulkWriteList);
                 // If up to date after saving we are done
                 if (dbSaveResult == 'uptodate') {
-                    await this.endRepoUpdating();
                     console.log("Update Request Complete -  " + this.shortRepoUrl + " - Up to date");
                     return true;
                 } else {
@@ -219,7 +219,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
             var retryDifference = responseUnixTime - currentTime;
             console.log("Rate limited waiting until: ", retryTime);
             await helperFunctions.PromiseTimeout(retryDifference * 1000);
-            return this.getNewRepoPage(inBulkWriteList);
+            return this.getNewRepoPage(inBulkWriteList, pageNum);
         } else {
             console.log("Saw unexpected response");
             this.repoDocument.updating = false;
@@ -333,6 +333,8 @@ class RefreshRepoHandler {
         this.repoRefreshCommentsList = [];
 
         this.refreshingRepos = false;
+
+        this.simultaneousMessages = 20;
     }
 
     addRepoForRefresh(inRepo) {
@@ -357,20 +359,49 @@ class RefreshRepoHandler {
         return true;
     }
 
+    async moveInputReposToProcessing(loopRefreshRepoList, loopRefreshRepoCommentsList) {
+        // Add in added repos
+        for (let i = 0; i < this.inputRefreshRepoList.length; i++) {
+            loopRefreshRepoList.push(this.inputRefreshRepoList[i]);
+            this.repoRefreshList.push(this.inputRefreshRepoList[i]);
+            await this.inputRefreshRepoList[i].setRepoToUpdating();
+        }
+
+        for (let i = 0; i < this.inputRefreshRepoCommentsList.length; i++) {
+            loopRefreshRepoCommentsList.push(this.inputRefreshRepoCommentsList[i]);
+            this.repoRefreshCommentsList.push(this.inputRefreshRepoCommentsList[i]);
+            await this.inputRefreshRepoCommentsList[i].setRepoToUpdating();
+        }
+
+        // Clear input list
+        this.inputRefreshRepoList = [];
+        this.inputRefreshRepoCommentsList = [];
+
+    }
+
     async startRefreshingRepos() {
         if (!this.refreshingRepos) {
             this.refreshingRepos = true;
-            this.repoRefreshList = this.inputRefreshRepoList;
-            let loopRefreshRepoList = this.repoRefreshList;
-            this.inputRefreshRepoList = [];
 
-            this.repoRefreshCommentsList = this.inputRefreshRepoCommentsList;
-            let loopRefreshRepoCommentsList = this.repoRefreshCommentsList;
-            this.inputRefreshRepoCommentsList = [];
+            let loopRefreshRepoList = []
+            let loopRefreshRepoCommentsList = [];
+
+            await this.moveInputReposToProcessing(loopRefreshRepoList, loopRefreshRepoCommentsList);
 
             while (loopRefreshRepoList.length > 0 || loopRefreshRepoCommentsList.length > 0) {
                 for (let i = 0; i < loopRefreshRepoList.length; i++) {
-                    let result = await loopRefreshRepoList[i].getNewRepoPage(this.bulkWriteData);
+                    let refreshResultPromiseArray = [];
+                    for (let j = 0; j < this.simultaneousMessages; j++) {
+                        refreshResultPromiseArray.push(loopRefreshRepoList[i].getNewRepoPage(this.bulkWriteData, null));
+                    }
+                    let promiseResults = await Promise.all(refreshResultPromiseArray);
+
+                    for (let j = 0; j < this.simultaneousMessages; j++) {
+                        if (promiseResults[j]) {
+                            await loopRefreshRepoList[i].endRepoUpdating();
+                        }
+                    }
+
                     if (this.bulkWriteData.length >= this.maxBulkWriteCount) {
                         await this.bulkWriteDataRequest();
                     }
@@ -380,7 +411,18 @@ class RefreshRepoHandler {
                     // TODO: Find more efficient way to query this besides checking each time
                     await this.bulkWriteDataRequest();
                     for (let i = 0; i < loopRefreshRepoCommentsList.length; i++) {
-                        let result = await loopRefreshRepoCommentsList[i].getNewRepoPage(this.bulkWriteCommentData);
+                        let refreshResultPromiseArray = [];
+                        for (let j = 0; j < this.simultaneousMessages; j++) {
+                            refreshResultPromiseArray.push(loopRefreshRepoCommentsList[i].getNewRepoPage(this.bulkWriteCommentData, null));
+                        }
+                        let promiseResults = await Promise.all(refreshResultPromiseArray);
+
+                        for (let j = 0; j < this.simultaneousMessages; j++) {
+                            if (promiseResults[j]) {
+                                await loopRefreshRepoCommentsList[i].endRepoUpdating();
+                            }
+                        }
+
                         if (this.bulkWriteCommentData.length >= this.maxBulkWriteCount) {
                             await this.bulkWriteDataCommentRequest();
                         }
@@ -391,20 +433,7 @@ class RefreshRepoHandler {
                 loopRefreshRepoList = loopRefreshRepoList.filter(refreshTask => !refreshTask.isFinished);
                 loopRefreshRepoCommentsList = loopRefreshRepoCommentsList.filter(refreshTask => !refreshTask.isFinished);
 
-                // Add in added repos
-                for (let i = 0; i < this.inputRefreshRepoList.length; i++) {
-                    loopRefreshRepoList.push(this.inputRefreshRepoList[i]);
-                    this.repoRefreshList.push(this.inputRefreshRepoList[i]);
-                }
-
-                for (let i = 0; i < this.inputRefreshRepoCommentsList.length; i++) {
-                    loopRefreshRepoCommentsList.push(this.inputRefreshRepoCommentsList[i]);
-                    this.repoRefreshCommentsList.push(this.inputRefreshRepoCommentsList[i]);
-                }
-
-                // Clear input list
-                this.inputRefreshRepoList = [];
-                this.inputRefreshRepoCommentsList = [];
+                await this.moveInputReposToProcessing(loopRefreshRepoList, loopRefreshRepoCommentsList);
             }
 
             // Push any buffer remaining
@@ -422,9 +451,10 @@ class RefreshRepoHandler {
             let bulkWriteDataCopy = this.bulkWriteData;
             this.bulkWriteData = [];
             console.log("Starting bulk Write request insert request - ", bulkWriteDataCopy.length);
-            for (let i = 0; i < bulkWriteDataCopy.length; i++) {
-                let mentionsArray = bulkWriteDataCopy[i].mentionsArray;
-                let updateResult = await this.IssueDetails.findOneAndUpdate(bulkWriteDataCopy[i].updateOne.filter, bulkWriteDataCopy[i].updateOne.update, { returnDocument: 'after', upsert: true });
+            await Promise.all(bulkWriteDataCopy.map(async (bulkWriteDataItem) => {
+
+                let mentionsArray = bulkWriteDataItem.mentionsArray;
+                let updateResult = await this.IssueDetails.findOneAndUpdate(bulkWriteDataItem.updateOne.filter, bulkWriteDataItem.updateOne.update, { returnDocument: 'after', upsert: true });
 
                 let issueURL = "https://github.com/" + updateResult.data.url.split("https://api.github.com/repos/").pop();
 
@@ -441,7 +471,7 @@ class RefreshRepoHandler {
                         }
                     }
                 }
-            }
+            }));
             result = true;
         }
         return result;
@@ -453,10 +483,10 @@ class RefreshRepoHandler {
             let bulkWriteDataCopy = this.bulkWriteCommentData;
             this.bulkWriteCommentData = [];
             console.log("Starting bulk Write comment request insert request - ", bulkWriteDataCopy.length);
-            for (let i = 0; i < bulkWriteDataCopy.length; i++) {
-                let commentUpdate = bulkWriteDataCopy[i].commentUpdate;
-                let issueUpdate = bulkWriteDataCopy[i].issueUpdate;
-                let mentionsArray = bulkWriteDataCopy[i].mentionsArray;
+            await Promise.all(bulkWriteDataCopy.map(async (bulkWriteDataItem) => {
+                let commentUpdate = bulkWriteDataItem.commentUpdate;
+                let issueUpdate = bulkWriteDataItem.issueUpdate;
+                let mentionsArray = bulkWriteDataItem.mentionsArray;
                 // Update Comment
                 let updateResult = await this.IssueCommentDetails.findOneAndUpdate(commentUpdate.updateOne.filter, commentUpdate.updateOne.update, { returnDocument: 'after', upsert: true });
 
@@ -467,13 +497,15 @@ class RefreshRepoHandler {
                         let mentionedUser = await this.UserDetails.findOne({ 'githubUsername': mentionItem });
                         if (mentionedUser) {
                             let mentionResult = await this.IssueCommentMentionDetails.create({
-                                'commentRef': updateResult._id, 'userRef': mentionedUser._id, 'issueRef': bulkWriteDataCopy[i].issueID,
+                                'commentRef': updateResult._id, 'userRef': mentionedUser._id, 'issueRef': bulkWriteDataItem.issueID,
                                 mentionedAt: updateResult.data.updated_at, repoRef: updateResult.repoRef, html_url: updateResult.data.html_url, mentionAuthor: updateResult.data.user.login,
                             });
                         }
                     }
                 }
-            }
+            }));
+
+
             result = true;
         }
         return result;
