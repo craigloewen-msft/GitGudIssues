@@ -138,7 +138,7 @@ class RefreshRepoTask {
                     bulkRequestData = {
                         updateOne: {
                             filter: { 'data.repository_url': this.dataRepositoryUrl, 'data.number': responseItem.number },
-                            update: { data: responseItem, '$addToSet': { userCommentsList: responseItem.user.login } },
+                            update: { data: responseItem, repoRef: this.repoDocument._id, '$addToSet': { userCommentsList: responseItem.user.login } },
                             upsert: true,
                         }
                     };
@@ -288,7 +288,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                             filter: { 'repositoryID': this.repoDocument._id.toString(), 'data.id': responseItem.id },
                             update: {
                                 data: responseItem, repositoryID: this.repoDocument._id.toString(),
-                                issueRef: parentIssue._id, mentionStrings: mentionsArray
+                                issueRef: parentIssue._id, repoRef: this.repoDocument._id, mentionStrings: mentionsArray
                             },
                             upsert: true,
                         }
@@ -436,7 +436,7 @@ class RefreshRepoHandler {
                         if (mentionedUser) {
                             let mentionResult = await this.IssueCommentMentionDetails.create({
                                 'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': updateResult._id,
-                                mentionedAt: updateResult.data.updated_at, html_url: issueURL, mentionAuthor: updateResult.data.user.login,
+                                mentionedAt: updateResult.data.updated_at, repoRef: updateResult.repoRef, html_url: issueURL, mentionAuthor: updateResult.data.user.login,
                             });
                         }
                     }
@@ -468,7 +468,7 @@ class RefreshRepoHandler {
                         if (mentionedUser) {
                             let mentionResult = await this.IssueCommentMentionDetails.create({
                                 'commentRef': updateResult._id, 'userRef': mentionedUser._id, 'issueRef': bulkWriteDataCopy[i].issueID,
-                                mentionedAt: updateResult.data.updated_at, html_url: updateResult.data.html_url, mentionAuthor: updateResult.data.user.login,
+                                mentionedAt: updateResult.data.updated_at, repoRef: updateResult.repoRef, html_url: updateResult.data.html_url, mentionAuthor: updateResult.data.user.login,
                             });
                         }
                     }

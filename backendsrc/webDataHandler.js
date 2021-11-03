@@ -202,7 +202,7 @@ class WebDataHandler {
 
         var returnIssueRead = await this.IssueReadDetails.findOne({ issueRef: inIssue._id, userRef: inUser._id });
         if (returnIssueRead == null) {
-            returnIssueRead = await this.IssueReadDetails.create({ issueRef: inIssue._id, userRef: inUser._id, readAt: new Date() });
+            returnIssueRead = await this.IssueReadDetails.create({ issueRef: inIssue._id, userRef: inUser._id, readAt: new Date(), repoRef: inIssue.repoRef });
         } else {
             returnIssueRead.readAt = new Date();
         }
@@ -350,10 +350,12 @@ class WebDataHandler {
                 inputRepo.userList.splice(userIndex, 1);
                 if (inputRepo.userList.length == 0) {
                     let deleteRepoUrl = inputRepo.shortURL.split("/issues")[0];
-                    await this.IssueDetails.deleteMany({ 'data.repository_url': { "$regex": deleteRepoUrl, "$options": "gi" } });
-                    await this.IssueCommentDetails.deleteMany({ repositoryID: inputRepo._id });
-                    // TODO: Delete Issue Comment Mentions
-                    await this.RepoDetails.findByIdAndDelete(inputRepo._id);
+
+                    await this.IssueCommentMentionDetails.deleteMany({ repoRef: inputRepo._id });
+                    await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id });
+                    await this.IssueReadDetails.deleteMany({ repoRef: inputRepo._id });
+                    await this.IssueDetails.deleteMany({ repoRef: inputRepo._id });
+                    await this.RepoDetails.deleteMany({ '_id': inputRepo._id });
                 } else {
                     await inputRepo.save();
                 }

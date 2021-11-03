@@ -66,20 +66,22 @@ const issueReadDetail = new Schema({
     readAt: Date,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
     issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
+    repoRef: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
 })
 
-issueReadDetail.index({ 'userRef': -1, 'issueRef': -1 });
+issueReadDetail.index({ 'userRef': -1, 'issueRef': -1, 'repoRef': -1 });
 
 const IssueCommentMentionDetail = new Schema({
     commentRef: { type: Schema.Types.ObjectId, ref: 'issueCommentInfo' },
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
     issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
+    repoRef: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
     mentionedAt: Date,
     html_url: String,
     mentionAuthor: String,
 });
 
-IssueCommentMentionDetail.index({ 'commentRef': 1, 'userRef': -1, 'issueRef': -1 });
+IssueCommentMentionDetail.index({ 'commentRef': 1, 'userRef': -1, 'issueRef': -1, 'repoRef': -1 });
 IssueCommentMentionDetail.index({ 'mentionedAt': 1, type: -1 });
 
 const IssueCommentDetail = new Schema({
@@ -107,6 +109,7 @@ IssueCommentDetail.index({ 'repositoryID': 1, 'data.id': -1 });
 
 const IssueInfo = new Schema({
     siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
+    repoRef: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
     data: {
         created_at: { type: Date, index: true },
         updated_at: { type: Date, index: true },
@@ -132,6 +135,7 @@ const IssueInfo = new Schema({
 }, { toJSON: { virtuals: true } });
 
 IssueInfo.index({ 'data.repository_url': 1, 'data.state': 1, 'data.number': -1 });
+IssueInfo.index({ 'repoRef': 1 });
 
 IssueInfo.virtual('issueCommentsArray', {
     ref: 'issueCommentInfo',
@@ -143,13 +147,6 @@ IssueInfo.virtual('readByArray', {
     ref: 'issueReadInfo',
     localField: '_id',
     foreignField: 'issueRef'
-});
-
-IssueInfo.pre('deleteMany', function (next) {
-    const inIssue = this;
-    mongoose.model('issueCommentMentionInfo').deleteMany({ issueRef: this._id }, function (err, result) {
-        mongoose.model('issueCommentInfo').deleteMany({ issueRef: this._id }, next);
-    });
 });
 
 const siteIssueLabelDetail = new Schema({
