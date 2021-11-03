@@ -143,9 +143,7 @@ class RefreshRepoTask {
                         }
                     };
 
-                    if (mentionsArray != null) {
-                        bulkRequestData.updateOne.update['$addToSet'].userMentionsList = { '$each': mentionsArray };
-                    }
+                    bulkRequestData.mentionsArray = mentionsArray;
 
                     inBulkWriteList.push(bulkRequestData);
                 } else {
@@ -280,30 +278,24 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 
                     // Get parent issue ID
                     let parentIssueFilter = { 'data.repository_url': this.dataRepositoryUrl, 'data.number': issueNumber };
-                    let parentIssue = await this.IssueDetails.find(parentIssueFilter, { projection: { _id: 1 } });
+                    let parentIssue = await this.IssueDetails.findOne(parentIssueFilter, { projection: { _id: 1 } });
+
+                    let mentionsArray = helperFunctions.GetMentions(responseItem.body);
 
                     let bulkRequestData = {};
                     bulkRequestData.commentUpdate = {
                         updateOne: {
                             filter: { 'repositoryID': this.repoDocument._id.toString(), 'data.id': responseItem.id },
-                            update: { data: responseItem, repositoryID: this.repoDocument._id.toString(), issueRef: parentIssue._id },
+                            update: {
+                                data: responseItem, repositoryID: this.repoDocument._id.toString(),
+                                issueRef: parentIssue._id, mentionStrings: mentionsArray
+                            },
                             upsert: true,
                         }
                     };
 
-                    let mentionsArray = helperFunctions.GetMentions(responseItem.body);
-
-                    // Add in issue update request
-                    bulkRequestData.issueUpdate = {
-                        updateOne: {
-                            filter: { 'data.repository_url': this.dataRepositoryUrl, 'data.number': issueNumber },
-                            update: { '$addToSet': { userCommentsList: responseItem.user.login } },
-                        }
-                    }
-
-                    if (mentionsArray != null) {
-                        bulkRequestData.issueUpdate.updateOne.update['$addToSet'].userMentionsList = { '$each': mentionsArray };
-                    }
+                    bulkRequestData.mentionsArray = mentionsArray;
+                    bulkRequestData.issueID = parentIssue._id;
 
                     inBulkWriteList.push(bulkRequestData);
                 } else {
@@ -320,10 +312,11 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 }
 
 class RefreshRepoHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
+        this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.UserDetails = inUserDetails;
         this.ghToken = inGHToken;
 
@@ -430,7 +423,24 @@ class RefreshRepoHandler {
             this.bulkWriteData = [];
             console.log("Starting bulk Write request insert request - ", bulkWriteDataCopy.length);
             for (let i = 0; i < bulkWriteDataCopy.length; i++) {
-                let updateResult = await this.IssueDetails.updateOne(bulkWriteDataCopy[i].updateOne.filter, bulkWriteDataCopy[i].updateOne.update, { upsert: true });
+                let mentionsArray = bulkWriteDataCopy[i].mentionsArray;
+                let updateResult = await this.IssueDetails.findOneAndUpdate(bulkWriteDataCopy[i].updateOne.filter, bulkWriteDataCopy[i].updateOne.update, { returnDocument: 'after', upsert: true });
+
+                let issueURL = "https://github.com/" + updateResult.data.url.split("https://api.github.com/repos/").pop();
+
+                if (mentionsArray) {
+                    // For each name in the mention array, attempt to create a mention
+                    for (let i = 0; i < mentionsArray.length; i++) {
+                        let mentionItem = mentionsArray[i];
+                        let mentionedUser = await this.UserDetails.findOne({ 'githubUsername': mentionItem });
+                        if (mentionedUser) {
+                            let mentionResult = await this.IssueCommentMentionDetails.create({
+                                'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': updateResult._id,
+                                mentionedAt: updateResult.data.updated_at, html_url: issueURL, mentionAuthor: updateResult.data.user.login,
+                            });
+                        }
+                    }
+                }
             }
             result = true;
         }
@@ -446,35 +456,23 @@ class RefreshRepoHandler {
             for (let i = 0; i < bulkWriteDataCopy.length; i++) {
                 let commentUpdate = bulkWriteDataCopy[i].commentUpdate;
                 let issueUpdate = bulkWriteDataCopy[i].issueUpdate;
+                let mentionsArray = bulkWriteDataCopy[i].mentionsArray;
                 // Update Comment
                 let updateResult = await this.IssueCommentDetails.findOneAndUpdate(commentUpdate.updateOne.filter, commentUpdate.updateOne.update, { returnDocument: 'after', upsert: true });
 
-                // If we inserted a new comment, then make sure to add it to the issues' comment list!
-                if (updateResult.isNew) {
-                    let inCommentID = updateResult._id;
-                    issueUpdate.updateOne.update['$addToSet'].issueCommentsArray = inCommentID;
-                }
-
-                // Update user mentions for each mention
-                let userUpdatePromiseList = [];
-                if (issueUpdate.updateOne.update['$addToSet'].userMentionsList) {
-                    let userMentionList = issueUpdate.updateOne.update['$addToSet'].userMentionsList['$each'];
-                    for (let i = 0; i < userMentionList.length; i++) {
-                        let inFilter = { githubUsername: userMentionList[i] };
-                        let inUpdate = { '$push': { mentionList: updateResult._id.toString() } };
-                        let userMentionUpdatePromise = this.UserDetails.updateOne(inFilter, inUpdate);
-                        userUpdatePromiseList.push(userMentionUpdatePromise);
+                if (mentionsArray) {
+                    // For each name in the mention array, attempt to create a mention
+                    for (let i = 0; i < mentionsArray.length; i++) {
+                        let mentionItem = mentionsArray[i];
+                        let mentionedUser = await this.UserDetails.findOne({ 'githubUsername': mentionItem });
+                        if (mentionedUser) {
+                            let mentionResult = await this.IssueCommentMentionDetails.create({
+                                'commentRef': updateResult._id, 'userRef': mentionedUser._id, 'issueRef': bulkWriteDataCopy[i].issueID,
+                                mentionedAt: updateResult.data.updated_at, html_url: updateResult.data.html_url, mentionAuthor: updateResult.data.user.login,
+                            });
+                        }
                     }
                 }
-
-                // Update issue with comment details
-                let issueUpdateResult = await this.IssueDetails.updateOne(issueUpdate.updateOne.filter, issueUpdate.updateOne.update);
-                if (issueUpdateResult.matchedCount == 0 && issueUpdateResult.modifiedCount == 0) {
-                    console.log("Didn't update the parent issue from comment");
-                }
-
-                // Finish waiting for rest of the tasks to finish
-                await Promise.all(userUpdatePromiseList);
             }
             result = true;
         }

@@ -12,14 +12,7 @@
           v-on:click.middle="markIssueAsRead"
         >
           <div class="issue-title-box">
-            <a
-              class="Link--primary"
-              :href="
-                'https://github.com/' +
-                issue.data.url.split('https://api.github.com/repos/').pop()
-              "
-              >{{ issue.data.title }}</a
-            >
+            <a class="Link--primary" :href="getUrl">{{ issue.data.title }}</a>
             <span
               class="gh-issue-label"
               v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.data.labels"
@@ -32,10 +25,14 @@
             </span>
           </div>
           <div class="issue-sub-info-box">
-            <p>
+            <p v-if="!isMention">
               {{ issue.data.number }} by {{ issue.data.user.login }} created
               {{ getRelativeDate(issue.data.created_at) }} updated
               {{ getRelativeDate(issue.data.updated_at) }}
+            </p>
+            <p v-else>
+              {{ issue.data.number }} by {{ issue.mentionAuthor }} mentioned
+              {{ getRelativeDate(issue.mentionedAt) }}
             </p>
           </div>
         </div>
@@ -84,13 +81,7 @@
           </div>
         </span>
         <span class="ml-2 flex-1 flex-shrink-0">
-          <a
-            :href="
-              'https://github.com/' +
-              issue.data.url.split('https://api.github.com/repos/').pop()
-            "
-            class="Link--muted comment-bubble"
-          >
+          <a :href="getUrl" class="Link--muted comment-bubble">
             <svg
               aria-hidden="true"
               height="16"
@@ -157,6 +148,7 @@ export default {
   },
   props: {
     issue: Object,
+    isMention: { type: Boolean, required: false, default: false },
   },
   methods: {
     getRelativeDate: function (inDate) {
@@ -289,6 +281,18 @@ export default {
               // TODO Add in some error catching condition
             }
           });
+      }
+    },
+  },
+  computed: {
+    getUrl() {
+      if (this.isMention) {
+        return this.issue.html_url;
+      } else {
+        return (
+          "https://github.com/" +
+          this.issue.data.url.split("https://api.github.com/repos/").pop()
+        );
       }
     },
   },

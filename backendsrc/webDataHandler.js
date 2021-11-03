@@ -1,14 +1,15 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 
 class WebDataHandler {
-    constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.UserDetails = inUserDetails;
         this.siteIssueLabelDetails = inSiteIssueLabelDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
+        this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.ghToken = inGHToken;
-        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, inUserDetails, this.ghToken);
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.ghToken);
     }
 
     isValidGithubShortURL(inString) {
@@ -25,24 +26,13 @@ class WebDataHandler {
         await this.refreshRepoHandler.startRefreshingRepos();;
     }
 
-    async getIssues(queryData) {
-
-        // Get User Data
-        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
-        let userIssueLabelList = inUser.issueLabels;
-        let userRepoList = inUser.repos;
-
-        if (inUser == null) {
-            throw "User can't be found";
-        }
-
-        var userID = inUser.id.toString();
-
-        // Start getting issue data
+    getQueryInputs(queryData, inUser) {
         var findQuery = {};
         var sortQuery = { "data.created_at": -1 };
         var limitNum = 10;
         var skipNum = 0;
+
+        let userRepoList = inUser.repos;
 
         if (queryData.per_page) {
             limitNum = queryData.per_page;
@@ -127,7 +117,7 @@ class WebDataHandler {
             let labelMatchObject = [];
             for (let i = 0; i < andLabelList.length; i++) {
                 let siteLabelList = andLabelList[i].split(',');
-                let orIssueLabels = await this.siteIssueLabelDetails.find({ 'name': { '$in': siteLabelList }, owner: inUser._id });
+                let orIssueLabels = inUser.issueLabels;
                 labelMatchObject.push({ "siteIssueLabels": { "$in": orIssueLabels } });
             }
 
@@ -139,13 +129,11 @@ class WebDataHandler {
             }
         }
 
-        var queryResults = await Promise.all([this.IssueDetails.count(findQuery).exec(), this.IssueDetails.find(findQuery).sort(sortQuery).skip(skipNum).limit(limitNum).exec()]);
+        return [findQuery, sortQuery, limitNum, skipNum];
+    }
 
-        // Get a return array
-        var returnIssueResultsArray = JSON.parse(JSON.stringify(queryResults[1]));
-
-        // For each issue get whether it's read or unread
-        var getIssueReadPromise = Promise.all(returnIssueResultsArray.map(async (issueItem) => {
+    setIfIssuesAreRead(inputIssueArray, inUser) {
+        inputIssueArray.map((issueItem) => {
             var issueReadItem = issueItem.readByArray.find(obj => obj.userRef == inUser._id.toString());
             if (issueReadItem == null) {
                 issueItem.readByUser = false;
@@ -154,10 +142,13 @@ class WebDataHandler {
             } else {
                 issueItem.readByUser = false;
             }
-        }));
+        });
+    }
 
-        // Get what issues have what labels for this user (can be done in parallel with above)
-        var getIssueSiteLabelsPromise = Promise.all(returnIssueResultsArray.map(async (issueItem) => {
+    setIssueLabelsForUser(inputIssueArray, inUser) {
+        let userIssueLabelList = inUser.issueLabels;
+
+        inputIssueArray.map((issueItem) => {
             var siteLabelsToReturn = [];
 
             for (const iterIssueLabel of userIssueLabelList) {
@@ -168,9 +159,31 @@ class WebDataHandler {
 
             issueItem.siteLabels = siteLabelsToReturn;
 
-        }));
+        });
+    }
 
-        var [readResult, siteLabelResult] = await Promise.all([getIssueReadPromise, getIssueSiteLabelsPromise]);
+    async getIssues(queryData) {
+
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        // Get issue query data
+        let [findQuery, sortQuery, limitNum, skipNum] = this.getQueryInputs(queryData, inUser);
+
+        var queryResults = await Promise.all([this.IssueDetails.count(findQuery).exec(), this.IssueDetails.find(findQuery).sort(sortQuery).skip(skipNum).limit(limitNum).exec()]);
+
+        // Get a return array
+        var returnIssueResultsArray = JSON.parse(JSON.stringify(queryResults[1]));
+
+        // For each issue get whether it's read or unread
+        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
+
+        // Get what issues have what labels for this user (can be done in parallel with above)
+        this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
 
         // Return the values
         var returnResult = { count: queryResults[0], issueData: returnIssueResultsArray };
@@ -338,6 +351,7 @@ class WebDataHandler {
                     let deleteRepoUrl = inputRepo.shortURL.split("/issues")[0];
                     await this.IssueDetails.deleteMany({ 'data.repository_url': { "$regex": deleteRepoUrl, "$options": "gi" } });
                     await this.IssueCommentDetails.deleteMany({ repositoryID: inputRepo._id });
+                    // TODO: Delete Issue Comment Mentions
                     await this.RepoDetails.findByIdAndDelete(inputRepo._id);
                 } else {
                     await inputRepo.save();
@@ -350,6 +364,81 @@ class WebDataHandler {
         }
 
         return true;
+    }
+
+    async getMentions(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum] = this.getQueryInputs(queryData, inUser);
+
+        let findQuery = {};
+        let sortQuery = {};
+
+        // Put all our search criteria as an 'issue ref' object
+        for (let objectKey of Object.keys(firstFindQuery)) {
+            findQuery["issueResult." + objectKey] = firstFindQuery[objectKey];
+        }
+
+        // Put all our sort criteria as an 'issue ref' object
+        for (let objectKey of Object.keys(firstSortQuery)) {
+            sortQuery["mentionedAt"] = firstSortQuery[objectKey];
+        }
+
+        // var testIssueFind = await this.IssueCommentMentionDetails.find({ 'userRef': inUser._id }).populate({ "path": 'issueRef', "match": { 'data.number': 536 }});
+        var countQuery = this.IssueCommentMentionDetails.aggregate([
+            { "$match": {"userRef": inUser._id}},
+            { "$lookup" : {
+                "from": "issueInfo",
+                "localField": "issueRef",
+                "foreignField": "_id",
+                "as": "issueResult"
+            }},
+            { "$match": findQuery},
+            { "$count": "resultCount"},
+        ]);
+        var mentionQuery = this.IssueCommentMentionDetails.aggregate([
+            { "$match": {"userRef": inUser._id}},
+            { "$lookup" : {
+                "from": "issueInfo",
+                "localField": "issueRef",
+                "foreignField": "_id",
+                "as": "issueResult"
+            }},
+            { "$match": findQuery},
+            { "$unwind" : "$issueResult"},
+            { "$sort" : sortQuery},
+            { "$skip" : skipNum},
+            { "$limit": limitNum},
+        ]);
+
+        var queryResults = await Promise.all([countQuery, mentionQuery]);
+
+        // Get a return array
+        let returnIssueResultsArray = [];
+        for (let i = 0; i < queryResults[1].length; i++) {
+            let pushItem = queryResults[1][i].issueResult;
+            pushItem.mentionedAt = queryResults[1][i].mentionedAt;
+            pushItem.html_url = queryResults[1][i].html_url;
+            pushItem.mentionAuthor = queryResults[1][i].mentionAuthor;
+            returnIssueResultsArray.push(pushItem);
+        }
+
+        // For each issue get whether it's read or unread
+        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
+
+        // Get what issues have what labels for this user (can be done in parallel with above)
+        this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
+
+        // Return the values
+        var returnResult = { count: queryResults[0][0].resultCount, issueData: returnIssueResultsArray };
+        return returnResult;
+
     }
 
 

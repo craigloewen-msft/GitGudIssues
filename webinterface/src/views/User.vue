@@ -28,9 +28,15 @@
         </div>
       </div>
       <p class="text-muted">
-        You can add repos that you're interested in here by typing them in above and pressing enter.
+        You can add repos that you're interested in here by typing them in above
+        and pressing enter.
       </p>
-      <router-link class="btn btn-primary" to="/manageissues">Start triaging issues!</router-link>
+      <router-link class="btn btn-primary" to="/manageissues"
+        >Start triaging issues!</router-link
+      >
+      <b-button class="btn btn-primary" v-on:click="refreshRepos"
+        >Refresh repos</b-button
+      >
     </b-container>
   </div>
 </template>
@@ -75,13 +81,23 @@ export default {
           })
           .then((response) => {
             if (response.data.success) {
-              this.user.repos.splice(repoIndex,1);
+              this.user.repos.splice(repoIndex, 1);
             } else {
               console.log(response);
               // TODO Add in some error catching condition
             }
           });
       }
+    },
+    refreshRepos: function () {
+      this.$http.get("/api/refreshrepos").then((response) => {
+        if (response.data.success) {
+          console.log("Success!");
+        } else {
+          console.log(response);
+          // TODO Add in some error catching condition
+        }
+      });
     },
   },
   mounted() {

@@ -67,9 +67,22 @@ const issueReadDetail = new Schema({
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 })
 
+const IssueCommentMentionDetail = new Schema({
+    commentRef: { type: Schema.Types.ObjectId, ref: 'issueCommentInfo' },
+    userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
+    issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
+    mentionedAt: Date,
+    html_url: String,
+    mentionAuthor: String,
+});
+
+IssueCommentMentionDetail.index({ 'commentRef': 1, 'userRef': -1, 'issueRef': -1 });
+IssueCommentMentionDetail.index({ 'mentionedAt': 1, type: -1 });
+
 const IssueCommentDetail = new Schema({
     repositoryID: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
     issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
+    mentionStrings: [String],
     data: {
         author_association: String,
         body: String,
@@ -114,15 +127,39 @@ const IssueInfo = new Schema({
     readByArray: [issueReadDetail],
     userMentionsList: [String],
     userCommentsList: [String],
-    issueCommentsArray: [{ type: Schema.Types.ObjectId, ref: 'issueCommentInfo' }],
 });
 
 IssueInfo.index({ 'data.repository_url': 1, 'data.state': 1, 'data.number': -1 });
+
+IssueInfo.virtual('issueCommentsArray', {
+    ref: 'issueCommentInfo',
+    localField: '_id',
+    foreignField: 'issueRef'
+});
+
+IssueInfo.pre('deleteMany', function (next) {
+    const inIssue = this;
+    mongoose.model('issueCommentMentionInfo').deleteMany({ issueRef: this._id }, function (err, result) {
+        mongoose.model('issueCommentInfo').deleteMany({ issueRef: this._id }, next);
+    });
+});
 
 const siteIssueLabelDetail = new Schema({
     name: String,
     issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
     owner: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
+});
+
+const mentionQueryDetail = new Schema({
+    title: String,
+    state: String,
+    sort: String,
+    limit: Number,
+    creator: String,
+    assignee: String,
+    labels: String,
+    repos: String,
+    siteLabels: String,
 });
 
 const searchQueryDetail = new Schema({
@@ -139,14 +176,20 @@ const searchQueryDetail = new Schema({
 
 const UserDetail = new Schema({
     username: { type: String, index: true },
-    githubUsername: { type: String, index: true},
+    githubUsername: { type: String, index: true },
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
     manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
+    manageMentionQueries: [{ type: Schema.Types.ObjectId, ref: 'mentionQueryInfo' }],
     issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
-    mentionList: [{ type: Schema.Types.ObjectId, ref: 'issueCommentInfo'}],
 }, { collection: 'usercollection' });
+
+UserDetail.virtual('mentionArray', {
+    ref: 'issueCommentMentionInfo',
+    localField: '_id',
+    foreignField: 'userRef'
+});
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -155,13 +198,15 @@ const RepoDetails = mongoose.model('repoInfo', RepoInfo, 'repoInfo');
 const IssueDetails = mongoose.model('issueInfo', IssueInfo, 'issueInfo');
 const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
 const searchQueryDetails = mongoose.model('searchQueryInfo', searchQueryDetail, 'searchQueryInfo');
+const mentionQueryDetails = mongoose.model('mentionQueryInfo', mentionQueryDetail, 'mentionQueryInfo');
 const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabelDetail, 'siteIssueLabelInfo');
 const IssueCommentDetails = mongoose.model('issueCommentInfo', IssueCommentDetail, 'issueCommentInfo');
+const IssueCommentMentionDetails = mongoose.model('issueCommentMentionInfo', IssueCommentMentionDetail, 'issueCommentMentionInfo');
 
 const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
-const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, config.ghToken);
+const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails, config.ghToken);
 
 // App set up
 
@@ -415,6 +460,17 @@ app.post('/api/removeissuelabel', authenticateToken, async function (req, res) {
     }
 });
 
+app.post('/api/getmentions', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var issueResponse = await dataHandler.getMentions(req.body);
+        return res.json({ success: true, queryData: issueResponse });
+    } catch (error) {
+        let errorToString = error.toString();
+        return res.json(returnFailure(error));
+    }
+});
+
 // User data APIs
 
 app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
@@ -470,11 +526,11 @@ app.post('/api/modifyusermanageissuequery', authenticateToken, async function (r
         const inputData = { username: req.user.id, inAction: req.body.action, inQuery: req.body.query };
         const { _id: inQueryID, ...inQueryData } = inputData.inQuery;
         var returnID = null;
+        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
 
         if (inputData.inAction == "save") {
             var updatedSearchQuery = await searchQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
             if (updatedSearchQuery == null) {
-                var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
                 var newSearchQuery = await searchQueryDetails.create(inputData.inQuery);
                 await newSearchQuery.save();
                 inputUser.manageIssueSearchQueries.push(newSearchQuery);
@@ -485,10 +541,76 @@ app.post('/api/modifyusermanageissuequery', authenticateToken, async function (r
             }
         } else if (inputData.inAction == "delete") {
             var deletedSearchQuery = await searchQueryDetails.findByIdAndDelete(inQueryID);
+            let userDeleteIndex = inputUser.manageIssueSearchQueries.indexOf(inQueryID);
+            if (userDeleteIndex > -1) {
+                inputUser.manageIssueSearchQueries.splice(userDeleteIndex, 1);
+                await inputUser.save();
+            }
             returnID = inQueryID;
         }
 
         return res.json({ success: true, issueID: returnID });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.get('/api/getusermanagementionqueries', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { username: req.user.id };
+
+        var inputUser = (await UserDetails.find({ 'username': inputData.username }).populate('manageMentionQueries'))[0];
+
+        if (inputUser) {
+            return res.json({ success: true, queries: inputUser.manageMentionQueries });
+        } else {
+            return res.json(returnFailure("Failed getting user"));
+        }
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/modifyusermanagementionquery', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { username: req.user.id, inAction: req.body.action, inQuery: req.body.query };
+        const { _id: inQueryID, ...inQueryData } = inputData.inQuery;
+        var returnID = null;
+        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
+
+        if (inputData.inAction == "save") {
+            var updatedSearchQuery = await mentionQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
+            if (updatedSearchQuery == null) {
+                var newMentionQuery = await mentionQueryDetails.create(inputData.inQuery);
+                await newMentionQuery.save();
+                inputUser.manageMentionQueries.push(newMentionQuery);
+                await inputUser.save();
+                returnID = newMentionQuery.id.toString()
+            } else {
+                returnID = updatedSearchQuery.id.toString();
+            }
+        } else if (inputData.inAction == "delete") {
+            var deletedSearchQuery = await mentionQueryDetails.findByIdAndDelete(inQueryID);
+            let userDeleteIndex = inputUser.manageMentionQueries.indexOf(inQueryID);
+            if (userDeleteIndex > -1) {
+                userDeleteIndex.splice(userDeleteIndex, 1);
+                await inputUser.save();
+            }
+            returnID = inQueryID;
+        }
+
+        return res.json({ success: true, issueID: returnID });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+// Misc functions
+
+app.get('/api/refreshrepos', authenticateToken, async function (req, res) {
+    try {
+        dataHandler.refreshData(req.user.id);
+        return res.json({ success: true });
     } catch (error) {
         return res.json(returnFailure(error));
     }

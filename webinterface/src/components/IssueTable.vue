@@ -64,6 +64,7 @@
           class="m-md-2"
           size="sm"
           variant="outline-secondary"
+          v-if="!isMention"
         >
           <b-dropdown-item
             :active="inputQuery.sort == 'created'"
@@ -184,12 +185,12 @@
           min="1"
           :max="Math.ceil(totalIssueCount / inputQuery.limit)"
         ></b-form-input>
-        of {{ Math.ceil(totalIssueCount / inputQuery.limit) }} - Total Issues:
+        of {{ Math.ceil(totalIssueCount / inputQuery.limit) }} - Total {{ isMention ? "Mentions":"Issues" }}:
         {{ totalIssueCount }}
       </div>
     </div>
     <div v-for="(issue, issueIndex) in newestOpenIssues" :key="issueIndex">
-      <IssueInfoBox v-bind:issue="issue"></IssueInfoBox>
+      <IssueInfoBox v-bind:issue="issue" v-bind:isMention="isMention"></IssueInfoBox>
     </div>
   </div>
 </template>
@@ -203,7 +204,10 @@ export default {
   },
   props: {
     inputQuery: Object,
-    inEditMode: { type: Boolean, required: false, default: false}
+    inEditMode: { type: Boolean, required: false, default: false},
+    getIssuesEndpoint: String,
+    modifyIssuesEndpoint: String,
+    isMention: { type: Boolean, required: false, default: false},
   },
   data() {
     return {
@@ -222,7 +226,7 @@ export default {
       this.refreshIssues();
     },
     refreshIssues: function () {
-      this.$http.post("/api/getissues", this.inputQuery).then((response) => {
+      this.$http.post(this.getIssuesEndpoint, this.inputQuery).then((response) => {
         if (response.data.success) {
           const returnedIssueList = response.data.queryData.issueData;
           const returnedCount = response.data.queryData.count;
@@ -230,12 +234,13 @@ export default {
           this.totalIssueCount = returnedCount;
         } else {
           // TODO Add in some error catching condition
+          console.log(response);
         }
       });
     },
     saveQuery: function () {
       this.$http
-        .post("/api/modifyusermanageissuequery", {
+        .post(this.modifyIssuesEndpoint, {
           action: "save",
           query: this.inputQuery,
         })
@@ -250,7 +255,7 @@ export default {
     },
     deleteQuery: function () {
       this.$http
-        .post("/api/modifyusermanageissuequery", {
+        .post(this.modifyIssuesEndpoint, {
           action: "delete",
           query: this.inputQuery,
         })

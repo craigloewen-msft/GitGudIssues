@@ -11,6 +11,8 @@
         v-bind:inputQuery="issueQuery.query"
         @deleteQueryEvent="deleteQuery(issueQuery)"
         v-bind:inEditMode="issueQuery.startEdit"
+        v-bind:getIssuesEndpoint="'/api/getissues'"
+        v-bind:modifyIssuesEndpoint="'/api/modifyusermanageissuequery'"
       >
       </IssueTable>
       <b-button v-on:click="addNewQuery">New Query</b-button>

@@ -5,26 +5,29 @@
         <h2>Manage Mentions</h2>
         <b-button v-on:click="refreshQueryList">Refresh Mentions</b-button>
       </div>
-      <MentionTable
+      <IssueTable
         v-for="(mentionQuery, mentionQueryIndex) in mentionQueryObjects"
         :key="mentionQueryIndex"
-        v-bind:mentionQuery="mentionQuery.query"
+        v-bind:inputQuery="mentionQuery.query"
         @deleteQueryEvent="deleteQuery(mentionQuery)"
         v-bind:inEditMode="mentionQuery.startEdit"
+        getIssuesEndpoint='/api/getmentions'
+        modifyIssuesEndpoint='/api/modifyusermanagementionquery'
+        v-bind:isMention="true"
       >
-      </MentionTable>
-      <!-- Mention Table -->
+      </IssueTable>
+      <b-button v-on:click="addNewQuery">New Mention Query</b-button>
     </div>
   </div>
 </template>
 
 <script>
-import MentionTable from "../components/MentionTable";
+import IssueTable from "../components/IssueTable";
 
 export default {
   name: "ManageMentions",
   components: {
-    MentionTable,
+    IssueTable,
   },
   data() {
     return {
@@ -38,11 +41,11 @@ export default {
     };
   },
   mounted() {
-    // this.refreshQueryList();
+    this.refreshQueryList();
   },
   methods: {
     addNewQuery: function () {
-      this.issueQueryObjects.push({
+      this.mentionQueryObjects.push({
         startEdit: true,
         query: {
           title: "New Query",
@@ -62,8 +65,8 @@ export default {
       var searchID = inputDeleteQuery._id;
       var deleteQueryIndex = -1;
 
-      for (let i = 0; i < this.issueQueryObjects.length; i++) {
-        if (this.issueQueryObjects[i]._id == searchID) {
+      for (let i = 0; i < this.mentionQueryObjects.length; i++) {
+        if (this.mentionQueryObjects[i]._id == searchID) {
           deleteQueryIndex = i;
           break;
         }
@@ -71,17 +74,17 @@ export default {
 
       console.log(deleteQueryIndex);
       if (deleteQueryIndex != -1) {
-        this.issueQueryObjects.splice(deleteQueryIndex, 1);
+        this.mentionQueryObjects.splice(deleteQueryIndex, 1);
       }
     },
     refreshQueryList: function () {
-      this.issueQueryObjects = [];
-      this.$http.get("/api/getusermanageissuequeries").then((response) => {
+      this.mentionQueryObjects = [];
+      this.$http.get("/api/getusermanagementionqueries").then((response) => {
         if (response.data.success) {
           const returnedQueries = response.data.queries;
           for (let i = 0; i < returnedQueries.length; i++) {
             returnedQueries[i].page_num = 1;
-            this.issueQueryObjects.push({
+            this.mentionQueryObjects.push({
               startEdit: false,
               query: returnedQueries[i],
             });
