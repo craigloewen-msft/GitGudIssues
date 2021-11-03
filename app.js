@@ -160,6 +160,7 @@ const mentionQueryDetail = new Schema({
     labels: String,
     repos: String,
     siteLabels: String,
+    userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
 const searchQueryDetail = new Schema({
@@ -172,6 +173,7 @@ const searchQueryDetail = new Schema({
     labels: String,
     repos: String,
     siteLabels: String,
+    userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
 const UserDetail = new Schema({
@@ -180,8 +182,6 @@ const UserDetail = new Schema({
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
-    manageIssueSearchQueries: [{ type: Schema.Types.ObjectId, ref: 'searchQueryInfo' }],
-    manageMentionQueries: [{ type: Schema.Types.ObjectId, ref: 'mentionQueryInfo' }],
     issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
 }, { collection: 'usercollection' });
 
@@ -190,6 +190,19 @@ UserDetail.virtual('mentionArray', {
     localField: '_id',
     foreignField: 'userRef'
 });
+
+UserDetail.virtual('manageMentionQueries', {
+    ref: 'mentionQueryInfo',
+    localField: '_id',
+    foreignField: 'userRef'
+});
+
+UserDetail.virtual('manageIssueSearchQueries', {
+    ref: 'searchQueryInfo',
+    localField: '_id',
+    foreignField: 'userRef'
+});
+
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -532,20 +545,14 @@ app.post('/api/modifyusermanageissuequery', authenticateToken, async function (r
             var updatedSearchQuery = await searchQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
             if (updatedSearchQuery == null) {
                 var newSearchQuery = await searchQueryDetails.create(inputData.inQuery);
+                newSearchQuery.userRef = inputUser._id;
                 await newSearchQuery.save();
-                inputUser.manageIssueSearchQueries.push(newSearchQuery);
-                await inputUser.save();
-                returnID = newSearchQuery.id.toString()
+                returnID = newSearchQuery._id.toString()
             } else {
-                returnID = updatedSearchQuery.id.toString();
+                returnID = updatedSearchQuery._id.toString();
             }
         } else if (inputData.inAction == "delete") {
             var deletedSearchQuery = await searchQueryDetails.findByIdAndDelete(inQueryID);
-            let userDeleteIndex = inputUser.manageIssueSearchQueries.indexOf(inQueryID);
-            if (userDeleteIndex > -1) {
-                inputUser.manageIssueSearchQueries.splice(userDeleteIndex, 1);
-                await inputUser.save();
-            }
             returnID = inQueryID;
         }
 
@@ -582,20 +589,14 @@ app.post('/api/modifyusermanagementionquery', authenticateToken, async function 
             var updatedSearchQuery = await mentionQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
             if (updatedSearchQuery == null) {
                 var newMentionQuery = await mentionQueryDetails.create(inputData.inQuery);
+                newMentionQuery.userRef = inputUser._id;
                 await newMentionQuery.save();
-                inputUser.manageMentionQueries.push(newMentionQuery);
-                await inputUser.save();
-                returnID = newMentionQuery.id.toString()
+                returnID = newMentionQuery._id.toString()
             } else {
-                returnID = updatedSearchQuery.id.toString();
+                returnID = updatedSearchQuery._id.toString();
             }
         } else if (inputData.inAction == "delete") {
             var deletedSearchQuery = await mentionQueryDetails.findByIdAndDelete(inQueryID);
-            let userDeleteIndex = inputUser.manageMentionQueries.indexOf(inQueryID);
-            if (userDeleteIndex > -1) {
-                userDeleteIndex.splice(userDeleteIndex, 1);
-                await inputUser.save();
-            }
             returnID = inQueryID;
         }
 
