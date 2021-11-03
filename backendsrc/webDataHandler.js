@@ -441,7 +441,13 @@ class WebDataHandler {
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
 
         // Return the values
-        var returnResult = { count: queryResults[0][0].resultCount, issueData: returnIssueResultsArray };
+        let queryCountReturn = null;
+        if (queryResults[0][0]) {
+            queryCountReturn = queryResults[0][0].resultCount;
+        } else {
+            queryCountReturn = 0;
+        }
+        var returnResult = { count: queryCountReturn, issueData: returnIssueResultsArray };
         return returnResult;
 
     }
