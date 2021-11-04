@@ -28,6 +28,16 @@ class WebDataHandler {
         await this.refreshRepoHandler.startRefreshingRepos();;
     }
 
+    async refreshRepo(inUsername, inRepoName) {
+        var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
+        for (let i = 0; i < inUser.repos.length; i++) {
+            if (inUser.repos[i].shortURL == inRepoName) {
+                this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
+            }
+        }
+        await this.refreshRepoHandler.startRefreshingRepos();;
+    }
+
     getQueryInputs(queryData, inUser) {
         var findQuery = {};
         var sortQuery = { "data.created_at": -1 };

@@ -374,14 +374,14 @@ app.get('/api/user/:username/', authenticateToken, (req, res) => {
             if (!docs[0]) {
                 return res.json(returnFailure("Error while obtaining user"));
             } else {
-                let repoTitles = [];
+                let repoInfoList = [];
                 for (let i = 0; i < docs[0].repos.length; i++) {
-                    repoTitles.push(docs[0].repos[i].shortURL)
+                    repoInfoList.push({ title: docs[0].repos[i].shortURL, updating: docs[0].repos[i].updating });
                 }
                 var returnValue = {
                     success: true, auth: true,
                     user: {
-                        username: docs[0].username, email: docs[0].email, repos: repoTitles
+                        username: docs[0].username, email: docs[0].email, repos: repoInfoList
                     }
                 };
                 res.json(returnValue);
@@ -498,7 +498,7 @@ app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
 
         var result = await dataHandler.setUserRepo(inputData);
         if (result) {
-            dataHandler.refreshData(inputData.username);
+            dataHandler.refreshRepo(inputData.username,inputData.inRepoShortURL);
             return res.json({ success: true });
         } else {
             return res.json(returnFailure("Server error"));

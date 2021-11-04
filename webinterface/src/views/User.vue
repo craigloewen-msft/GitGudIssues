@@ -7,14 +7,14 @@
         <div class="custom-tag-collection">
           <div
             class="custom-tag-box"
-            v-for="(repoTitle, repoTitleIndex) in user.repos"
-            :key="repoTitleIndex"
+            v-for="(repoInfo, repoIndex) in user.repos"
+            :key="repoIndex"
           >
-            {{ repoTitle }}
+            {{ repoInfo.title }} {{ !repoInfo.updating ? "" : " - Updating" }}
             <a
               class="custom-tag-box-link"
               href="#"
-              v-on:click="removeUserRepo(repoTitle)"
+              v-on:click="removeUserRepo(repoIndex)"
               >&times;</a
             >
           </div>
@@ -63,7 +63,7 @@ export default {
           })
           .then((response) => {
             if (response.data.success) {
-              this.user.repos.push(this.input.repo);
+              this.refreshUserInfoUntilNonUpdated();
               this.input.repo = "";
             } else {
               console.log(response);
@@ -72,12 +72,12 @@ export default {
           });
       }
     },
-    removeUserRepo: function (inputRepo) {
-      let repoIndex = this.user.repos.indexOf(inputRepo);
+    removeUserRepo: function (inputRepoIndex) {
+      let repoIndex = inputRepoIndex;
       if (repoIndex != -1) {
         this.$http
           .post("/api/removeuserrepo", {
-            repo: inputRepo,
+            repo: this.user.repos[repoIndex].title,
           })
           .then((response) => {
             if (response.data.success) {
@@ -93,22 +93,52 @@ export default {
       this.$http.get("/api/refreshrepos").then((response) => {
         if (response.data.success) {
           console.log("Success!");
+          this.refreshUserInfoUntilNonUpdated();
         } else {
           console.log(response);
           // TODO Add in some error catching condition
         }
       });
     },
+    refreshUserInfo: function (callback) {
+      this.$http
+        .get("/api/user/" + this.$route.params.username + "/")
+        .then((response) => {
+          const someUserData = response.data.user;
+          this.user = someUserData;
+          callback();
+        });
+    },
+    refreshUserInfoUntilNonUpdated: function () {
+      let refreshFunction = function () {
+        if (this.user) {
+          let reposStillUpdating = false;
+
+          for (let i = 0; i < this.user.repos.length; i++) {
+            if (this.user.repos[i].updating) {
+              reposStillUpdating = true;
+              break;
+            }
+          }
+
+          if (reposStillUpdating) {
+            setTimeout(
+              function () {
+                this.refreshUserInfoUntilNonUpdated();
+              }.bind(this),
+              3000
+            );
+          }
+        }
+      }.bind(this);
+
+      this.refreshUserInfo(refreshFunction);
+    },
   },
   mounted() {
     this.$http.defaults.headers.common["Authorization"] =
       this.$store.state.token;
-    this.$http
-      .get("/api/user/" + this.$route.params.username + "/")
-      .then((response) => {
-        const someUserData = response.data.user;
-        this.user = someUserData;
-      });
+    this.refreshUserInfoUntilNonUpdated();
   },
 };
 </script>
