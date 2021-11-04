@@ -301,22 +301,6 @@ function hex2a(hexx) {
     return str;
 }
 
-function getUserFromUsername(inputUsername, callback) {
-    // Find the user
-    WalletDetails.find({ username: inputUsername }, (err, docs) => {
-        if (err) {
-            callback({ message: "Server failure on search" }, null);
-        } else {
-
-            if (!docs[0]) {
-                callback({ message: "Error while obtaining user" }, null);
-            } else {
-                callback(null, docs);
-            }
-        }
-    });
-}
-
 // Middleware function
 
 function authenticateToken(req, res, next) {
@@ -498,7 +482,7 @@ app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
 
         var result = await dataHandler.setUserRepo(inputData);
         if (result) {
-            dataHandler.refreshRepo(inputData.username,inputData.inRepoShortURL);
+            dataHandler.refreshRepo(inputData.username, inputData.inRepoShortURL);
             return res.json({ success: true });
         } else {
             return res.json(returnFailure("Server error"));
