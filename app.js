@@ -34,12 +34,21 @@ if (process.env.NODE_ENV == 'production') {
 // Set up Mongoose connection
 const Schema = mongoose.Schema;
 const RepoInfo = new Schema({
-    lastUpdatedAt: Date,
-    lastUpdatedCommentsAt: Date,
+    lastIssuesCompleteUpdate: Date,
+    lastIssuesUpdateStart: Date,
+    lastIssuesUpdateProgress: Date,
+    issuesUpdating: Boolean,
+    lastCommentsCompleteUpdate: Date,
+    lastCommentsUpdateStart: Date,
+    lastCommentsUpdateProgress: Date,
+    commentsUpdating: Boolean,
     url: String,
-    updating: Boolean,
     shortURL: String,
     userList: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
+});
+
+RepoInfo.virtual('updating').get(function () {
+    return (this.issuesUpdating || this.commentsUpdating);
 });
 
 const labelSchema = new Schema({

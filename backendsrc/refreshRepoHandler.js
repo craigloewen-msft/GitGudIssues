@@ -11,26 +11,60 @@ class RefreshRepoTask {
         this.perPageResults = 100;
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
-        this.lastUpdatedTime = null;
-        this.lastSeenItemUpdatedAt = null;
-        this.maxUpdatedTime = null;
+
+        this.maxUpdatedTime = new Date('1/1/1900');
+        this.minUpdatedTime = new Date();
         this.repoDocument = inRepo;
 
         this.isFinished = false;
+        this.isUpdating = false;
+
+        this.hasSavedStartDate = false;
 
         this.ghToken = inGHToken;
     }
 
     async setRepoToUpdating() {
-        this.lastUpdatedTime = this.repoDocument.lastUpdatedAt;
-        this.repoDocument.updating = true;
-        await this.repoDocument.save();
+        if (!this.isUpdating) {
+            this.isUpdating = true;
+            if (!this.repoDocument.issuesUpdating) {
+                this.repoDocument.lastIssuesUpdateStart = new Date();
+                this.repoDocument.lastIssuesUpdateProgress = new Date();
+                this.repoDocument.issuesUpdating = true;
+                await this.repoDocument.save();
+            }
+        }
     }
 
     async endRepoUpdating() {
         if (!this.isFinished) {
+            this.isUpdating = false;
             this.isFinished = true;
-            this.repoDocument.lastUpdatedAt = this.maxUpdatedTime;
+            this.repoDocument.issuesUpdating = false;
+            let newCompleteDate = null;
+            if (this.maxUpdatedTime > this.repoDocument.lastIssuesUpdateStart) {
+                newCompleteDate = this.maxUpdatedTime;
+            } else {
+                newCompleteDate = this.repoDocument.lastIssuesUpdateStart;
+            }
+            this.repoDocument.lastIssuesCompleteUpdate = newCompleteDate;
+            await this.repoDocument.save();
+        }
+    }
+
+    async saveProgress() {
+        // Detect when crossed over and already updating issues and then save progress
+
+        if (!this.hasSavedStartDate) {
+            if (this.minUpdatedTime < this.repoDocument.lastIssuesUpdateStart) {
+                this.hasSavedStartDate = true;
+                this.repoDocument.lastIssuesUpdateStart = this.maxUpdatedTime;
+                await this.repoDocument.save();
+            }
+        }
+
+        if (this.minUpdatedTime < this.repoDocument.lastIssuesUpdateProgress) {
+            this.repoDocument.lastIssuesUpdateProgress = this.minUpdatedTime;
             await this.repoDocument.save();
         }
     }
@@ -125,17 +159,26 @@ class RefreshRepoTask {
             let responseItem = data[i];
             if (responseItem.pull_request == null) {
                 var updatedAtDate = new Date(responseItem['updated_at']);
-                this.lastSeenItemUpdatedAt = updatedAtDate;
 
-                if (this.maxUpdatedTime != null) {
-                    if (updatedAtDate > this.maxUpdatedTime) {
-                        this.maxUpdatedTime = updatedAtDate;
-                    }
-                } else {
+                if (updatedAtDate > this.maxUpdatedTime) {
                     this.maxUpdatedTime = updatedAtDate;
                 }
 
-                if (this.lastUpdatedTime == null || updatedAtDate > this.lastUpdatedTime) {
+                if (updatedAtDate < this.minUpdatedTime) {
+                    this.minUpdatedTime = updatedAtDate;
+                }
+
+                let updateIssueCheck = false;
+
+                if (updatedAtDate > this.repoDocument.lastIssuesUpdateStart) {
+                    updateIssueCheck = true;
+                }
+
+                if (updatedAtDate < this.repoDocument.lastIssuesUpdateProgress && updatedAtDate > this.repoDocument.lastIssuesCompleteUpdate) {
+                    updateIssueCheck = true;
+                }
+
+                if (updateIssueCheck) {
                     // console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
                     // Turn the datarepositoryURL to all lower case
                     responseItem.repository_url = responseItem.repository_url.toLowerCase();
@@ -155,7 +198,10 @@ class RefreshRepoTask {
 
                     inBulkWriteList.push(bulkRequestData);
                 } else {
-                    response = 'uptodate';
+                    // Check if we're done
+                    if (updatedAtDate < this.repoDocument.lastIssuesCompleteUpdate) {
+                        response = 'uptodate';
+                    }
                 }
             }
         }
@@ -172,16 +218,46 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
     }
 
     async setRepoToUpdating() {
-        this.lastUpdatedTime = this.repoDocument.lastUpdatedCommentsAt;
-        // this.repoDocument.updating = true;
-        // await this.repoDocument.save();
+        if (!this.isUpdating) {
+            this.isUpdating = true;
+            if (!this.repoDocument.commentsUpdating) {
+                this.repoDocument.lastCommentsUpdateStart = new Date();
+                this.repoDocument.lastCommentsUpdateProgress = new Date();
+                this.repoDocument.commentsUpdating = true;
+                await this.repoDocument.save();
+            }
+        }
     }
 
     async endRepoUpdating() {
         if (!this.isFinished) {
+            this.isUpdating = false;
             this.isFinished = true;
-            this.repoDocument.lastUpdatedCommentsAt = this.maxUpdatedTime;
-            this.repoDocument.updating = false;
+            this.repoDocument.commentsUpdating = false;
+            let newCompleteDate = null;
+            if (this.maxUpdatedTime > this.repoDocument.lastCommentsUpdateStart) {
+                newCompleteDate = this.maxUpdatedTime;
+            } else {
+                newCompleteDate = this.repoDocument.lastCommentsUpdateStart;
+            }
+            this.repoDocument.lastCommentsCompleteUpdate = newCompleteDate;
+            await this.repoDocument.save();
+        }
+    }
+
+    async saveProgress() {
+        // Detect when crossed over and already updating issues and then save progress
+
+        if (!this.hasSavedStartDate) {
+            if (this.minUpdatedTime < this.repoDocument.lastCommentsUpdateStart) {
+                this.hasSavedStartDate = true;
+                this.repoDocument.lastCommentsUpdateStart = this.maxUpdatedTime;
+                await this.repoDocument.save();
+            }
+        }
+
+        if (this.minUpdatedTime < this.repoDocument.lastCommentsUpdateProgress) {
+            this.repoDocument.lastCommentsUpdateProgress = this.minUpdatedTime;
             await this.repoDocument.save();
         }
     }
@@ -287,7 +363,21 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                     this.maxUpdatedTime = updatedAtDate;
                 }
 
-                if (this.lastUpdatedTime == null || updatedAtDate > this.lastUpdatedTime) {
+                if (updatedAtDate < this.minUpdatedTime) {
+                    this.minUpdatedTime = updatedAtDate;
+                }
+
+                let updateCommentCheck = false;
+
+                if (updatedAtDate > this.repoDocument.lastCommentsUpdateStart) {
+                    updateCommentCheck = true;
+                }
+
+                if (updatedAtDate < this.repoDocument.lastCommentsUpdateProgress && updatedAtDate > this.repoDocument.lastCommentsCompleteUpdate) {
+                    updateCommentCheck = true;
+                }
+
+                if (updateCommentCheck) {
                     // TODO: Update the comment and store it in the database
                     let issueURLArray = responseItem.issue_url.split('/');
                     let issueNumber = issueURLArray[issueURLArray.length - 1];
@@ -316,7 +406,10 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 
                     inBulkWriteList.push(bulkRequestData);
                 } else {
-                    response = 'uptodate';
+                    // Check if we're done
+                    if (updatedAtDate < this.repoDocument.lastCommentsCompleteUpdate) {
+                        response = 'uptodate';
+                    }
                 }
             }
             // dangling } reminder if you want to go back to the for statement instead }
@@ -351,7 +444,7 @@ class RefreshRepoHandler {
 
         this.refreshingRepos = false;
 
-        this.simultaneousMessages = 10;
+        this.simultaneousMessages = 2;
     }
 
     addRepoForRefresh(inRepo) {
@@ -408,12 +501,18 @@ class RefreshRepoHandler {
             while (loopRefreshRepoList.length > 0 || loopRefreshRepoCommentsList.length > 0) {
                 for (let i = 0; i < loopRefreshRepoList.length; i++) {
                     let refreshResultPromiseArray = [];
-                    for (let j = 0; j < this.simultaneousMessages; j++) {
+                    let messageAmount = this.simultaneousMessages;
+
+                    if (loopRefreshRepoList[i].pageNum == 1) {
+                        messageAmount = 1;
+                    }
+
+                    for (let j = 0; j < messageAmount; j++) {
                         refreshResultPromiseArray.push(loopRefreshRepoList[i].getNewRepoPage(this.bulkWriteData, null));
                     }
                     let promiseResults = await Promise.all(refreshResultPromiseArray);
 
-                    for (let j = 0; j < this.simultaneousMessages; j++) {
+                    for (let j = 0; j < messageAmount; j++) {
                         if (promiseResults[j]) {
                             await loopRefreshRepoList[i].endRepoUpdating();
                         }
@@ -421,6 +520,7 @@ class RefreshRepoHandler {
 
                     if (this.bulkWriteData.length >= this.maxBulkWriteCount) {
                         await this.bulkWriteDataRequest();
+                        await loopRefreshRepoList[i].saveProgress();
                     }
                 }
 
@@ -429,12 +529,18 @@ class RefreshRepoHandler {
                     await this.bulkWriteDataRequest();
                     for (let i = 0; i < loopRefreshRepoCommentsList.length; i++) {
                         let refreshResultPromiseArray = [];
-                        for (let j = 0; j < this.simultaneousMessages; j++) {
+                        let messageAmount = this.simultaneousMessages;
+
+                        if (loopRefreshRepoCommentsList[i].pageNum == 1) {
+                            messageAmount = 1;
+                        }
+
+                        for (let j = 0; j < messageAmount; j++) {
                             refreshResultPromiseArray.push(loopRefreshRepoCommentsList[i].getNewRepoPage(this.bulkWriteCommentData, null));
                         }
                         let promiseResults = await Promise.all(refreshResultPromiseArray);
 
-                        for (let j = 0; j < this.simultaneousMessages; j++) {
+                        for (let j = 0; j < messageAmount; j++) {
                             if (promiseResults[j]) {
                                 await loopRefreshRepoCommentsList[i].endRepoUpdating();
                             }
@@ -442,7 +548,9 @@ class RefreshRepoHandler {
 
                         if (this.bulkWriteCommentData.length >= this.maxBulkWriteCount) {
                             await this.bulkWriteDataCommentRequest();
+                            await loopRefreshRepoCommentsList[i].saveProgress();
                         }
+
                     }
                 }
 

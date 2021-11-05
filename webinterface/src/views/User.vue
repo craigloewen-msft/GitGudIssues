@@ -92,7 +92,6 @@ export default {
     refreshRepos: function () {
       this.$http.get("/api/refreshrepos").then((response) => {
         if (response.data.success) {
-          console.log("Success!");
           this.refreshUserInfoUntilNonUpdated();
         } else {
           console.log(response);
@@ -126,7 +125,7 @@ export default {
               function () {
                 this.refreshUserInfoUntilNonUpdated();
               }.bind(this),
-              3000
+              5000
             );
           }
         }

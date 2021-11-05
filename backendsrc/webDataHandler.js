@@ -22,10 +22,11 @@ class WebDataHandler {
 
     async refreshData(inUsername) {
         var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
+        // Check if the thing is not updating
         for (let i = 0; i < inUser.repos.length; i++) {
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
-        await this.refreshRepoHandler.startRefreshingRepos();;
+        await this.refreshRepoHandler.startRefreshingRepos();
     }
 
     async refreshRepo(inUsername, inRepoName) {
@@ -35,7 +36,7 @@ class WebDataHandler {
                 this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
             }
         }
-        await this.refreshRepoHandler.startRefreshingRepos();;
+        await this.refreshRepoHandler.startRefreshingRepos();
     }
 
     getQueryInputs(queryData, inUser) {
@@ -320,7 +321,7 @@ class WebDataHandler {
         if (inputRepo == null) {
             inputRepo = await this.RepoDetails.create({
                 'shortURL': inputData.inRepoShortURL, 'url': 'https://api.github.com/repos/' + inputData.inRepoShortURL + '/issues',
-                updating: false, lastUpdatedAt: new Date('1/1/1900'), lastUpdatedCommentsAt: new Date('1/1/1900')
+                updating: false, lastIssuesCompleteUpdate: new Date('1/1/1900'), lastCommentsCompleteUpdate: new Date('1/1/1900')
             });
         }
 
