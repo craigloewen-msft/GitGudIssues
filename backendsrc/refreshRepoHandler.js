@@ -385,7 +385,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 
                     // Get parent issue ID
                     let parentIssueFilter = { 'data.repository_url': this.dataRepositoryUrl, 'data.number': issueNumber };
-                    let parentIssue = await this.IssueDetails.findOne(parentIssueFilter, { projection: { _id: 1 } });
+                    let parentIssue = await this.IssueDetails.findOne(parentIssueFilter);
 
                     let mentionsArray = helperFunctions.GetMentions(responseItem.body);
 
@@ -444,7 +444,7 @@ class RefreshRepoHandler {
 
         this.refreshingRepos = false;
 
-        this.simultaneousMessages = 2;
+        this.simultaneousMessages = 5;
     }
 
     addRepoForRefresh(inRepo) {
