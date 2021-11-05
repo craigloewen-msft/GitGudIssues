@@ -19,6 +19,11 @@
             >
           </div>
         </div>
+        <div v-if="loading" class="custom-tag-collection" style="display: flex;">
+          <div class="placeholder col-3 repo-placeholder" style="width: 100px"></div>
+          <div class="placeholder col-3 repo-placeholder" style="width: 100px"></div>
+          <div class="placeholder col-3 repo-placeholder" style="width: 100px"></div>
+        </div>
         <div class="small-input-form-box">
           <b-form-input
             size="sm"
@@ -52,6 +57,7 @@ export default {
       input: {
         repo: "",
       },
+      loading: true,
     };
   },
   methods: {
@@ -90,6 +96,7 @@ export default {
       }
     },
     refreshRepos: function () {
+      this.loading = true;
       this.$http.get("/api/refreshrepos").then((response) => {
         if (response.data.success) {
           this.refreshUserInfoUntilNonUpdated();
@@ -105,6 +112,7 @@ export default {
         .then((response) => {
           const someUserData = response.data.user;
           this.user = someUserData;
+          this.loading = false;
           callback();
         });
     },
@@ -146,5 +154,9 @@ export default {
 .user-repo-control-box {
   display: flex;
   justify-content: center;
+}
+
+.repo-placeholder {
+  margin: 0px 10px;
 }
 </style>

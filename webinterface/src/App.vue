@@ -209,4 +209,21 @@ body {
   display: flex;
   justify-content: space-between;
 }
+
+@keyframes placeholderColorChanges {
+  0% { 
+    background: rgb(200,200,200);
+  }
+  100% {
+    background: rgb(50,50,50);
+  }
+}
+
+.placeholder { 
+  animation-name: placeholderColorChanges;
+  animation-duration: 5s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  height: 20px;
+}
 </style>

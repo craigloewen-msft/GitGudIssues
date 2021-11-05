@@ -21,6 +21,9 @@ class RefreshRepoTask {
 
         this.hasSavedStartDate = false;
 
+        this.minSaveDate = new Date();
+        this.minSaveDate.setFullYear(this.minSaveDate.getFullYear() - 5);
+
         this.ghToken = inGHToken;
     }
 
@@ -176,6 +179,10 @@ class RefreshRepoTask {
 
                 if (updatedAtDate < this.repoDocument.lastIssuesUpdateProgress && updatedAtDate > this.repoDocument.lastIssuesCompleteUpdate) {
                     updateIssueCheck = true;
+                }
+
+                if (updatedAtDate < this.minSaveDate) {
+                    response = 'uptodate';
                 }
 
                 if (updateIssueCheck) {
@@ -377,6 +384,10 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                     updateCommentCheck = true;
                 }
 
+                if (updatedAtDate < this.minSaveDate) {
+                    response = 'uptodate';
+                }
+
                 if (updateCommentCheck) {
                     // TODO: Update the comment and store it in the database
                     let issueURLArray = responseItem.issue_url.split('/');
@@ -524,30 +535,33 @@ class RefreshRepoHandler {
                     }
                 }
 
-                for (let i = 0; i < loopRefreshRepoCommentsList.length; i++) {
-                    let refreshResultPromiseArray = [];
-                    let messageAmount = this.simultaneousMessages;
+                if (loopRefreshRepoList.length == 0) {
+                    await this.bulkWriteDataRequest();
+                    for (let i = 0; i < loopRefreshRepoCommentsList.length; i++) {
+                        let refreshResultPromiseArray = [];
+                        let messageAmount = this.simultaneousMessages;
 
-                    if (loopRefreshRepoCommentsList[i].pageNum == 1) {
-                        messageAmount = 1;
-                    }
-
-                    for (let j = 0; j < messageAmount; j++) {
-                        refreshResultPromiseArray.push(loopRefreshRepoCommentsList[i].getNewRepoPage(this.bulkWriteCommentData, null));
-                    }
-                    let promiseResults = await Promise.all(refreshResultPromiseArray);
-
-                    for (let j = 0; j < messageAmount; j++) {
-                        if (promiseResults[j]) {
-                            await loopRefreshRepoCommentsList[i].endRepoUpdating();
+                        if (loopRefreshRepoCommentsList[i].pageNum == 1) {
+                            messageAmount = 1;
                         }
-                    }
 
-                    if (this.bulkWriteCommentData.length >= this.maxBulkWriteCount) {
-                        await this.bulkWriteDataCommentRequest();
-                        await loopRefreshRepoCommentsList[i].saveProgress();
-                    }
+                        for (let j = 0; j < messageAmount; j++) {
+                            refreshResultPromiseArray.push(loopRefreshRepoCommentsList[i].getNewRepoPage(this.bulkWriteCommentData, null));
+                        }
+                        let promiseResults = await Promise.all(refreshResultPromiseArray);
 
+                        for (let j = 0; j < messageAmount; j++) {
+                            if (promiseResults[j]) {
+                                await loopRefreshRepoCommentsList[i].endRepoUpdating();
+                            }
+                        }
+
+                        if (this.bulkWriteCommentData.length >= this.maxBulkWriteCount) {
+                            await this.bulkWriteDataCommentRequest();
+                            await loopRefreshRepoCommentsList[i].saveProgress();
+                        }
+
+                    }
                 }
 
                 // Remove done repos

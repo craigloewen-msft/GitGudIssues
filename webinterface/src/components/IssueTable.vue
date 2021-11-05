@@ -129,8 +129,7 @@
               v-model="inputQuery.labels"
               v-debounce:1s="refreshIssues"
               @keyup.enter="refreshIssues"
-              ></b-form-input
-            >
+            ></b-form-input>
           </b-dropdown-form>
         </b-dropdown>
 
@@ -148,12 +147,11 @@
               v-model="inputQuery.siteLabels"
               v-debounce:1s="refreshIssues"
               @keyup.enter="refreshIssues"
-              ></b-form-input
-            >
+            ></b-form-input>
           </b-dropdown-form>
         </b-dropdown>
 
-         <b-dropdown
+        <b-dropdown
           id="dropdown-1"
           text="Limit"
           class="m-md-2"
@@ -167,8 +165,7 @@
               v-model="inputQuery.limit"
               v-debounce:1s="refreshIssues"
               @keyup.enter="refreshIssues"
-              ></b-form-input
-            >
+            ></b-form-input>
           </b-dropdown-form>
         </b-dropdown>
       </div>
@@ -185,12 +182,24 @@
           min="1"
           :max="Math.ceil(totalIssueCount / inputQuery.limit)"
         ></b-form-input>
-        of {{ Math.ceil(totalIssueCount / inputQuery.limit) }} - Total {{ isMention ? "Mentions":"Issues" }}:
+        of {{ Math.ceil(totalIssueCount / inputQuery.limit) }} - Total
+        {{ isMention ? "Mentions" : "Issues" }}:
         {{ totalIssueCount }}
       </div>
     </div>
     <div v-for="(issue, issueIndex) in newestOpenIssues" :key="issueIndex">
-      <IssueInfoBox v-bind:issue="issue" v-bind:isMention="isMention"></IssueInfoBox>
+      <IssueInfoBox
+        v-bind:issue="issue"
+        v-bind:isMention="isMention"
+      ></IssueInfoBox>
+    </div>
+    <div v-if="loading">
+      <div class="placeholder" style="width: 300px"></div>
+      <br />
+      <div class="placeholder" style="width: 300px"></div>
+      <br />
+      <div class="placeholder" style="width: 300px"></div>
+      <br />
     </div>
   </div>
 </template>
@@ -204,16 +213,17 @@ export default {
   },
   props: {
     inputQuery: Object,
-    inEditMode: { type: Boolean, required: false, default: false},
+    inEditMode: { type: Boolean, required: false, default: false },
     getIssuesEndpoint: String,
     modifyIssuesEndpoint: String,
-    isMention: { type: Boolean, required: false, default: false},
+    isMention: { type: Boolean, required: false, default: false },
   },
   data() {
     return {
       newestOpenIssues: [],
       totalIssueCount: 0,
       editMode: false,
+      loading: true,
     };
   },
   mounted() {
@@ -226,17 +236,20 @@ export default {
       this.refreshIssues();
     },
     refreshIssues: function () {
-      this.$http.post(this.getIssuesEndpoint, this.inputQuery).then((response) => {
-        if (response.data.success) {
-          const returnedIssueList = response.data.queryData.issueData;
-          const returnedCount = response.data.queryData.count;
-          this.newestOpenIssues = returnedIssueList;
-          this.totalIssueCount = returnedCount;
-        } else {
-          // TODO Add in some error catching condition
-          console.log(response);
-        }
-      });
+      this.$http
+        .post(this.getIssuesEndpoint, this.inputQuery)
+        .then((response) => {
+          if (response.data.success) {
+            const returnedIssueList = response.data.queryData.issueData;
+            const returnedCount = response.data.queryData.count;
+            this.newestOpenIssues = returnedIssueList;
+            this.totalIssueCount = returnedCount;
+            this.loading = false;
+          } else {
+            // TODO Add in some error catching condition
+            console.log(response);
+          }
+        });
     },
     saveQuery: function () {
       this.$http

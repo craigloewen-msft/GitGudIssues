@@ -11,11 +11,19 @@
         v-bind:inputQuery="mentionQuery.query"
         @deleteQueryEvent="deleteQuery(mentionQuery)"
         v-bind:inEditMode="mentionQuery.startEdit"
-        getIssuesEndpoint='/api/getmentions'
-        modifyIssuesEndpoint='/api/modifyusermanagementionquery'
+        getIssuesEndpoint="/api/getmentions"
+        modifyIssuesEndpoint="/api/modifyusermanagementionquery"
         v-bind:isMention="true"
       >
       </IssueTable>
+      <div v-if="loading">
+        <div class="placeholder" style="width: 300px"></div>
+        <br />
+        <div class="placeholder" style="width: 300px"></div>
+        <br />
+        <div class="placeholder" style="width: 300px"></div>
+        <br />
+      </div>
       <b-button v-on:click="addNewQuery">New Mention Query</b-button>
     </div>
   </div>
@@ -38,6 +46,7 @@ export default {
         //   page_num: 1,
         // },
       ],
+      loading: true,
     };
   },
   mounted() {
@@ -89,6 +98,7 @@ export default {
               query: returnedQueries[i],
             });
           }
+          this.loading = false;
         } else {
           // TODO Add in some error catching condition
           console.log(response);
