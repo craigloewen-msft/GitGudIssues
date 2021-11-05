@@ -221,14 +221,14 @@ export default {
     },
     markIssueAsRead: function () {
       if (!this.issue.readByUser) {
+        this.issue.readByUser = true;
         this.$http
           .post("/api/setissueread", { issueID: this.issue._id })
           .then((response) => {
-            if (response.data.success) {
-              this.issue.readByUser = true;
-            } else {
+            if (!response.data.success) {
               // TODO Add in some error catching condition
               console.log(response);
+              this.issue.readByUser = false;
             }
           });
       }

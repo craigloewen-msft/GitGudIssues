@@ -444,7 +444,7 @@ class RefreshRepoHandler {
 
         this.refreshingRepos = false;
 
-        this.simultaneousMessages = 5;
+        this.simultaneousMessages = 2;
     }
 
     addRepoForRefresh(inRepo) {
@@ -524,34 +524,30 @@ class RefreshRepoHandler {
                     }
                 }
 
-                if (loopRefreshRepoList.length == 0) {
-                    // TODO: Find more efficient way to query this besides checking each time
-                    await this.bulkWriteDataRequest();
-                    for (let i = 0; i < loopRefreshRepoCommentsList.length; i++) {
-                        let refreshResultPromiseArray = [];
-                        let messageAmount = this.simultaneousMessages;
+                for (let i = 0; i < loopRefreshRepoCommentsList.length; i++) {
+                    let refreshResultPromiseArray = [];
+                    let messageAmount = this.simultaneousMessages;
 
-                        if (loopRefreshRepoCommentsList[i].pageNum == 1) {
-                            messageAmount = 1;
-                        }
-
-                        for (let j = 0; j < messageAmount; j++) {
-                            refreshResultPromiseArray.push(loopRefreshRepoCommentsList[i].getNewRepoPage(this.bulkWriteCommentData, null));
-                        }
-                        let promiseResults = await Promise.all(refreshResultPromiseArray);
-
-                        for (let j = 0; j < messageAmount; j++) {
-                            if (promiseResults[j]) {
-                                await loopRefreshRepoCommentsList[i].endRepoUpdating();
-                            }
-                        }
-
-                        if (this.bulkWriteCommentData.length >= this.maxBulkWriteCount) {
-                            await this.bulkWriteDataCommentRequest();
-                            await loopRefreshRepoCommentsList[i].saveProgress();
-                        }
-
+                    if (loopRefreshRepoCommentsList[i].pageNum == 1) {
+                        messageAmount = 1;
                     }
+
+                    for (let j = 0; j < messageAmount; j++) {
+                        refreshResultPromiseArray.push(loopRefreshRepoCommentsList[i].getNewRepoPage(this.bulkWriteCommentData, null));
+                    }
+                    let promiseResults = await Promise.all(refreshResultPromiseArray);
+
+                    for (let j = 0; j < messageAmount; j++) {
+                        if (promiseResults[j]) {
+                            await loopRefreshRepoCommentsList[i].endRepoUpdating();
+                        }
+                    }
+
+                    if (this.bulkWriteCommentData.length >= this.maxBulkWriteCount) {
+                        await this.bulkWriteDataCommentRequest();
+                        await loopRefreshRepoCommentsList[i].saveProgress();
+                    }
+
                 }
 
                 // Remove done repos
