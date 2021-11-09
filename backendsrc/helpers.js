@@ -14,5 +14,10 @@ module.exports = {
             mentionsArray = mentionsArray.map(el => el.slice(1));
         }
         return mentionsArray;
+    },
+    CopyAllKeys(toObject,fromObject) {
+        Object.keys(fromObject).forEach((key, index) => {
+            toObject[key] = fromObject[key];
+        });
     }
 }

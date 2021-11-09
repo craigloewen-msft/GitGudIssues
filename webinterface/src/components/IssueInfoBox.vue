@@ -3,7 +3,7 @@
     <div class="gh-issue-box col-8">
       <div class="issue-state-and-info-box">
         <div class="issue-state-box">
-          <IssueStateIndicator :state="issue.data.state"></IssueStateIndicator>
+          <IssueStateIndicator :state="issue.state"></IssueStateIndicator>
         </div>
         <div
           class="issue-info-box"
@@ -12,10 +12,10 @@
           v-on:click.middle="markIssueAsRead"
         >
           <div class="issue-title-box">
-            <a class="Link--primary" :href="getUrl">{{ issue.data.title }}</a>
+            <a class="Link--primary" :href="getUrl">{{ issue.title }}</a>
             <span
               class="gh-issue-label"
-              v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.data.labels"
+              v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.labels"
               :key="ghIssueLabelIndex"
               v-bind:style="{
                 backgroundColor: shadeColor('#' + ghIssueLabel.color, -75),
@@ -26,12 +26,12 @@
           </div>
           <div class="issue-sub-info-box">
             <p v-if="!isMention">
-              {{ issue.data.number }} by {{ issue.data.user.login }} created
-              {{ getRelativeDate(issue.data.created_at) }} updated
-              {{ getRelativeDate(issue.data.updated_at) }}
+              {{ issue.number }} by {{ issue.user.login }} created
+              {{ getRelativeDate(issue.created_at) }} updated
+              {{ getRelativeDate(issue.updated_at) }}
             </p>
             <p v-else>
-              {{ issue.data.number }} by {{ issue.mentionAuthor }} mentioned
+              {{ issue.number }} by {{ issue.mentionAuthor }} mentioned
               {{ getRelativeDate(issue.mentionedAt) }}
             </p>
           </div>
@@ -54,7 +54,7 @@
               aria-label="Assigned to "
             >
               <div
-                v-if="issue.data.assignee"
+                v-if="issue.assignee"
                 class="
                   AvatarStack-body
                   tooltipped
@@ -66,14 +66,14 @@
               >
                 <a
                   class="avatar avatar-user"
-                  :href="getUserAssignedIssuesURL(issue.data.assignee.login)"
+                  :href="getUserAssignedIssuesURL(issue.assignee.login)"
                 >
                   <img
                     class="from-avatar avatar-user"
-                    :src="issue.data.assignee.avatar_url"
+                    :src="issue.assignee.avatar_url"
                     width="20"
                     height="20"
-                    :alt="issue.data.assignee.login"
+                    :alt="issue.assignee.login"
                   />
                 </a>
               </div>
@@ -97,7 +97,7 @@
               ></path>
             </svg>
             <span class="text-small text-bold comment-num">{{
-              issue.data.comments
+              issue.comments
             }}</span>
           </a>
         </span>
@@ -291,7 +291,7 @@ export default {
       } else {
         return (
           "https://github.com/" +
-          this.issue.data.url.split("https://api.github.com/repos/").pop()
+          this.issue.url.split("https://api.github.com/repos/").pop()
         );
       }
     },

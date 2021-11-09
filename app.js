@@ -44,7 +44,12 @@ const RepoInfo = new Schema({
     commentsUpdating: Boolean,
     url: String,
     shortURL: String,
-    userList: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
+});
+
+RepoInfo.virtual('userList', {
+    ref: 'userInfo',
+    localField: '_id',
+    foreignField: 'repos'
 });
 
 RepoInfo.virtual('updating').get(function () {
@@ -78,7 +83,9 @@ const issueReadDetail = new Schema({
     repoRef: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
 })
 
-issueReadDetail.index({ 'userRef': -1, 'issueRef': -1, 'repoRef': -1 });
+issueReadDetail.index({ 'userRef': -1 });
+issueReadDetail.index({ 'issueRef': -1 });
+issueReadDetail.index({ 'repoRef': -1 });
 
 const IssueCommentMentionDetail = new Schema({
     commentRef: { type: Schema.Types.ObjectId, ref: 'issueCommentInfo' },
@@ -90,60 +97,62 @@ const IssueCommentMentionDetail = new Schema({
     mentionAuthor: String,
 });
 
-IssueCommentMentionDetail.index({ 'commentRef': 1, 'userRef': -1, 'issueRef': -1, 'repoRef': -1 });
+IssueCommentMentionDetail.index({ 'commentRef': 1 });
+IssueCommentMentionDetail.index({ 'userRef': -1 });
+IssueCommentMentionDetail.index({ 'issueRef': -1 });
+IssueCommentMentionDetail.index({ 'repoRef': -1 });
 IssueCommentMentionDetail.index({ 'mentionedAt': 1, type: -1 });
 
 const IssueCommentDetail = new Schema({
     repositoryID: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
     issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
     mentionStrings: [String],
-    data: {
-        author_association: String,
-        body: String,
-        created_at: Date,
-        html_url: String,
-        id: Number,
-        issue_url: String,
-        node_id: String,
-        reactions: Object,
-        updated_at: Date,
-        url: String,
-        user: GHUserSchema,
-    }
+    author_association: String,
+    body: String,
+    created_at: Date,
+    html_url: String,
+    comment_id: Number,
+    issue_url: String,
+    node_id: String,
+    reactions: Object,
+    updated_at: Date,
+    url: String,
+    user: GHUserSchema,
 });
 
-IssueCommentDetail.index({ 'data.updated_at': 1, type: -1 });
-IssueCommentDetail.index({ 'data.created_at': 1, type: -1 });
-IssueCommentDetail.index({ 'repositoryID': 1, 'data.id': -1 });
+IssueCommentDetail.index({ 'updated_at': 1, type: -1 });
+IssueCommentDetail.index({ 'created_at': 1, type: -1 });
+IssueCommentDetail.index({ 'repositoryID': 1 });
+IssueCommentDetail.index({ 'comment_id': -1 });
 
 const IssueInfo = new Schema({
     siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
     repoRef: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
-    data: {
-        created_at: { type: Date, index: true },
-        updated_at: { type: Date, index: true },
-        title: String,
-        user: GHUserSchema,
-        number: Number,
-        url: String,
-        repository_url: String,
-        labels_url: String,
-        comments_url: String,
-        labels: [labelSchema],
-        state: String,
-        locked: Boolean,
-        assignee: GHUserSchema,
-        assignees: [GHUserSchema],
-        milestone: Object,
-        comments: Number,
-        closed_at: Date,
-        body: String,
-    },
+    created_at: { type: Date, index: true },
+    updated_at: { type: Date, index: true },
+    title: String,
+    user: GHUserSchema,
+    number: Number,
+    url: String,
+    repository_url: String,
+    labels_url: String,
+    comments_url: String,
+    labels: [labelSchema],
+    state: String,
+    locked: Boolean,
+    assignee: GHUserSchema,
+    assignees: [GHUserSchema],
+    milestone: Object,
+    comments: Number,
+    closed_at: Date,
+    body: String,
     userMentionsList: [String],
     userCommentsList: [String],
 }, { toJSON: { virtuals: true } });
 
-IssueInfo.index({ 'data.repository_url': 1, 'data.state': 1, 'data.number': -1 });
+IssueInfo.index({ 'repository_url': 1 });
+IssueInfo.index({ 'state': 1 });
+IssueInfo.index({ 'number': 1 });
 IssueInfo.index({ 'repoRef': 1 });
 
 IssueInfo.virtual('issueCommentsArray', {

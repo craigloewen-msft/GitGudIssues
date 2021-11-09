@@ -21,9 +21,6 @@ class RefreshRepoTask {
 
         this.hasSavedStartDate = false;
 
-        this.minSaveDate = new Date();
-        this.minSaveDate.setFullYear(this.minSaveDate.getFullYear() - 5);
-
         this.ghToken = inGHToken;
     }
 
@@ -85,14 +82,16 @@ class RefreshRepoTask {
         let pageNum = inPageNum;
 
         if (inPageNum == null) {
-            pageNum = this.pageNum;
+            pageNum = Number(this.pageNum);
+            this.pageNum = this.pageNum + 1;
         }
 
-        console.log("Making " + this.shortRepoUrl + " page num: ", this.pageNum);
-        this.pageNum = this.pageNum + 1;
+        console.log("Making " + this.shortRepoUrl + " page num: ", pageNum);
         var response = await this.makeRequest(pageNum);
 
-        if (response.status == 200) {
+        if (response == null) {
+            return this.getNewRepoPage(inBulkWriteList, pageNum);
+        } else if (response.status == 200) {
             // If no issues are reported then we are done
             if (response.data.length == 0) {
                 console.log("Update Request Complete - " + this.shortRepoUrl + " - No more issues");
@@ -119,6 +118,11 @@ class RefreshRepoTask {
             console.log("Rate limited waiting until: ", retryTime);
             await helperFunctions.PromiseTimeout(retryDifference * 1000);
             return this.getNewRepoPage(inBulkWriteList, pageNum);
+        } else if (response.status == 502) {
+            return this.getNewRepoPage(inBulkWriteList, pageNum);
+        } else if (response.status == 422) {
+            console.log("Update request completed through pagination limit - " + this.shortRepoUrl);
+            return true;
         } else {
             console.log("Saw unexpected response");
             this.repoDocument.updating = false;
@@ -181,10 +185,6 @@ class RefreshRepoTask {
                     updateIssueCheck = true;
                 }
 
-                if (updatedAtDate < this.minSaveDate) {
-                    response = 'uptodate';
-                }
-
                 if (updateIssueCheck) {
                     // console.log("Updating: ", this.shortRepoUrl, " : ", responseItem.number);
                     // Turn the datarepositoryURL to all lower case
@@ -192,11 +192,15 @@ class RefreshRepoTask {
 
                     let mentionsArray = helperFunctions.GetMentions(responseItem.body);
 
+                    let updateObject = { repoRef: this.repoDocument._id, '$addToSet': { userCommentsList: responseItem.user.login } };
+
+                    helperFunctions.CopyAllKeys(updateObject, responseItem);
+
                     let bulkRequestData = null;
                     bulkRequestData = {
                         updateOne: {
-                            filter: { 'data.repository_url': this.dataRepositoryUrl, 'data.number': responseItem.number },
-                            update: { data: responseItem, repoRef: this.repoDocument._id, '$addToSet': { userCommentsList: responseItem.user.login } },
+                            filter: { 'repository_url': this.dataRepositoryUrl, 'number': responseItem.number },
+                            update: updateObject,
                             upsert: true,
                         }
                     };
@@ -282,14 +286,16 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
         let pageNum = inPageNum;
 
         if (inPageNum == null) {
-            pageNum = this.pageNum;
+            pageNum = Number(this.pageNum);
+            this.pageNum = this.pageNum + 1;
         }
 
-        console.log("Making comments " + this.shortRepoUrl + " page num: ", this.pageNum);
-        this.pageNum = this.pageNum + 1;
+        console.log("Making comments " + this.shortRepoUrl + " page num: ", pageNum);
         var response = await this.makeRequest(pageNum);
 
-        if (response.status == 200) {
+        if (response == null) {
+            return this.getNewRepoPage(inBulkWriteList, pageNum);
+        } else if (response.status == 200) {
             // If no issues are reported then we are done
             if (response.data.length == 0) {
                 console.log("Update Request Complete - " + this.shortRepoUrl + " - No more issues");
@@ -316,6 +322,11 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
             console.log("Rate limited waiting until: ", retryTime);
             await helperFunctions.PromiseTimeout(retryDifference * 1000);
             return this.getNewRepoPage(inBulkWriteList, pageNum);
+        } else if (response.status == 502) {
+            return this.getNewRepoPage(inBulkWriteList, pageNum);
+        } else if (response.status == 422) {
+            console.log("Update request completed through pagination limit - " + this.shortRepoUrl);
+            return true;
         } else {
             console.log("Saw unexpected response");
             this.repoDocument.updating = false;
@@ -384,38 +395,44 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                     updateCommentCheck = true;
                 }
 
-                if (updatedAtDate < this.minSaveDate) {
-                    response = 'uptodate';
-                }
-
                 if (updateCommentCheck) {
                     // TODO: Update the comment and store it in the database
                     let issueURLArray = responseItem.issue_url.split('/');
                     let issueNumber = issueURLArray[issueURLArray.length - 1];
                     // console.log("Updating comment for: ", this.shortRepoUrl, " : ", issueNumber);
 
+                    responseItem.comment_id = responseItem.id;
+                    delete responseItem.id;
+
                     // Get parent issue ID
-                    let parentIssueFilter = { 'data.repository_url': this.dataRepositoryUrl, 'data.number': issueNumber };
+                    let parentIssueFilter = { 'repository_url': this.dataRepositoryUrl, 'number': issueNumber };
                     let parentIssue = await this.IssueDetails.findOne(parentIssueFilter);
+                    if (parentIssue != null) {
+                        let mentionsArray = helperFunctions.GetMentions(responseItem.body);
 
-                    let mentionsArray = helperFunctions.GetMentions(responseItem.body);
+                        let updateObject = {
+                            repositoryID: this.repoDocument._id.toString(),
+                            issueRef: parentIssue._id, repoRef: this.repoDocument._id, mentionStrings: mentionsArray
+                        };
 
-                    let bulkRequestData = {};
-                    bulkRequestData.commentUpdate = {
-                        updateOne: {
-                            filter: { 'repositoryID': this.repoDocument._id.toString(), 'data.id': responseItem.id },
-                            update: {
-                                data: responseItem, repositoryID: this.repoDocument._id.toString(),
-                                issueRef: parentIssue._id, repoRef: this.repoDocument._id, mentionStrings: mentionsArray
-                            },
-                            upsert: true,
-                        }
-                    };
+                        helperFunctions.CopyAllKeys(updateObject, responseItem);
 
-                    bulkRequestData.mentionsArray = mentionsArray;
-                    bulkRequestData.issueID = parentIssue._id;
+                        let bulkRequestData = {};
+                        bulkRequestData.commentUpdate = {
+                            updateOne: {
+                                filter: { 'repositoryID': this.repoDocument._id.toString(), 'comment_id': responseItem.comment_id },
+                                update: updateObject,
+                                upsert: true,
+                            }
+                        };
 
-                    inBulkWriteList.push(bulkRequestData);
+                        bulkRequestData.mentionsArray = mentionsArray;
+                        bulkRequestData.issueID = parentIssue._id;
+
+                        inBulkWriteList.push(bulkRequestData);
+                    } else {
+                        console.log("Comment couldn't find parent issue - " + this.shortRepoUrl + " - number: " + issueNumber);
+                    }
                 } else {
                     // Check if we're done
                     if (updatedAtDate < this.repoDocument.lastCommentsCompleteUpdate) {
@@ -594,7 +611,7 @@ class RefreshRepoHandler {
                 let mentionsArray = bulkWriteDataItem.mentionsArray;
                 let updateResult = await this.IssueDetails.findOneAndUpdate(bulkWriteDataItem.updateOne.filter, bulkWriteDataItem.updateOne.update, { returnDocument: 'after', upsert: true });
 
-                let issueURL = "https://github.com/" + updateResult.data.url.split("https://api.github.com/repos/").pop();
+                let issueURL = "https://github.com/" + updateResult.url.split("https://api.github.com/repos/").pop();
 
                 if (mentionsArray) {
                     // For each name in the mention array, attempt to create a mention
@@ -604,7 +621,7 @@ class RefreshRepoHandler {
                         if (mentionedUser) {
                             let mentionResult = await this.IssueCommentMentionDetails.create({
                                 'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': updateResult._id,
-                                mentionedAt: updateResult.data.updated_at, repoRef: updateResult.repoRef, html_url: issueURL, mentionAuthor: updateResult.data.user.login,
+                                mentionedAt: updateResult.updated_at, repoRef: updateResult.repoRef, html_url: issueURL, mentionAuthor: updateResult.user.login,
                             });
                         }
                     }
@@ -636,7 +653,7 @@ class RefreshRepoHandler {
                         if (mentionedUser) {
                             let mentionResult = await this.IssueCommentMentionDetails.create({
                                 'commentRef': updateResult._id, 'userRef': mentionedUser._id, 'issueRef': bulkWriteDataItem.issueID,
-                                mentionedAt: updateResult.data.updated_at, repoRef: updateResult.repoRef, html_url: updateResult.data.html_url, mentionAuthor: updateResult.data.user.login,
+                                mentionedAt: updateResult.updated_at, repoRef: updateResult.repoRef, html_url: updateResult.html_url, mentionAuthor: updateResult.user.login,
                             });
                         }
                     }

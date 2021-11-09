@@ -41,7 +41,7 @@ class WebDataHandler {
 
     getQueryInputs(queryData, inUser) {
         var findQuery = {};
-        var sortQuery = { "data.created_at": -1 };
+        var sortQuery = { "created_at": -1 };
         var limitNum = 10;
         var skipNum = 0;
 
@@ -53,13 +53,13 @@ class WebDataHandler {
 
         if (queryData.sort) {
             if (queryData.sort == 'updated') {
-                sortQuery = { "data.updated_at": -1 }
+                sortQuery = { "updated_at": -1 }
             }
         }
 
         if (queryData.state) {
             if (queryData.state != "all") {
-                findQuery['data.state'] = queryData.state;
+                findQuery['state'] = queryData.state;
             }
         }
 
@@ -75,11 +75,11 @@ class WebDataHandler {
         }
 
         if (queryData.creator) {
-            findQuery['data.user.login'] = { "$regex": queryData.creator, "$options": "gi" }
+            findQuery['user.login'] = { "$regex": queryData.creator, "$options": "gi" }
         }
 
         if (queryData.assignee) {
-            findQuery['data.assignee.login'] = { "$regex": queryData.assignee, "$options": "gi" }
+            findQuery['assignee.login'] = { "$regex": queryData.assignee, "$options": "gi" }
         }
 
         if (queryData.labels) {
@@ -94,7 +94,7 @@ class WebDataHandler {
                     }
                     regexString = regexString + labelList[j];
                 }
-                labelMatchObject.push({ "data.labels": { "$elemMatch": { 'name': { "$regex": regexString, "$options": "gi" } } } });
+                labelMatchObject.push({ "labels": { "$elemMatch": { 'name': { "$regex": regexString, "$options": "gi" } } } });
             }
             if (findQuery["$and"] == null) {
                 findQuery["$and"] = [];
@@ -113,7 +113,7 @@ class WebDataHandler {
             for (let i = 1; i < repoList.length; i++) {
                 regexString = regexString + "|" + "https://api.github.com/repos/" + repoList[i];
             }
-            findQuery['data.repository_url'] = { "$regex": regexString, "$options": "gi" };
+            findQuery['repository_url'] = { "$regex": regexString, "$options": "gi" };
         } else {
             let regexString = "";
             if (userRepoList.length > 0) {
@@ -122,7 +122,7 @@ class WebDataHandler {
             for (let i = 1; i < userRepoList.length; i++) {
                 regexString = regexString + "|" + userRepoList[i].url.split('/issues')[0];
             }
-            findQuery['data.repository_url'] = { "$regex": regexString, "$options": "gi" };
+            findQuery['repository_url'] = { "$regex": regexString, "$options": "gi" };
         }
 
         if (queryData.siteLabels) {
@@ -150,7 +150,7 @@ class WebDataHandler {
             let issueReadItem = await this.IssueReadDetails.findOne({ issueRef: issueItem._id, userRef: inUser._id });
             if (issueReadItem == null) {
                 issueItem.readByUser = false;
-            } else if (new Date(issueReadItem.readAt) >= new Date(issueItem.data.updated_at)) {
+            } else if (new Date(issueReadItem.readAt) >= new Date(issueItem.updated_at)) {
                 issueItem.readByUser = true;
             } else {
                 issueItem.readByUser = false;
@@ -328,9 +328,7 @@ class WebDataHandler {
         if (inputUser) {
             if (inputUser.repos.indexOf(inputRepo._id) == -1) {
                 inputUser.repos.push(inputRepo._id);
-                inputRepo.userList.push(inputUser._id);
                 await inputUser.save();
-                await inputRepo.save();
             } else {
                 return false;
             }
@@ -345,7 +343,7 @@ class WebDataHandler {
         const inputData = { username: queryData.username, inRepoShortURL: queryData.inRepoShortURL.toLowerCase() };
 
         var inputUser = (await this.UserDetails.find({ 'username': inputData.username }))[0];
-        var inputRepo = (await this.RepoDetails.find({ 'shortURL': inputData.inRepoShortURL }))[0];
+        var inputRepo = await this.RepoDetails.findOne({ 'shortURL': inputData.inRepoShortURL }).populate('userList');
 
         if (inputUser && inputRepo) {
             var repoIndex = inputUser.repos.indexOf(inputRepo._id);
@@ -356,19 +354,22 @@ class WebDataHandler {
                 return false;
             }
 
-            var userIndex = inputRepo.userList.indexOf(inputUser._id);
-            if (userIndex != -1) {
-                inputRepo.userList.splice(userIndex, 1);
-                if (inputRepo.userList.length == 0) {
-                    let deleteRepoUrl = inputRepo.shortURL.split("/issues")[0];
+            if (inputRepo.userList.length == 1) {
 
-                    await this.IssueCommentMentionDetails.deleteMany({ repoRef: inputRepo._id });
-                    await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id });
-                    await this.IssueReadDetails.deleteMany({ repoRef: inputRepo._id });
-                    await this.IssueDetails.deleteMany({ repoRef: inputRepo._id });
-                    await this.RepoDetails.deleteMany({ '_id': inputRepo._id });
-                } else {
-                    await inputRepo.save();
+                for await (const doc of this.IssueCommentMentionDetails.find({ repoRef: inputRepo._id })) {
+                    doc.delete();
+                }
+                for await (const doc of this.IssueCommentDetails.find({ repositoryID: inputRepo._id })) {
+                    doc.delete();
+                }
+                for await (const doc of this.IssueReadDetails.find({ repoRef: inputRepo._id })) {
+                    doc.delete();
+                }
+                for await (const doc of this.IssueDetails.find({ repoRef: inputRepo._id })) {
+                    doc.delete();
+                }
+                for await (const doc of this.RepoDetails.find({ '_id': inputRepo._id })) {
+                    doc.delete();
                 }
             } else {
                 return false;
@@ -404,7 +405,6 @@ class WebDataHandler {
             sortQuery["mentionedAt"] = firstSortQuery[objectKey];
         }
 
-        // var testIssueFind = await this.IssueCommentMentionDetails.find({ 'userRef': inUser._id }).populate({ "path": 'issueRef', "match": { 'data.number': 536 }});
         var countQuery = this.IssueCommentMentionDetails.aggregate([
             { "$match": { "userRef": inUser._id } },
             {
