@@ -23,15 +23,12 @@
           size="sm"
           variant="outline-secondary"
         >
-          <b-dropdown-form>
-            <b-form-input
-              placeholder="microsoft/wsl,microsoft/vscode"
-              size="sm"
-              v-model="inputQuery.repos"
-              v-debounce:1s="refreshIssues"
-              @keyup.enter="refreshIssues"
-            ></b-form-input>
-          </b-dropdown-form>
+          <b-form-input
+            placeholder="microsoft/wsl,microsoft/vscode"
+            size="sm"
+            v-model="inputQuery.repos"
+            v-debounce:1s="refreshIssues"
+          ></b-form-input>
         </b-dropdown>
 
         <b-dropdown
@@ -85,15 +82,12 @@
           size="sm"
           variant="outline-secondary"
         >
-          <b-dropdown-form>
-            <b-form-input
-              placeholder="Author GH alias"
-              size="sm"
-              v-model="inputQuery.creator"
-              v-debounce:1s="refreshIssues"
-              @keyup.enter="refreshIssues"
-            ></b-form-input>
-          </b-dropdown-form>
+          <b-form-input
+            placeholder="Author GH alias"
+            size="sm"
+            v-model="inputQuery.creator"
+            v-debounce:1s="refreshIssues"
+          ></b-form-input>
         </b-dropdown>
 
         <b-dropdown
@@ -103,15 +97,12 @@
           size="sm"
           variant="outline-secondary"
         >
-          <b-dropdown-form>
-            <b-form-input
-              placeholder="10,243,etc."
-              size="sm"
-              v-model="inputQuery.number"
-              v-debounce:1s="refreshIssues"
-              @keyup.enter="refreshIssues"
-            ></b-form-input>
-          </b-dropdown-form>
+          <b-form-input
+            placeholder="10,243,etc."
+            size="sm"
+            v-model="inputQuery.number"
+            v-debounce:1s="refreshIssues"
+          ></b-form-input>
         </b-dropdown>
 
         <b-dropdown
@@ -121,16 +112,13 @@
           size="sm"
           variant="outline-secondary"
         >
-          <b-dropdown-form>
-            <b-form-input
-              placeholder="Assignee GH alias"
-              size="sm"
-              v-model="inputQuery.assignee"
-              v-debounce:1s="refreshIssues"
-              @keyup.enter="refreshIssues"
-              >Created</b-form-input
-            >
-          </b-dropdown-form>
+          <b-form-input
+            placeholder="Assignee GH alias"
+            size="sm"
+            v-model="inputQuery.assignee"
+            v-debounce:1s="refreshIssues"
+            >Created</b-form-input
+          >
         </b-dropdown>
 
         <b-dropdown
@@ -140,15 +128,12 @@
           size="sm"
           variant="outline-secondary"
         >
-          <b-dropdown-form>
-            <b-form-input
-              placeholder="bug,docs&gpu"
-              size="sm"
-              v-model="inputQuery.labels"
-              v-debounce:1s="refreshIssues"
-              @keyup.enter="refreshIssues"
-            ></b-form-input>
-          </b-dropdown-form>
+          <b-form-input
+            placeholder="bug,docs&gpu"
+            size="sm"
+            v-model="inputQuery.labels"
+            v-debounce:1s="refreshIssues"
+          ></b-form-input>
         </b-dropdown>
 
         <b-dropdown
@@ -158,15 +143,12 @@
           size="sm"
           variant="outline-secondary"
         >
-          <b-dropdown-form>
-            <b-form-input
-              placeholder="debug,test"
-              size="sm"
-              v-model="inputQuery.siteLabels"
-              v-debounce:1s="refreshIssues"
-              @keyup.enter="refreshIssues"
-            ></b-form-input>
-          </b-dropdown-form>
+          <b-form-input
+            placeholder="debug,test"
+            size="sm"
+            v-model="inputQuery.siteLabels"
+            v-debounce:1s="refreshIssues"
+          ></b-form-input>
         </b-dropdown>
 
         <b-dropdown
@@ -176,15 +158,12 @@
           size="sm"
           variant="outline-secondary"
         >
-          <b-dropdown-form>
-            <b-form-input
-              placeholder="debug,test"
-              size="sm"
-              v-model="inputQuery.limit"
-              v-debounce:1s="refreshIssues"
-              @keyup.enter="refreshIssues"
-            ></b-form-input>
-          </b-dropdown-form>
+          <b-form-input
+            placeholder="debug,test"
+            size="sm"
+            v-model="inputQuery.limit"
+            v-debounce:1s="refreshIssues"
+          ></b-form-input>
         </b-dropdown>
       </div>
 
@@ -195,7 +174,6 @@
           type="number"
           v-model="inputQuery.page_num"
           v-debounce:1s="refreshIssues"
-          @keyup.enter="refreshIssues"
           class="page-number-input"
           min="1"
           :max="Math.ceil(totalIssueCount / inputQuery.limit)"
