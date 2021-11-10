@@ -1,4 +1,5 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
+const RepoScanner = require('./repoScanner')
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
@@ -12,6 +13,7 @@ class WebDataHandler {
         this.IssueReadDetails = inIssueReadDetails;
         this.ghToken = inGHToken;
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.ghToken);
+        this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails);
     }
 
     isValidGithubShortURL(inString) {
@@ -37,6 +39,20 @@ class WebDataHandler {
             }
         }
         await this.refreshRepoHandler.startRefreshingRepos();
+    }
+
+    async scanUserForMentions(inUsername, inReponame) {
+        // Check in user exists
+        // Check in repo exists else return error
+
+        let inUser = await this.UserDetails.findOne({ username: inUsername });
+        let inRepo = await this.RepoDetails.findOne({ shortURL: inReponame });
+
+        if (inUser == null | inRepo == null) {
+            return false;
+        }
+
+        return await this.repoScanner.scanUserForMentions(inUser, inRepo);
     }
 
     getQueryInputs(queryData, inUser) {
@@ -318,6 +334,8 @@ class WebDataHandler {
         var inputUser = (await this.UserDetails.find({ 'username': inputData.username }))[0];
         var inputRepo = (await this.RepoDetails.find({ "shortURL": inputData.inRepoShortURL }))[0];
 
+        let initialInputRepo = inputRepo;
+
         if (inputRepo == null) {
             inputRepo = await this.RepoDetails.create({
                 'shortURL': inputData.inRepoShortURL, 'url': 'https://api.github.com/repos/' + inputData.inRepoShortURL + '/issues',
@@ -336,6 +354,11 @@ class WebDataHandler {
             return false;
         }
 
+        // If repo already exists then scan for mentions
+        if (initialInputRepo != null) {
+            this.repoScanner.scanUserForMentions(inputUser, inputRepo);
+        }
+
         return true;
     }
 
@@ -350,11 +373,19 @@ class WebDataHandler {
             if (repoIndex != -1) {
                 inputUser.repos.splice(repoIndex, 1);
                 await inputUser.save();
+                
+                // Remove user mentions
+                for await (const doc of this.IssueCommentMentionDetails.find({userRef: inputUser._id, repoRef: inputRepo._id })) {
+                    doc.delete();
+                }
+
             } else {
                 return false;
             }
 
             if (inputRepo.userList.length == 1) {
+
+                console.log("Deleting repo: " - repoRef.shortURL);
 
                 for await (const doc of this.IssueCommentMentionDetails.find({ repoRef: inputRepo._id })) {
                     doc.delete();
@@ -371,8 +402,6 @@ class WebDataHandler {
                 for await (const doc of this.RepoDetails.find({ '_id': inputRepo._id })) {
                     doc.delete();
                 }
-            } else {
-                return false;
             }
         } else {
             return false;

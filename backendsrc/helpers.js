@@ -15,9 +15,53 @@ module.exports = {
         }
         return mentionsArray;
     },
-    CopyAllKeys(toObject,fromObject) {
+    CopyAllKeys(toObject, fromObject) {
         Object.keys(fromObject).forEach((key, index) => {
             toObject[key] = fromObject[key];
         });
-    }
+    },
+    async CreateMentionsFromIssueList(inMentionsArray, inIssueCommentMentionDetails, inUserDetails, inIssue) {
+        if (inMentionsArray == null) {
+            return 0;
+        }
+
+        let sum = 0;
+
+        let issueURL = "https://github.com/" + inIssue.url.split("https://api.github.com/repos/").pop();
+
+        for (let i = 0; i < inMentionsArray.length; i++) {
+            let mentionItem = inMentionsArray[i];
+            let mentionedUser = await inUserDetails.findOne({ 'githubUsername': mentionItem });
+            if (mentionedUser) {
+                sum = sum + 1;
+                let mentionResult = await inIssueCommentMentionDetails.findOneAndUpdate({ 'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': inIssue._id }, {
+                    'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': inIssue._id,
+                    mentionedAt: inIssue.updated_at, repoRef: inIssue.repoRef, html_url: issueURL, mentionAuthor: inIssue.user.login,
+                }, { returnDocument: 'after', upsert: true });
+            }
+        }
+
+        return sum;
+    },
+    async CreateMentionsFromCommentList(inMentionsArray, inIssueCommentMentionDetails, inUserDetails, inIssueID, inComment) {
+        if (inMentionsArray == null) {
+            return 0;
+        }
+
+        let sum = 0;
+
+        for (let i = 0; i < inMentionsArray.length; i++) {
+            let mentionItem = inMentionsArray[i];
+            let mentionedUser = await inUserDetails.findOne({ 'githubUsername': mentionItem });
+            if (mentionedUser) {
+                sum = sum + 1;
+                let mentionResult = await inIssueCommentMentionDetails.findOneAndUpdate({ 'commentRef': inComment._id, 'userRef': mentionedUser._id, 'issueRef': inIssueID }, {
+                    'commentRef': inComment._id, 'userRef': mentionedUser._id, 'issueRef': inIssueID,
+                    mentionedAt: inComment.updated_at, repoRef: inComment.repoRef, html_url: inComment.html_url, mentionAuthor: inComment.user.login,
+                }, { returnDocument: 'after', upsert: true });
+            }
+        }
+
+        return sum;
+    },
 }

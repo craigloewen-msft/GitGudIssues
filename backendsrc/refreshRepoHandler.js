@@ -611,21 +611,8 @@ class RefreshRepoHandler {
                 let mentionsArray = bulkWriteDataItem.mentionsArray;
                 let updateResult = await this.IssueDetails.findOneAndUpdate(bulkWriteDataItem.updateOne.filter, bulkWriteDataItem.updateOne.update, { returnDocument: 'after', upsert: true });
 
-                let issueURL = "https://github.com/" + updateResult.url.split("https://api.github.com/repos/").pop();
-
-                if (mentionsArray) {
-                    // For each name in the mention array, attempt to create a mention
-                    for (let i = 0; i < mentionsArray.length; i++) {
-                        let mentionItem = mentionsArray[i];
-                        let mentionedUser = await this.UserDetails.findOne({ 'githubUsername': mentionItem });
-                        if (mentionedUser) {
-                            let mentionResult = await this.IssueCommentMentionDetails.create({
-                                'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': updateResult._id,
-                                mentionedAt: updateResult.updated_at, repoRef: updateResult.repoRef, html_url: issueURL, mentionAuthor: updateResult.user.login,
-                            });
-                        }
-                    }
-                }
+                // For each name in the mention array, attempt to create a mention
+                helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, updateResult);
             }));
             result = true;
         }
@@ -645,19 +632,7 @@ class RefreshRepoHandler {
                 // Update Comment
                 let updateResult = await this.IssueCommentDetails.findOneAndUpdate(commentUpdate.updateOne.filter, commentUpdate.updateOne.update, { returnDocument: 'after', upsert: true });
 
-                if (mentionsArray) {
-                    // For each name in the mention array, attempt to create a mention
-                    for (let i = 0; i < mentionsArray.length; i++) {
-                        let mentionItem = mentionsArray[i];
-                        let mentionedUser = await this.UserDetails.findOne({ 'githubUsername': mentionItem });
-                        if (mentionedUser) {
-                            let mentionResult = await this.IssueCommentMentionDetails.create({
-                                'commentRef': updateResult._id, 'userRef': mentionedUser._id, 'issueRef': bulkWriteDataItem.issueID,
-                                mentionedAt: updateResult.updated_at, repoRef: updateResult.repoRef, html_url: updateResult.html_url, mentionAuthor: updateResult.user.login,
-                            });
-                        }
-                    }
-                }
+                helperFunctions.CreateMentionsFromCommentList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, bulkWriteDataItem.issueID, updateResult);
             }));
 
 
