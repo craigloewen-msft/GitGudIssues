@@ -7,7 +7,5 @@
 
 ## Features
 
-- For a new user, scan the issues to create their mentions
 - Mark an issue as 'read' based on seeing a comment from the user 
-- Add a 'Number' search option at the top
 - Add a 'Mentions' searhc option at the top

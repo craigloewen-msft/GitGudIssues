@@ -158,6 +158,10 @@ class WebDataHandler {
             }
         }
 
+        if (queryData.number) {
+            findQuery['number'] = queryData.number;
+        }
+
         return [findQuery, sortQuery, limitNum, skipNum];
     }
 

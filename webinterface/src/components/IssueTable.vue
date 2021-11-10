@@ -98,6 +98,24 @@
 
         <b-dropdown
           id="dropdown-1"
+          text="Number"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-form>
+            <b-form-input
+              placeholder="10,243,etc."
+              size="sm"
+              v-model="inputQuery.number"
+              v-debounce:1s="refreshIssues"
+              @keyup.enter="refreshIssues"
+            ></b-form-input>
+          </b-dropdown-form>
+        </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
           text="Assignee"
           class="m-md-2"
           size="sm"
