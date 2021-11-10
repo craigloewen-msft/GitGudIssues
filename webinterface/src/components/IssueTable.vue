@@ -28,6 +28,7 @@
             size="sm"
             v-model="inputQuery.repos"
             v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
           ></b-form-input>
         </b-dropdown>
 
@@ -87,6 +88,7 @@
             size="sm"
             v-model="inputQuery.creator"
             v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
           ></b-form-input>
         </b-dropdown>
 
@@ -117,6 +119,7 @@
             size="sm"
             v-model="inputQuery.assignee"
             v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
             >Created</b-form-input
           >
         </b-dropdown>
@@ -133,6 +136,7 @@
             size="sm"
             v-model="inputQuery.labels"
             v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
           ></b-form-input>
         </b-dropdown>
 
@@ -148,6 +152,7 @@
             size="sm"
             v-model="inputQuery.siteLabels"
             v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
           ></b-form-input>
         </b-dropdown>
 
@@ -163,6 +168,7 @@
             size="sm"
             v-model="inputQuery.limit"
             v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
           ></b-form-input>
         </b-dropdown>
       </div>
@@ -174,6 +180,7 @@
           type="number"
           v-model="inputQuery.page_num"
           v-debounce:1s="refreshIssues"
+          @keyup.enter="refreshIssues"
           class="page-number-input"
           min="1"
           :max="Math.ceil(totalIssueCount / inputQuery.limit)"
@@ -232,6 +239,8 @@ export default {
       this.refreshIssues();
     },
     refreshIssues: function () {
+      this.loading = true;
+      this.newestOpenIssues = [];
       this.$http
         .post(this.getIssuesEndpoint, this.inputQuery)
         .then((response) => {

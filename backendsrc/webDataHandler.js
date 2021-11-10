@@ -93,8 +93,13 @@ class WebDataHandler {
 
         if (queryData.limit) {
             let inputLimit = parseInt(queryData.limit);
+            if (inputLimit < 0) {
+                limitNum = 0;
+            }
             if (inputLimit < 30) {
                 limitNum = inputLimit;
+            } else {
+                limitNum = 30;
             }
         }
 
