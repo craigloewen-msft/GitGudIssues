@@ -654,6 +654,20 @@ class RefreshRepoHandler {
         }
         return result;
     }
+
+    reset() {
+        this.lastBulkModifyTime = new Date();
+        this.bulkWriteData = [];
+        this.bulkWriteCommentData = [];
+
+        this.inputRefreshRepoList = [];
+        this.repoRefreshList = [];
+
+        this.inputRefreshRepoCommentsList = [];
+        this.repoRefreshCommentsList = [];
+
+        this.refreshingRepos = false;
+    }
 }
 
 module.exports = RefreshRepoHandler;

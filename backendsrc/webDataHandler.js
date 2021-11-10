@@ -28,7 +28,13 @@ class WebDataHandler {
         for (let i = 0; i < inUser.repos.length; i++) {
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
-        await this.refreshRepoHandler.startRefreshingRepos();
+        try {
+            await this.refreshRepoHandler.startRefreshingRepos();
+        } catch (error) {
+            this.refreshRepoHandler.reset();
+            console.log("Couldn't refresh repos");
+            console.log(error);
+        }
     }
 
     async refreshRepo(inUsername, inRepoName) {
@@ -38,7 +44,13 @@ class WebDataHandler {
                 this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
             }
         }
-        await this.refreshRepoHandler.startRefreshingRepos();
+        try {
+            await this.refreshRepoHandler.startRefreshingRepos();
+        } catch (error) {
+            this.refreshRepoHandler.reset();
+            console.log("Couldn't refresh repos");
+            console.log(error);
+        }
     }
 
     async scanUserForMentions(inUsername, inReponame) {
@@ -377,12 +389,12 @@ class WebDataHandler {
             if (repoIndex != -1) {
                 inputUser.repos.splice(repoIndex, 1);
                 await inputUser.save();
-                
+
                 // Remove user mentions
-                for await (const doc of this.IssueCommentMentionDetails.find({userRef: inputUser._id, repoRef: inputRepo._id })) {
+                for await (const doc of this.IssueCommentMentionDetails.find({ userRef: inputUser._id, repoRef: inputRepo._id })) {
                     doc.delete();
                 }
-                for await (const doc of this.IssueReadDetails.find({userRef: inputUser._id, repoRef: inputRepo._id })) {
+                for await (const doc of this.IssueReadDetails.find({ userRef: inputUser._id, repoRef: inputRepo._id })) {
                     doc.delete();
                 }
 
@@ -393,6 +405,8 @@ class WebDataHandler {
             if (inputRepo.userList.length == 1) {
 
                 console.log("Deleting repo: " + inputRepo.shortURL);
+
+                this.refreshRepoHandler.reset();
 
                 for await (const doc of this.IssueCommentDetails.find({ repositoryID: inputRepo._id })) {
                     doc.delete();

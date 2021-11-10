@@ -97,6 +97,7 @@ export default {
     },
     refreshRepos: function () {
       this.loading = true;
+      this.user.repos = [];
       this.$http.get("/api/refreshrepos").then((response) => {
         if (response.data.success) {
           this.refreshUserInfoUntilNonUpdated();
