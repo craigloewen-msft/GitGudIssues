@@ -450,12 +450,13 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 }
 
 class RefreshRepoHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.UserDetails = inUserDetails;
+        this.IssueReadDetails = inIssueReadDetails;
         this.ghToken = inGHToken;
 
         this.maxBulkWriteCount = 100; // This is trigger limit, absolute limit is maxBulkWriteCount + perPageResults
@@ -610,9 +611,15 @@ class RefreshRepoHandler {
 
                 let mentionsArray = bulkWriteDataItem.mentionsArray;
                 let updateResult = await this.IssueDetails.findOneAndUpdate(bulkWriteDataItem.updateOne.filter, bulkWriteDataItem.updateOne.update, { returnDocument: 'after', upsert: true });
+                let authorName = updateResult.user.login;
+                let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
+
+                if (authorUser != null) {
+                    await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at);
+                }
 
                 // For each name in the mention array, attempt to create a mention
-                helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, updateResult);
+                await helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult);
             }));
             result = true;
         }
@@ -631,8 +638,15 @@ class RefreshRepoHandler {
                 let mentionsArray = bulkWriteDataItem.mentionsArray;
                 // Update Comment
                 let updateResult = await this.IssueCommentDetails.findOneAndUpdate(commentUpdate.updateOne.filter, commentUpdate.updateOne.update, { returnDocument: 'after', upsert: true });
+                let issueResult = await this.IssueDetails.findOne({ '_id': bulkWriteDataItem.issueID });
+                let authorName = updateResult.user.login;
+                let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
 
-                helperFunctions.CreateMentionsFromCommentList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, bulkWriteDataItem.issueID, updateResult);
+                if (authorUser != null) {
+                    await helperFunctions.UpdateIssueRead(this.IssueReadDetails, issueResult, authorUser, updateResult.updated_at);
+                }
+
+                await helperFunctions.CreateMentionsFromCommentList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, issueResult, updateResult);
             }));
 
 

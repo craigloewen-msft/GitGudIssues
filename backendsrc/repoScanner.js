@@ -2,12 +2,13 @@ const helperFunctions = require('./helpers');
 
 class repoScanner {
 
-    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails) {
+    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails, inIssueReadDetails) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.UserDetails = inUserDetails;
+        this.IssueReadDetails = inIssueReadDetails;
 
         this.scans = {};
     }
@@ -33,18 +34,31 @@ class repoScanner {
             // For each issue, get list of mentions and then create new mention
             await issueItem.populate('issueCommentsArray');
 
+            let authorName = issueItem.user.login;
+            let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
+
+            if (authorUser != null) {
+                await helperFunctions.UpdateIssueRead(this.IssueReadDetails, issueItem, authorUser, issueItem.created_at);
+            }
+
             // Get list of mentions
             let issueBodyMentionsArray = helperFunctions.GetMentions(issueItem.body);
 
-            let issueMentionInsertCount = await helperFunctions.CreateMentionsFromIssueList(issueBodyMentionsArray, this.IssueCommentMentionDetails, this.UserDetails, issueItem);
+            let issueMentionInsertCount = await helperFunctions.CreateMentionsFromIssueList(issueBodyMentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, issueItem);
 
             // For each comment in this issue, do the scan as well
             for (let i = 0; i < issueItem.issueCommentsArray.length; i++) {
                 let issueCommentItem = issueItem.issueCommentsArray[i];
 
-                let commentBodyMentionsArray = helperFunctions.GetMentions(issueCommentItem.body);
+                let authorName = issueCommentItem.user.login;
+                let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
 
-                let commentMentionInsertCount = await helperFunctions.CreateMentionsFromCommentList(commentBodyMentionsArray, this.IssueCommentMentionDetails, this.UserDetails, issueItem._id, issueCommentItem);
+                if (authorUser != null) {
+                    await helperFunctions.UpdateIssueRead(this.IssueReadDetails, issueItem, authorUser, issueCommentItem.updated_at);
+                }
+
+                let commentBodyMentionsArray = helperFunctions.GetMentions(issueCommentItem.body);
+                let commentMentionInsertCount = await helperFunctions.CreateMentionsFromCommentList(commentBodyMentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, issueItem, issueCommentItem);
             }
         }
 

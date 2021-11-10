@@ -12,8 +12,8 @@ class WebDataHandler {
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.IssueReadDetails = inIssueReadDetails;
         this.ghToken = inGHToken;
-        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.ghToken);
-        this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails);
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
+        this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
     }
 
     isValidGithubShortURL(inString) {
@@ -382,6 +382,9 @@ class WebDataHandler {
                 for await (const doc of this.IssueCommentMentionDetails.find({userRef: inputUser._id, repoRef: inputRepo._id })) {
                     doc.delete();
                 }
+                for await (const doc of this.IssueReadDetails.find({userRef: inputUser._id, repoRef: inputRepo._id })) {
+                    doc.delete();
+                }
 
             } else {
                 return false;
@@ -389,15 +392,9 @@ class WebDataHandler {
 
             if (inputRepo.userList.length == 1) {
 
-                console.log("Deleting repo: " - repoRef.shortURL);
+                console.log("Deleting repo: " + inputRepo.shortURL);
 
-                for await (const doc of this.IssueCommentMentionDetails.find({ repoRef: inputRepo._id })) {
-                    doc.delete();
-                }
                 for await (const doc of this.IssueCommentDetails.find({ repositoryID: inputRepo._id })) {
-                    doc.delete();
-                }
-                for await (const doc of this.IssueReadDetails.find({ repoRef: inputRepo._id })) {
                     doc.delete();
                 }
                 for await (const doc of this.IssueDetails.find({ repoRef: inputRepo._id })) {
