@@ -126,7 +126,7 @@ IssueCommentDetail.index({ 'repositoryID': 1 });
 IssueCommentDetail.index({ 'comment_id': -1 });
 
 const IssueInfo = new Schema({
-    siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
+    // siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
     repoRef: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
     created_at: { type: Date, index: true },
     updated_at: { type: Date, index: true },
@@ -161,6 +161,12 @@ IssueInfo.virtual('issueCommentsArray', {
     foreignField: 'issueRef'
 });
 
+IssueInfo.virtual('siteIssueLabels', {
+    ref: 'siteIssueLabelInfo',
+    localField: '_id',
+    foreignField: 'issueList'
+});
+
 IssueInfo.virtual('readByArray', {
     ref: 'issueReadInfo',
     localField: '_id',
@@ -170,7 +176,7 @@ IssueInfo.virtual('readByArray', {
 const siteIssueLabelDetail = new Schema({
     name: String,
     issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
-    owner: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
+    owner: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
 const mentionQueryDetail = new Schema({
@@ -205,8 +211,13 @@ const UserDetail = new Schema({
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
-    issueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
 }, { collection: 'usercollection' });
+
+UserDetail.virtual('issueLabels', {
+    ref: 'siteIssueLabelInfo',
+    localField: '_id',
+    foreignField: 'owner'
+});
 
 UserDetail.virtual('mentionArray', {
     ref: 'issueCommentMentionInfo',

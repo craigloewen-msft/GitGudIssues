@@ -73,6 +73,8 @@ class WebDataHandler {
         var limitNum = 10;
         var skipNum = 0;
 
+        let andOrArrays = [];
+
         let userRepoList = inUser.repos;
 
         if (queryData.per_page) {
@@ -116,62 +118,87 @@ class WebDataHandler {
         }
 
         if (queryData.labels) {
-            let andLabelList = queryData.labels.split('&');
+            let orLabelList = queryData.labels.split(',');
             let labelMatchObject = [];
-            for (let i = 0; i < andLabelList.length; i++) {
-                let labelList = andLabelList[i].split(',');
-                let regexString = "";
+
+            for (let i = 0; i < orLabelList.length; i++) {
+                let labelList = orLabelList[i].split('&');
+                let andList = [];
                 for (let j = 0; j < labelList.length; j++) {
-                    if (j != 0) {
-                        regexString = regexString + "|";
-                    }
-                    regexString = regexString + labelList[j];
+                    andList.push(labelList[j]);
                 }
-                labelMatchObject.push({ "labels": { "$elemMatch": { 'name': { "$regex": regexString, "$options": "gi" } } } });
+                labelMatchObject.push(andList);
             }
-            if (findQuery["$and"] == null) {
-                findQuery["$and"] = [];
-            }
+
+            let emplaceObject = [];
+            andOrArrays.push(emplaceObject);
+
             for (let i = 0; i < labelMatchObject.length; i++) {
-                findQuery["$and"].push(labelMatchObject[i]);
+                let andLabelList = labelMatchObject[i];
+                let andObject = { "$and": [] };
+                if (andLabelList.length == 1) {
+                    emplaceObject.push({ "labels": { "$elemMatch": { "name": andLabelList[0] } } });
+                } else {
+                    for (let j = 0; j < andLabelList.length; j++) {
+                        let putLabel = andLabelList[j];
+                        andObject["$and"].push({ "labels": { "$elemMatch": { "name": putLabel } } });
+                    }
+                    emplaceObject.push(andObject);
+                }
             }
         }
 
+        let repoQueryData = [];
         if (queryData.repos) {
+            queryData.repos = queryData.repos.toLowerCase();
             let repoList = queryData.repos.split(',');
-            let regexString = "";
-            if (repoList.length > 0) {
-                regexString = regexString + "https://api.github.com/repos/" + repoList[0];
+            let matchArray = [];
+            for (let i = 0; i < repoList.length; i++) {
+                matchArray.push("https://api.github.com/repos/" + repoList[i]);
             }
-            for (let i = 1; i < repoList.length; i++) {
-                regexString = regexString + "|" + "https://api.github.com/repos/" + repoList[i];
-            }
-            findQuery['repository_url'] = { "$regex": regexString, "$options": "gi" };
+            repoQueryData = matchArray;
         } else {
-            let regexString = "";
-            if (userRepoList.length > 0) {
-                regexString = userRepoList[0].url.split('/issues')[0];
+            let matchArray = [];
+            for (let i = 0; i < userRepoList.length; i++) {
+                matchArray.push(userRepoList[i].url.split('/issues')[0]);
             }
-            for (let i = 1; i < userRepoList.length; i++) {
-                regexString = regexString + "|" + userRepoList[i].url.split('/issues')[0];
-            }
-            findQuery['repository_url'] = { "$regex": regexString, "$options": "gi" };
+            repoQueryData = matchArray;
+        }
+
+        if (repoQueryData.length == 1) {
+            findQuery['repository_url'] = repoQueryData[0];
+        } else if (repoQueryData.length > 1) {
+            findQuery['repository_url'] = { "$in": repoQueryData };
         }
 
         if (queryData.siteLabels) {
-            let andLabelList = queryData.siteLabels.split('&');
+            let orLabelList = queryData.siteLabels.split(',');
             let labelMatchObject = [];
-            for (let i = 0; i < andLabelList.length; i++) {
-                let siteLabelList = andLabelList[i].split(',');
-                let orIssueLabels = inUser.issueLabels;
-                labelMatchObject.push({ "siteIssueLabels": { "$in": orIssueLabels } });
+
+            for (let i = 0; i < orLabelList.length; i++) {
+                let labelList = orLabelList[i].split('&');
+                let andList = [];
+                for (let j = 0; j < labelList.length; j++) {
+                    andList.push(labelList[j]);
+                }
+                labelMatchObject.push(andList);
             }
 
-            if (findQuery["$and"] == null) {
-                findQuery["$and"] = [];
-            }
+            let emplaceObject = [];
+            andOrArrays.push(emplaceObject);
+
             for (let i = 0; i < labelMatchObject.length; i++) {
-                findQuery["$and"].push(labelMatchObject[i]);
+                let andLabelList = labelMatchObject[i];
+                let andObject = { "$and": [] };
+                if (andLabelList.length == 1) {
+                    emplaceObject.push({ "siteIssueLabels": { "$elemMatch": { "name": andLabelList[0] } } });
+                } else {
+                    for (let j = 0; j < andLabelList.length; j++) {
+                        let putLabel = andLabelList[j];
+                        andObject["$and"].push({ "siteIssueLabels": { "$elemMatch": { "name": putLabel } } });
+                    }
+                    emplaceObject.push(andObject);
+                }
             }
         }
 
@@ -179,36 +206,73 @@ class WebDataHandler {
             findQuery['number'] = queryData.number;
         }
 
+        let tempArray = [[{
+            "$and":
+                [
+                    { "labels": { "$elemMatch": { "name": "needs-author-feedback" } } },
+                    { "labels": { "$elemMatch": { "name": "wsl1" } } }]
+        },
+        {
+            "$and": [{ "labels": { "$elemMatch": { "name": "bug" } } },
+            { "labels": { "$elemMatch": { "name": "GPU" } } }]
+        }]];
+
+        // Get and array (level 1)
+        let rootAndArray = [];
+        for (let i = 0; i < andOrArrays.length; i++) {
+            // Get or Array (level 2)
+            let orEmplaceArray = [];
+            let thisOrArray = andOrArrays[i];
+            let orReturnObject = null;
+            for (let j = 0; j < thisOrArray.length; j++) {
+                orEmplaceArray.push(thisOrArray[j]); // Level 3 is already done
+            }
+            if (orEmplaceArray.length == 1) {
+                orReturnObject = orEmplaceArray[0];
+            } else {
+                orReturnObject = { "$or": orEmplaceArray };
+            }
+            // End Level 2
+            rootAndArray.push(orReturnObject);
+        }
+        if (rootAndArray.length == 1) {
+            Object.keys(rootAndArray[0]).forEach((key, index) => {
+                findQuery[key] = rootAndArray[0][key];
+            });
+        } else if (rootAndArray.length > 1) {
+            findQuery["$and"] = rootAndArray;
+        }
+        // End level 1
+
         return [findQuery, sortQuery, limitNum, skipNum];
     }
 
     async setIfIssuesAreRead(inputIssueArray, inUser) {
-        await Promise.all(inputIssueArray.map(async (issueItem) => {
-            let issueReadItem = await this.IssueReadDetails.findOne({ issueRef: issueItem._id, userRef: inUser._id });
-            if (issueReadItem == null) {
-                issueItem.readByUser = false;
-            } else if (new Date(issueReadItem.readAt) >= new Date(issueItem.updated_at)) {
-                issueItem.readByUser = true;
+        inputIssueArray.map((issueItem) => {
+            let issueReadArray = issueItem.issueReadArray;
+            if (issueReadArray.length > 0) {
+                let issueReadItem = issueReadArray[0];
+                if (new Date(issueReadItem.readAt) >= new Date(issueItem.updated_at)) {
+                    issueItem.readByUser = true;
+                } else {
+                    issueItem.readByUser = false;
+                }
             } else {
                 issueItem.readByUser = false;
             }
-        }));
+        });
+
     }
 
     setIssueLabelsForUser(inputIssueArray, inUser) {
-        let userIssueLabelList = inUser.issueLabels;
-
         inputIssueArray.map((issueItem) => {
             var siteLabelsToReturn = [];
 
-            for (const iterIssueLabel of userIssueLabelList) {
-                if (iterIssueLabel.issueList.indexOf(issueItem._id) != -1) {
-                    siteLabelsToReturn.push(iterIssueLabel.name);
-                }
+            for (const iterIssueLabel of issueItem.siteIssueLabels) {
+                siteLabelsToReturn.push(iterIssueLabel.name);
             }
 
             issueItem.siteLabels = siteLabelsToReturn;
-
         });
     }
 
@@ -224,19 +288,71 @@ class WebDataHandler {
         // Get issue query data
         let [findQuery, sortQuery, limitNum, skipNum] = this.getQueryInputs(queryData, inUser);
 
-        var queryResults = await Promise.all([this.IssueDetails.count(findQuery).exec(), this.IssueDetails.find(findQuery).sort(sortQuery).skip(skipNum).limit(limitNum).exec()]);
+        var countQuery = this.IssueDetails.aggregate([
+            {
+                "$lookup": {
+                    "from": "siteIssueLabelInfo",
+                    "localField": "_id",
+                    "foreignField": "issueList",
+                    "as": "siteIssueLabels"
+                }
+            },
+            { "$match": findQuery },
+            { "$count": "resultCount" },
+        ]);
+
+        var issueQuery = this.IssueDetails.aggregate([
+            { "$project": { "body": 0 } },
+            {
+                "$lookup": {
+                    "from": "siteIssueLabelInfo",
+                    "localField": "_id",
+                    "foreignField": "issueList",
+                    "as": "siteIssueLabels",
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "owner": inUser._id
+                            }
+                        }
+                    ],
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "issueReadInfo",
+                    "localField": "_id",
+                    "foreignField": "issueRef",
+                    "as": "issueReadArray",
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "userRef": inUser._id
+                            }
+                        }
+                    ],
+                }
+            },
+            { "$match": findQuery },
+            // { "$unwind": "$issueResult" },
+            { "$sort": sortQuery },
+            { "$skip": skipNum },
+            { "$limit": limitNum },
+        ]);
+
+        var queryResults = await Promise.all([countQuery, issueQuery]);
 
         // Get a return array
         var returnIssueResultsArray = JSON.parse(JSON.stringify(queryResults[1]));
 
         // For each issue get whether it's read or unread
-        await this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
+        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
 
         // Get what issues have what labels for this user (can be done in parallel with above)
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
 
         // Return the values
-        var returnResult = { count: queryResults[0], issueData: returnIssueResultsArray };
+        var returnResult = { count: queryResults[0][0].resultCount, issueData: returnIssueResultsArray };
         return returnResult;
     }
 
@@ -290,16 +406,13 @@ class WebDataHandler {
 
         if (issueLabel == null) {
             issueLabel = await this.siteIssueLabelDetails.create({ name: queryData.inLabel, issueList: [], owner: inUser._id });
-            inUser.issueLabels.push(issueLabel._id);
         }
 
         var containsThisIssue = issueLabel.issueList.indexOf(inIssue._id);
 
         if (containsThisIssue == -1) {
             issueLabel.issueList.push(inIssue._id);
-            inIssue.siteIssueLabels.push(issueLabel._id);
             await issueLabel.save();
-            await Promise.all([inUser.save(), inIssue.save()]);
         }
 
         return true;
@@ -321,22 +434,11 @@ class WebDataHandler {
 
         var siteIssueLabelID = issueLabel._id.toString();
         var siteIssueLabelIssueIndex = issueLabel.issueList.indexOf(inIssue._id);
-        var issueSiteIssueLabelIndex = inIssue.siteIssueLabels.indexOf(issueLabel._id);
-
-        if (issueSiteIssueLabelIndex != -1) {
-            inIssue.siteIssueLabels.splice(issueSiteIssueLabelIndex, 1);
-            await inIssue.save();
-        }
 
         if (siteIssueLabelIssueIndex != -1) {
             issueLabel.issueList.splice(siteIssueLabelIssueIndex, 1);
 
             if (issueLabel.issueList.length == 0) {
-                var issueLabelIndex = inUser.issueLabels.indexOf(issueLabel);
-                if (issueLabelIndex != -1) {
-                    inUser.issueLabels.splice(issueLabelIndex, 1);
-                    inUser.save();
-                }
                 await this.siteIssueLabelDetails.findByIdAndDelete(siteIssueLabelID);
             } else {
                 await issueLabel.save();
@@ -430,6 +532,42 @@ class WebDataHandler {
         return true;
     }
 
+    transformIssueSearchLeafRecursive(findQuery, firstFindQuery) {
+        for (let objectKey of Object.keys(firstFindQuery)) {
+            if (objectKey != "$and" && objectKey != "$or") {
+                if (objectKey != "siteIssueLabels" && objectKey != "issueReadArray") {
+                    findQuery["issueResult." + objectKey] = firstFindQuery[objectKey];
+                } else {
+                    findQuery[objectKey] = firstFindQuery[objectKey];
+                }
+            } else {
+                let emplaceArray = [];
+                findQuery[objectKey] = emplaceArray;
+                for (let i = 0; i < firstFindQuery[objectKey].length; i++) {
+                    let insertObject = {};
+                    emplaceArray.push(insertObject);
+                    this.transformIssueSearchLeafRecursive(insertObject, firstFindQuery[objectKey][i]);
+                }
+            }
+        }
+
+    }
+
+    transformIssueSearchCriteriaToMentions(firstFindQuery, firstSortQuery) {
+        let findQuery = {};
+        let sortQuery = {};
+
+        // Put all our search criteria as an 'issue ref' object
+        this.transformIssueSearchLeafRecursive(findQuery,firstFindQuery);
+
+        // Put all our sort criteria as an 'issue ref' object
+        for (let objectKey of Object.keys(firstSortQuery)) {
+            sortQuery["mentionedAt"] = firstSortQuery[objectKey];
+        }
+
+        return [findQuery, sortQuery];
+    }
+
     async getMentions(queryData) {
         // Get User Data
         var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
@@ -441,18 +579,7 @@ class WebDataHandler {
         // Get issue query data
         let [firstFindQuery, firstSortQuery, limitNum, skipNum] = this.getQueryInputs(queryData, inUser);
 
-        let findQuery = {};
-        let sortQuery = {};
-
-        // Put all our search criteria as an 'issue ref' object
-        for (let objectKey of Object.keys(firstFindQuery)) {
-            findQuery["issueResult." + objectKey] = firstFindQuery[objectKey];
-        }
-
-        // Put all our sort criteria as an 'issue ref' object
-        for (let objectKey of Object.keys(firstSortQuery)) {
-            sortQuery["mentionedAt"] = firstSortQuery[objectKey];
-        }
+        let [findQuery, sortQuery] = this.transformIssueSearchCriteriaToMentions(firstFindQuery, firstSortQuery);
 
         var countQuery = this.IssueCommentMentionDetails.aggregate([
             { "$match": { "userRef": inUser._id } },
@@ -477,8 +604,39 @@ class WebDataHandler {
                     "as": "issueResult"
                 }
             },
-            { "$match": findQuery },
+            { "$project": { "issueResult.body": 0 } },
             { "$unwind": "$issueResult" },
+            {
+                "$lookup": {
+                    "from": "siteIssueLabelInfo",
+                    "localField": "issueResult._id",
+                    "foreignField": "issueList",
+                    "as": "siteIssueLabels",
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "owner": inUser._id
+                            }
+                        }
+                    ],
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "issueReadInfo",
+                    "localField": "issueResult._id",
+                    "foreignField": "issueRef",
+                    "as": "issueReadArray",
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "userRef": inUser._id
+                            }
+                        }
+                    ],
+                }
+            },
+            { "$match": findQuery },
             { "$sort": sortQuery },
             { "$skip": skipNum },
             { "$limit": limitNum },
@@ -493,11 +651,13 @@ class WebDataHandler {
             pushItem.mentionedAt = queryResults[1][i].mentionedAt;
             pushItem.html_url = queryResults[1][i].html_url;
             pushItem.mentionAuthor = queryResults[1][i].mentionAuthor;
+            pushItem.issueReadArray = queryResults[1][i].issueReadArray;
+            pushItem.siteIssueLabels = queryResults[1][i].siteIssueLabels;
             returnIssueResultsArray.push(pushItem);
         }
 
         // For each issue get whether it's read or unread
-        await this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
+        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
 
         // Get what issues have what labels for this user (can be done in parallel with above)
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
