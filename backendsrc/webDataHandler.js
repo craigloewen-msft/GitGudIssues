@@ -352,7 +352,11 @@ class WebDataHandler {
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
 
         // Return the values
-        var returnResult = { count: queryResults[0][0].resultCount, issueData: returnIssueResultsArray };
+        let returnCount = 0;
+        if (queryResults[0][0] != null) {
+            returnCount = queryResults[0][0].resultCount;
+        }
+        var returnResult = { count: returnCount, issueData: returnIssueResultsArray };
         return returnResult;
     }
 
@@ -498,12 +502,10 @@ class WebDataHandler {
                 await inputUser.save();
 
                 // Remove user mentions
-                for await (const doc of this.IssueCommentMentionDetails.find({ userRef: inputUser._id, repoRef: inputRepo._id })) {
-                    doc.delete();
-                }
-                for await (const doc of this.IssueReadDetails.find({ userRef: inputUser._id, repoRef: inputRepo._id })) {
-                    doc.delete();
-                }
+                await this.IssueCommentMentionDetails.deleteMany({ userRef: inputUser._id, repoRef: inputRepo._id })
+                await this.IssueReadDetails.deleteMany({ userRef: inputUser._id, repoRef: inputRepo._id })
+
+                console.log(delete1,delete2);
 
             } else {
                 return false;
@@ -515,15 +517,11 @@ class WebDataHandler {
 
                 this.refreshRepoHandler.reset();
 
-                for await (const doc of this.IssueCommentDetails.find({ repositoryID: inputRepo._id })) {
-                    doc.delete();
-                }
-                for await (const doc of this.IssueDetails.find({ repoRef: inputRepo._id })) {
-                    doc.delete();
-                }
-                for await (const doc of this.RepoDetails.find({ '_id': inputRepo._id })) {
-                    doc.delete();
-                }
+                await this.IssueCommentMentionDetails.deleteMany({ repoRef: inputRepo._id })
+                await this.IssueReadDetails.deleteMany({ repoRef: inputRepo._id })
+                await this.IssueCommentDetails.deleteMany({ repositoryID: inputRepo._id })
+                await this.IssueDetails.deleteMany({ repoRef: inputRepo._id })
+                await this.RepoDetails.deleteOne({ '_id': inputRepo._id })
             }
         } else {
             return false;

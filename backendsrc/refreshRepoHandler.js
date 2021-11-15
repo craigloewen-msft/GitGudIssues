@@ -619,7 +619,9 @@ class RefreshRepoHandler {
                 }
 
                 // For each name in the mention array, attempt to create a mention
-                await helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult);
+                if (updateResult.isNew) {
+                    await helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult);
+                }
             }));
             result = true;
         }
