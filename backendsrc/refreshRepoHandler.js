@@ -473,7 +473,7 @@ class RefreshRepoHandler {
 
         this.refreshingRepos = false;
 
-        this.simultaneousMessages = 2;
+        this.simultaneousMessages = 5;
     }
 
     addRepoForRefresh(inRepo) {

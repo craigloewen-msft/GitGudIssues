@@ -179,6 +179,9 @@ const siteIssueLabelDetail = new Schema({
     owner: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
+siteIssueLabelDetail.index({ 'issueList': 1 });
+siteIssueLabelDetail.index({ 'owner': 1 });
+
 const mentionQueryDetail = new Schema({
     title: String,
     state: String,
