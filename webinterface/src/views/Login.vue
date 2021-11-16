@@ -18,8 +18,10 @@
         placeholder="Password"
         @keyup.enter="login"
       />
-      <br/>
-      <button class="btn btn-lg btn-primary btn-block" v-on:click="login">Sign in</button>
+      <br />
+      <button class="btn btn-lg btn-primary btn-block" v-on:click="login">
+        Sign in
+      </button>
     </b-container>
   </div>
 </template>
@@ -75,6 +77,9 @@ export default {
       //   axios.get(devEndPoint).then(response => (this.userdata = response.data));
     },
   },
+  mounted: function () {
+    this.$gtag.pageview(this.$route);
+  },
 };
 </script>
 
@@ -84,6 +89,6 @@ export default {
 }
 
 .btn-block {
-    width: 100%;
+  width: 100%;
 }
 </style>

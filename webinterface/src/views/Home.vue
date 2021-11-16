@@ -65,6 +65,9 @@ export default {
       return this.$store.state.user;
     },
   },
+  mounted: function () {
+    this.$gtag.pageview(this.$route);
+  },
 };
 </script>
 

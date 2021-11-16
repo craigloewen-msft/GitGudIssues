@@ -72,10 +72,9 @@ export default {
   },
   methods: {
     register: function () {
-
-        if (!this.checkInfo()) {
-            return;
-        }
+      if (!this.checkInfo()) {
+        return;
+      }
 
       axios
         .post(devEndPoint + "register/", {
@@ -127,24 +126,24 @@ export default {
         return false;
       }
       if (!this.validateEmail(this.input.email)) {
-          this.failuretext = "Email is invalid";
-          return false;
+        this.failuretext = "Email is invalid";
+        return false;
       }
       if (this.input.username.length > 20) {
-          this.failuretext = "Username is too long";
-          return false;
+        this.failuretext = "Username is too long";
+        return false;
       }
       if (this.input.githubUsername.length == 0) {
-          this.failuretext = "Github username required";
-          return false;
+        this.failuretext = "Github username required";
+        return false;
       }
       if (this.input.password.length > 30) {
-          this.failuretext = "Password is too long";
-          return false;
+        this.failuretext = "Password is too long";
+        return false;
       }
       if (this.input.email.length > 30) {
-          this.failuretext = "Email is too long";
-          return false;
+        this.failuretext = "Email is too long";
+        return false;
       }
       if (!(this.input.password == this.input.passwordconfirm)) {
         this.failuretext = "Passwords don't match";
@@ -152,6 +151,9 @@ export default {
       }
       return true;
     },
+  },
+  mounted: function () {
+    this.$gtag.pageview(this.$route);
   },
 };
 </script>

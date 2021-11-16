@@ -34,5 +34,16 @@
   </div>
 </template>
 
+<script>
+
+export default {
+  name: "About",
+  mounted: function () {
+    this.$gtag.pageview(this.$route);
+  },
+};
+</script>
+
+
 <style>
 </style>

@@ -53,6 +53,7 @@ export default {
     this.$http.defaults.headers.common["Authorization"] =
       this.$store.state.token;
     this.refreshQueryList();
+    this.$gtag.pageview(this.$route);
   },
   methods: {
     addNewQuery: function () {
