@@ -24,7 +24,7 @@ Vue.use(vueDebounce, {
 });
 
 Vue.use(VueGtag, {
-  config: { id: "G-BBFK4NG24K" }
+  config: { id: "G-RGZMG4RTH7" }
 });
 
 new Vue({
