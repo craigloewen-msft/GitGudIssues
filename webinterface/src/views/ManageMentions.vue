@@ -57,6 +57,11 @@ export default {
   },
   methods: {
     addNewQuery: function () {
+      this.$gtag.event("addMentionQuery", {
+        event_category: "queryFunctions",
+        event_label: "New Query",
+        value: 2,
+      });
       this.mentionQueryObjects.push({
         startEdit: true,
         query: {
@@ -76,6 +81,11 @@ export default {
     deleteQuery: function (inputDeleteQuery) {
       var searchID = inputDeleteQuery._id;
       var deleteQueryIndex = -1;
+      this.$gtag.event("deleteMentionQuery", {
+        event_category: "queryFunctions",
+        event_label: inputDeleteQuery.title,
+        value: 1,
+      });
 
       for (let i = 0; i < this.mentionQueryObjects.length; i++) {
         if (this.mentionQueryObjects[i]._id == searchID) {

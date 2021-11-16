@@ -19,10 +19,19 @@
             >
           </div>
         </div>
-        <div v-if="loading" class="custom-tag-collection" style="display: flex;">
-          <div class="placeholder col-3 repo-placeholder" style="width: 100px"></div>
-          <div class="placeholder col-3 repo-placeholder" style="width: 100px"></div>
-          <div class="placeholder col-3 repo-placeholder" style="width: 100px"></div>
+        <div v-if="loading" class="custom-tag-collection" style="display: flex">
+          <div
+            class="placeholder col-3 repo-placeholder"
+            style="width: 100px"
+          ></div>
+          <div
+            class="placeholder col-3 repo-placeholder"
+            style="width: 100px"
+          ></div>
+          <div
+            class="placeholder col-3 repo-placeholder"
+            style="width: 100px"
+          ></div>
         </div>
         <div class="small-input-form-box">
           <b-form-input
@@ -62,7 +71,13 @@ export default {
   },
   methods: {
     addUserRepo: function () {
-      if (this.user.repos.indexOf(this.input.repo) == -1) {
+      let repoIndex = this.user.repos.indexOf(this.input.repo);
+      if (repoIndex == -1) {
+        this.$gtag.event("addRepo", {
+          event_category: "repoFunctions",
+          event_label: this.input.repo,
+          value: 10,
+        });
         this.$http
           .post("/api/setuserrepo", {
             repo: this.input.repo,
@@ -81,6 +96,11 @@ export default {
     removeUserRepo: function (inputRepoIndex) {
       let repoIndex = inputRepoIndex;
       if (repoIndex != -1) {
+        this.$gtag.event("removeRepo", {
+          event_category: "repoFunctions",
+          event_label: this.user.repos[repoIndex].title,
+          value: 1,
+        });
         this.$http
           .post("/api/removeuserrepo", {
             repo: this.user.repos[repoIndex].title,

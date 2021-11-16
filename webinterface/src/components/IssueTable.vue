@@ -257,6 +257,17 @@ export default {
         });
     },
     saveQuery: function () {
+      let tagEventName = null;
+      if (this.isMention) {
+        tagEventName = "saveMentionQuery";
+      } else {
+        tagEventName = "saveIssueQuery";
+      }
+      this.$gtag.event(tagEventName, {
+        event_category: "queryFunctions",
+        event_label: this.inputQuery.title,
+        value: 5,
+      });
       this.$http
         .post(this.modifyIssuesEndpoint, {
           action: "save",
@@ -272,6 +283,17 @@ export default {
         });
     },
     deleteQuery: function () {
+      let tagEventName = null;
+      if (this.isMention) {
+        tagEventName = "deleteMentionQuery";
+      } else {
+        tagEventName = "deleteIssueQuery";
+      }
+      this.$gtag.event(tagEventName, {
+        event_category: "queryFunctions",
+        event_label: this.inputQuery.title,
+        value: 2,
+      });
       this.$http
         .post(this.modifyIssuesEndpoint, {
           action: "delete",

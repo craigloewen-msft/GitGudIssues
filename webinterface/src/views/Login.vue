@@ -61,6 +61,11 @@ export default {
                 user: response.data.user,
               })
               .then(() => {
+                this.$gtag.event("login", {
+                  event_category: "userFunctions",
+                  event_label: response.data.user.username,
+                  value: 1
+                });
                 this.$router.push("/user/" + response.data.user.username);
               });
           } else {
