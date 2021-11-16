@@ -205,7 +205,7 @@ class WebDataHandler {
         }
 
         if (queryData.number) {
-            findQuery['number'] = queryData.number;
+            findQuery['number'] = Number(queryData.number);
         }
 
         let tempArray = [[{
