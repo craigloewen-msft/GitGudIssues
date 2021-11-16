@@ -222,6 +222,11 @@ export default {
     markIssueAsRead: function () {
       if (!this.issue.readByUser) {
         this.issue.readByUser = true;
+        this.$gtag.event("readIssue", {
+          event_category: "issueFunctions",
+          event_label: this.getUrl(),
+          value: 1,
+        });
         this.$http
           .post("/api/setissueread", { issueID: this.issue._id })
           .then((response) => {
@@ -235,6 +240,11 @@ export default {
     },
     markIssueAsUnread: function () {
       if (this.issue.readByUser) {
+        this.$gtag.event("unreadIssue", {
+          event_category: "issueFunctions",
+          event_label: this.getUrl(),
+          value: 1,
+        });
         this.$http
           .post("/api/setissueunread", { issueID: this.issue._id })
           .then((response) => {
@@ -249,6 +259,11 @@ export default {
     },
     addIssueLabel: function () {
       if (this.issue.siteLabels.indexOf(this.input.label) == -1) {
+        this.$gtag.event("addIssueLabel", {
+          event_category: "issueLabelFunctions",
+          event_label: this.input.label,
+          value: 1,
+        });
         this.$http
           .post("/api/setissuelabel", {
             issueID: this.issue._id,
@@ -268,6 +283,11 @@ export default {
     removeIssueLabel: function (inIssueLabel) {
       var indexOfIssueLabel = this.issue.siteLabels.indexOf(inIssueLabel);
       if (indexOfIssueLabel != -1) {
+        this.$gtag.event("removeIssueLabel", {
+          event_category: "issueLabelFunctions",
+          event_label: inIssueLabel,
+          value: 1,
+        });
         this.$http
           .post("/api/removeissuelabel", {
             issueID: this.issue._id,
