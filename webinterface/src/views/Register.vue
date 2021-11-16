@@ -40,14 +40,7 @@
         placeholder="Confirm Password"
         @keyup.enter="register"
       />
-      <input
-        class="form-control"
-        type="text"
-        name="repotitle"
-        v-model="input.repotitle"
-        placeholder="Repo title: e.g: microsoft/WSL"
-        @keyup.enter="register"
-      /><br />
+      <br />
       <button class="btn btn-primary btn-lg btn-block" v-on:click="register">
         Register
       </button>
@@ -70,7 +63,6 @@ export default {
         password: "",
         email: "",
         passwordconfirm: "",
-        repotitle: "",
         githubUsername: "",
       },
     };
@@ -90,7 +82,6 @@ export default {
           username: this.input.username,
           password: this.input.password,
           email: this.input.email,
-          repotitle: this.input.repotitle,
           githubUsername: this.input.githubUsername,
         })
         .then((response) => {

@@ -246,8 +246,8 @@ UserDetail.plugin(passportLocalMongoose);
 const RepoDetails = mongoose.model('repoInfo', RepoInfo, 'repoInfo');
 const IssueDetails = mongoose.model('issueInfo', IssueInfo, 'issueInfo');
 const UserDetails = mongoose.model('userInfo', UserDetail, 'userInfo');
-const searchQueryDetails = mongoose.model('searchQueryInfo', searchQueryDetail, 'searchQueryInfo');
-const mentionQueryDetails = mongoose.model('mentionQueryInfo', mentionQueryDetail, 'mentionQueryInfo');
+const SearchQueryDetails = mongoose.model('searchQueryInfo', searchQueryDetail, 'searchQueryInfo');
+const MentionQueryDetails = mongoose.model('mentionQueryInfo', mentionQueryDetail, 'mentionQueryInfo');
 const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabelDetail, 'siteIssueLabelInfo');
 const IssueCommentDetails = mongoose.model('issueCommentInfo', IssueCommentDetail, 'issueCommentInfo');
 const IssueCommentMentionDetails = mongoose.model('issueCommentMentionInfo', IssueCommentMentionDetail, 'issueCommentMentionInfo');
@@ -257,7 +257,7 @@ const JWTTimeout = 43200;
 const mineTimeoutCounter = 5;
 
 const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
-    IssueReadDetails, config.ghToken);
+    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken);
 
 // App set up
 
@@ -419,12 +419,22 @@ app.post('/api/register', async function (req, res) {
             return res.json(returnFailure("User already exists"));
         }
 
-        let newIssueQuery = {};
-        let recentlyUpdatedQuery = {};
+        let defaultQuery = {
+          title: "New Query",
+          repo: null,
+          state: null,
+          sort: null,
+          limit: 10,
+          creator: null,
+          assignee: null,
+          labels: null,
+          repos: null,
+          page_num: 1,
+        };
 
         let registeredUser = await UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [], githubUsername: req.body.githubUsername }, req.body.password);
-        await dataHandler.setUserRepo({ username: req.body.username, inRepoShortURL: req.body.repotitle });
-        dataHandler.refreshData(req.body.username);
+        await dataHandler.modifyUserManageIssueQuery({username: req.body.username, inAction: "save", inQuery: defaultQuery});
+        await dataHandler.modifyUserManageMentionQuery({username: req.body.username, inAction: "save", inQuery: defaultQuery});
 
         let token = jwt.sign({ id: req.body.username }, config.secret, { expiresIn: JWTTimeout });
         returnBasicUserInfo(registeredUser.username, (userDataResponse) => {
@@ -559,24 +569,8 @@ app.get('/api/getusermanageissuequeries', authenticateToken, async function (req
 app.post('/api/modifyusermanageissuequery', authenticateToken, async function (req, res) {
     try {
         const inputData = { username: req.user.id, inAction: req.body.action, inQuery: req.body.query };
-        const { _id: inQueryID, ...inQueryData } = inputData.inQuery;
-        var returnID = null;
-        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
 
-        if (inputData.inAction == "save") {
-            var updatedSearchQuery = await searchQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
-            if (updatedSearchQuery == null) {
-                var newSearchQuery = await searchQueryDetails.create(inputData.inQuery);
-                newSearchQuery.userRef = inputUser._id;
-                await newSearchQuery.save();
-                returnID = newSearchQuery._id.toString()
-            } else {
-                returnID = updatedSearchQuery._id.toString();
-            }
-        } else if (inputData.inAction == "delete") {
-            var deletedSearchQuery = await searchQueryDetails.findByIdAndDelete(inQueryID);
-            returnID = inQueryID;
-        }
+        let returnID = await dataHandler.modifyUserManageIssueQuery(inputData);
 
         return res.json({ success: true, issueID: returnID });
     } catch (error) {
@@ -603,24 +597,8 @@ app.get('/api/getusermanagementionqueries', authenticateToken, async function (r
 app.post('/api/modifyusermanagementionquery', authenticateToken, async function (req, res) {
     try {
         const inputData = { username: req.user.id, inAction: req.body.action, inQuery: req.body.query };
-        const { _id: inQueryID, ...inQueryData } = inputData.inQuery;
-        var returnID = null;
-        var inputUser = (await UserDetails.find({ 'username': inputData.username }))[0];
 
-        if (inputData.inAction == "save") {
-            var updatedSearchQuery = await mentionQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
-            if (updatedSearchQuery == null) {
-                var newMentionQuery = await mentionQueryDetails.create(inputData.inQuery);
-                newMentionQuery.userRef = inputUser._id;
-                await newMentionQuery.save();
-                returnID = newMentionQuery._id.toString()
-            } else {
-                returnID = updatedSearchQuery._id.toString();
-            }
-        } else if (inputData.inAction == "delete") {
-            var deletedSearchQuery = await mentionQueryDetails.findByIdAndDelete(inQueryID);
-            returnID = inQueryID;
-        }
+        let returnID = await dataHandler.modifyUserManageMentionQuery(inputData);         
 
         return res.json({ success: true, issueID: returnID });
     } catch (error) {

@@ -3,7 +3,7 @@ const RepoScanner = require('./repoScanner')
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
-        inIssueReadDetails, inGHToken) {
+        inIssueReadDetails, inSearhQueryDetails, inMentionQueryDetails, inGHToken) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.UserDetails = inUserDetails;
@@ -11,6 +11,8 @@ class WebDataHandler {
         this.IssueCommentDetails = inIssueCommentDetails;
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.IssueReadDetails = inIssueReadDetails;
+        this.SearchQueryDetails = inSearhQueryDetails;
+        this.MentionQueryDetails = inMentionQueryDetails;
         this.ghToken = inGHToken;
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
         this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
@@ -670,6 +672,52 @@ class WebDataHandler {
         var returnResult = { count: queryCountReturn, issueData: returnIssueResultsArray };
         return returnResult;
 
+    }
+
+    async modifyUserManageIssueQuery(inputData) {
+        const { _id: inQueryID, ...inQueryData } = inputData.inQuery;
+        var returnID = null;
+        var inputUser = (await this.UserDetails.find({ 'username': inputData.username }))[0];
+
+        if (inputData.inAction == "save") {
+            var updatedSearchQuery = await this.SearchQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
+            if (updatedSearchQuery == null) {
+                var newSearchQuery = await this.SearchQueryDetails.create(inputData.inQuery);
+                newSearchQuery.userRef = inputUser._id;
+                await newSearchQuery.save();
+                returnID = newSearchQuery._id.toString()
+            } else {
+                returnID = updatedSearchQuery._id.toString();
+            }
+        } else if (inputData.inAction == "delete") {
+            var deletedSearchQuery = await this.SearchQueryDetails.findByIdAndDelete(inQueryID);
+            returnID = inQueryID;
+        }
+
+        return returnID;
+    }
+
+    async modifyUserManageMentionQuery(inputData) {
+        const { _id: inQueryID, ...inQueryData } = inputData.inQuery;
+        var returnID = null;
+        var inputUser = (await this.UserDetails.find({ 'username': inputData.username }))[0];
+
+        if (inputData.inAction == "save") {
+            var updatedSearchQuery = await this.MentionQueryDetails.findByIdAndUpdate(inQueryID, { '$set': inQueryData });
+            if (updatedSearchQuery == null) {
+                var newMentionQuery = await this.MentionQueryDetails.create(inputData.inQuery);
+                newMentionQuery.userRef = inputUser._id;
+                await newMentionQuery.save();
+                returnID = newMentionQuery._id.toString()
+            } else {
+                returnID = updatedSearchQuery._id.toString();
+            }
+        } else if (inputData.inAction == "delete") {
+            var deletedSearchQuery = await this.MentionQueryDetails.findByIdAndDelete(inQueryID);
+            returnID = inQueryID;
+        }
+
+        return returnID;
     }
 
 
