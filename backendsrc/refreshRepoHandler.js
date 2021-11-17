@@ -610,16 +610,21 @@ class RefreshRepoHandler {
             await Promise.all(bulkWriteDataCopy.map(async (bulkWriteDataItem) => {
 
                 let mentionsArray = bulkWriteDataItem.mentionsArray;
-                let updateResult = await this.IssueDetails.findOneAndUpdate(bulkWriteDataItem.updateOne.filter, bulkWriteDataItem.updateOne.update, { returnDocument: 'after', upsert: true });
+                let updateResultRaw = await this.IssueDetails.findOneAndUpdate(bulkWriteDataItem.updateOne.filter, bulkWriteDataItem.updateOne.update, { returnDocument: 'after', upsert: true, rawResult: true });
+                let updateResult = updateResultRaw.value;
                 let authorName = updateResult.user.login;
                 let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
+
+                if (updateResult.number == 1358) {
+                    console.log("Isue of interest");
+                }
 
                 if (authorUser != null) {
                     await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at);
                 }
 
                 // For each name in the mention array, attempt to create a mention
-                if (updateResult.isNew) {
+                if (!updateResultRaw.lastErrorObject.updatedExisting) {
                     await helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult);
                 }
             }));

@@ -60,7 +60,7 @@ module.exports = {
                 sum = sum + 1;
                 let mentionResult = await inIssueCommentMentionDetails.findOneAndUpdate({ 'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': inIssue._id }, {
                     'commentRef': null, 'userRef': mentionedUser._id, 'issueRef': inIssue._id,
-                    mentionedAt: inIssue.updated_at, repoRef: inIssue.repoRef, html_url: issueURL, mentionAuthor: inIssue.user.login,
+                    mentionedAt: inIssue.created_at, repoRef: inIssue.repoRef, html_url: issueURL, mentionAuthor: inIssue.user.login,
                 }, { returnDocument: 'after', upsert: true });
             }
         }
