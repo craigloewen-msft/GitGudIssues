@@ -224,7 +224,7 @@ export default {
         this.issue.readByUser = true;
         this.$gtag.event("readIssue", {
           event_category: "issueFunctions",
-          event_label: this.getUrl(),
+          event_label: this.getUrl,
           value: 1,
         });
         this.$http
@@ -242,7 +242,7 @@ export default {
       if (this.issue.readByUser) {
         this.$gtag.event("unreadIssue", {
           event_category: "issueFunctions",
-          event_label: this.getUrl(),
+          event_label: this.getUrl,
           value: 1,
         });
         this.$http
