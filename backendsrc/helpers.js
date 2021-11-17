@@ -21,7 +21,13 @@ module.exports = {
         });
     },
     async UpdateIssueRead(inIssueReadDetails, inIssue, inUser, inputDate) {
-        var returnIssueRead = await inIssueReadDetails.findOne({ issueRef: inIssue._id, userRef: inUser._id });
+        let returnIssueReadList = await inIssueReadDetails.find({ issueRef: inIssue._id, userRef: inUser._id });
+
+        let returnIssueRead = null;
+        if (returnIssueReadList.length > 0) {
+            returnIssueRead = returnIssueReadList.reduce((max, issueRead) => max.readAt > issueRead.readAt ? max : issueRead);
+        }
+
         if (returnIssueRead == null) {
             returnIssueRead = await inIssueReadDetails.create({ issueRef: inIssue._id, userRef: inUser._id, readAt: inputDate, repoRef: inIssue.repoRef });
         } else {
@@ -29,6 +35,13 @@ module.exports = {
                 returnIssueRead.readAt = inputDate;
                 await returnIssueRead.save();
             }
+        }
+
+        if (returnIssueReadList.length > 1) {
+            let removeArray = returnIssueReadList.filter(issueRead => issueRead != returnIssueRead);
+            await Promise.all(removeArray.map(async (issueRead) => {
+                await inIssueReadDetails.deleteOne({ "_id": issueRead._id });
+            }));
         }
     },
     async CreateMentionsFromIssueList(inMentionsArray, inIssueCommentMentionDetails, inUserDetails, inIssueReadDetails, inIssue) {

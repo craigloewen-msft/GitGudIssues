@@ -253,7 +253,8 @@ class WebDataHandler {
         inputIssueArray.map((issueItem) => {
             let issueReadArray = issueItem.issueReadArray;
             if (issueReadArray.length > 0) {
-                let issueReadItem = issueReadArray[0];
+                // Choose the highest read at
+                let issueReadItem = issueReadArray.reduce((max, issueRead) => max.readAt > issueRead.readAt ? max : issueRead);
                 if (new Date(issueReadItem.readAt) >= new Date(issueItem.updated_at)) {
                     issueItem.readByUser = true;
                 } else {
@@ -507,8 +508,6 @@ class WebDataHandler {
                 await this.IssueCommentMentionDetails.deleteMany({ userRef: inputUser._id, repoRef: inputRepo._id })
                 await this.IssueReadDetails.deleteMany({ userRef: inputUser._id, repoRef: inputRepo._id })
 
-                console.log(delete1,delete2);
-
             } else {
                 return false;
             }
@@ -558,7 +557,7 @@ class WebDataHandler {
         let sortQuery = {};
 
         // Put all our search criteria as an 'issue ref' object
-        this.transformIssueSearchLeafRecursive(findQuery,firstFindQuery);
+        this.transformIssueSearchLeafRecursive(findQuery, firstFindQuery);
 
         // Put all our sort criteria as an 'issue ref' object
         for (let objectKey of Object.keys(firstSortQuery)) {
