@@ -4,6 +4,11 @@
       <div class="header-text-container">
         <h2>GitGudIssues</h2>
         <h4>Manage your Github presence</h4>
+        <img
+          src="/GitGudIssuesGIF.gif"
+          class="img-fluid cover-gif"
+          alt="GitGudIssuesPromo"
+        />
         <div v-if="!this.$store.getters.isLoggedIn" class="loginSelect">
           <router-link class="btn btn-primary" to="/login">Login</router-link>
           <router-link class="btn btn-primary" to="/register"
@@ -96,11 +101,17 @@ export default {
   align-items: center;
   justify-content: center;
   overflow-x: hidden;
+  overflow-y: hidden;
   margin-bottom: 50px;
 }
 
 .header-text-container {
   color: #eee;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  justify-items: center;
 }
 
 .section-header {
@@ -151,5 +162,9 @@ export default {
 
 .section-slides {
   margin-bottom: 30px;
+}
+
+.cover-gif {
+  max-height: 60%;
 }
 </style>

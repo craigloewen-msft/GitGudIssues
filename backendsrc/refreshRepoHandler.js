@@ -615,10 +615,6 @@ class RefreshRepoHandler {
                 let authorName = updateResult.user.login;
                 let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
 
-                if (updateResult.number == 1358) {
-                    console.log("Isue of interest");
-                }
-
                 if (authorUser != null) {
                     await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at);
                 }
