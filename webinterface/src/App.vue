@@ -226,4 +226,8 @@ body {
   animation-direction: alternate;
   height: 20px;
 }
+
+.footer-box-right {
+  text-align:right;
+}
 </style>

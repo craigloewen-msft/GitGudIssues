@@ -22,37 +22,59 @@
         </div>
       </div>
     </div>
-    <!-- 
+
     <b-container class="section-slides">
       <header class="section-header">
-        <h2>Why GitGudIssues?</h2>
-        <p>More tagline</p>
+        <p>How it works</p>
       </header>
 
       <div class="row">
         <div class="col-md-4 mt-4 mt-lg-0">
           <div class="box">
-            <h3>Placeholder content</h3>
-            <p>Placeholder content</p>
+            <h3>
+              The goal of this project is to never have to use email to manage
+              Github Issues ever again
+            </h3>
+            <p>
+              Managing Github issues from email simply sucks. This project was
+              created to make an easy to use interface to keep track of all your
+              Github issues on repos that you maintain, as well as any mentions
+              that you'd have from these repos. It's goal is to make it so you
+              spend less time searching through Github, and more time actually
+              triaging and responding to the right issues.
+            </p>
           </div>
         </div>
 
         <div class="col-md-4 mt-4 mt-lg-0">
           <div class="box">
-            <h3>Placeholder content</h3>
-            <p>Placeholder content</p>
+            <h3>This project only uses public APIs, no Auth required</h3>
+            <p>
+              GitGudIssues uses the public APIs on Github to create a database
+              of the issues in repos that you care about. This allows you to
+              mark issues as read or unread, assign personal tags to them, and
+              create your own custom queries all in the same page, so you don't
+              have to look around on different repos. One of the main goals is
+              to make it easy to sign up and use, which is why you don't need to
+              auth to your GitHub account to use this tool!
+            </p>
           </div>
         </div>
 
         <div class="col-md-4 mt-4 mt-lg-0">
           <div class="box">
-            <h3>Placeholder content</h3>
-            <p>Placeholder content</p>
+            <h3>How to get started</h3>
+            <p>
+              To get started simply register using the links above. Once you've
+              registered you can then input the Github accounts that you'd like
+              to track your issues with. From there the issues and comments in
+              these accounts will automatically populate on the site, and you'll
+              be able to search, query and manage them easily.
+            </p>
           </div>
         </div>
       </div>
-    </b-container> 
-    -->
+    </b-container>
   </div>
 </template>
 
@@ -123,7 +145,6 @@ export default {
   letter-spacing: 1px;
   font-weight: 700;
   margin: 0;
-  color: #4154f1;
   text-transform: uppercase;
 }
 
@@ -133,7 +154,6 @@ export default {
   font-size: 38px;
   line-height: 42px;
   font-weight: 700;
-  color: #012970;
 }
 
 .box {
@@ -153,7 +173,7 @@ export default {
 }
 
 .box:hover h3 {
-  color: #012970;
+  color: #adadad;
 }
 
 .card-img {
