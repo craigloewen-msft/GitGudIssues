@@ -74,6 +74,7 @@ class WebDataHandler {
         var sortQuery = { "created_at": -1 };
         var limitNum = 10;
         var skipNum = 0;
+        let commentsNeeded = false;
 
         let andOrArrays = [];
 
@@ -208,16 +209,37 @@ class WebDataHandler {
             findQuery['number'] = Number(queryData.number);
         }
 
-        let tempArray = [[{
-            "$and":
-                [
-                    { "labels": { "$elemMatch": { "name": "needs-author-feedback" } } },
-                    { "labels": { "$elemMatch": { "name": "wsl1" } } }]
-        },
-        {
-            "$and": [{ "labels": { "$elemMatch": { "name": "bug" } } },
-            { "labels": { "$elemMatch": { "name": "GPU" } } }]
-        }]];
+        if (queryData.commentedAliases) {
+            commentsNeeded = true;
+            let orLabelList = queryData.commentedAliases.split(',');
+            let labelMatchObject = [];
+
+            for (let i = 0; i < orLabelList.length; i++) {
+                let labelList = orLabelList[i].split('&');
+                let andList = [];
+                for (let j = 0; j < labelList.length; j++) {
+                    andList.push(labelList[j]);
+                }
+                labelMatchObject.push(andList);
+            }
+
+            let emplaceObject = [];
+            andOrArrays.push(emplaceObject);
+
+            for (let i = 0; i < labelMatchObject.length; i++) {
+                let andLabelList = labelMatchObject[i];
+                let andObject = { "$and": [] };
+                if (andLabelList.length == 1) {
+                    emplaceObject.push({ "issueCommentsArray": { "$elemMatch": { "user.login": andLabelList[0] } } });
+                } else {
+                    for (let j = 0; j < andLabelList.length; j++) {
+                        let putLabel = andLabelList[j];
+                        andObject["$and"].push({ "issueCommentsArray": { "$elemMatch": { "user.login": putLabel } } });
+                    }
+                    emplaceObject.push(andObject);
+                }
+            }
+        }
 
         // Get and array (level 1)
         let rootAndArray = [];
@@ -246,7 +268,7 @@ class WebDataHandler {
         }
         // End level 1
 
-        return [findQuery, sortQuery, limitNum, skipNum];
+        return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded];
     }
 
     async setIfIssuesAreRead(inputIssueArray, inUser) {
@@ -289,9 +311,38 @@ class WebDataHandler {
         }
 
         // Get issue query data
-        let [findQuery, sortQuery, limitNum, skipNum] = this.getQueryInputs(queryData, inUser);
+        let [findQuery, sortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
 
-        var countQuery = this.IssueDetails.aggregate([
+        let countQueryPipeline = [];
+        let issueQueryPipeline = [];
+
+        issueQueryPipeline.push(
+            { "$project": { "body": 0 } }
+        );
+
+        let commentLookup = {
+            "$lookup": {
+                "from": "issueCommentInfo",
+                "localField": "_id",
+                "foreignField": "issueRef",
+                "as": "issueCommentsArray",
+                "pipeline": [
+                    {
+                        "$project": {
+                            "updated_at": 1,
+                            "user.login": 1
+                        }
+                    }
+                ],
+            }
+        };
+
+        if (commentsNeeded) {
+            countQueryPipeline.push(commentLookup);
+            issueQueryPipeline.push(commentLookup);
+        }
+
+        countQueryPipeline.push(
             {
                 "$lookup": {
                     "from": "siteIssueLabelInfo",
@@ -302,10 +353,9 @@ class WebDataHandler {
             },
             { "$match": findQuery },
             { "$count": "resultCount" },
-        ]);
+        );
 
-        var issueQuery = this.IssueDetails.aggregate([
-            { "$project": { "body": 0 } },
+        issueQueryPipeline.push(
             {
                 "$lookup": {
                     "from": "siteIssueLabelInfo",
@@ -341,7 +391,10 @@ class WebDataHandler {
             { "$sort": sortQuery },
             { "$skip": skipNum },
             { "$limit": limitNum },
-        ]);
+        );
+
+        var countQuery = this.IssueDetails.aggregate(countQueryPipeline);
+        var issueQuery = this.IssueDetails.aggregate(issueQueryPipeline);
 
         var queryResults = await Promise.all([countQuery, issueQuery]);
 
@@ -534,7 +587,7 @@ class WebDataHandler {
     transformIssueSearchLeafRecursive(findQuery, firstFindQuery) {
         for (let objectKey of Object.keys(firstFindQuery)) {
             if (objectKey != "$and" && objectKey != "$or") {
-                if (objectKey != "siteIssueLabels" && objectKey != "issueReadArray") {
+                if (objectKey != "siteIssueLabels" && objectKey != "issueReadArray" && objectKey != "issueCommentsArray") {
                     findQuery["issueResult." + objectKey] = firstFindQuery[objectKey];
                 } else {
                     findQuery[objectKey] = firstFindQuery[objectKey];
@@ -576,11 +629,15 @@ class WebDataHandler {
         }
 
         // Get issue query data
-        let [firstFindQuery, firstSortQuery, limitNum, skipNum] = this.getQueryInputs(queryData, inUser);
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
 
         let [findQuery, sortQuery] = this.transformIssueSearchCriteriaToMentions(firstFindQuery, firstSortQuery);
 
-        var countQuery = this.IssueCommentMentionDetails.aggregate([
+
+        let countQueryPipeline = [];
+        let mentionQueryPipeline = [];
+
+        countQueryPipeline.push(
             { "$match": { "userRef": inUser._id } },
             {
                 "$lookup": {
@@ -590,10 +647,8 @@ class WebDataHandler {
                     "as": "issueResult"
                 }
             },
-            { "$match": findQuery },
-            { "$count": "resultCount" },
-        ]);
-        var mentionQuery = this.IssueCommentMentionDetails.aggregate([
+        );
+        mentionQueryPipeline.push(
             { "$match": { "userRef": inUser._id } },
             {
                 "$lookup": {
@@ -605,6 +660,36 @@ class WebDataHandler {
             },
             { "$project": { "issueResult.body": 0 } },
             { "$unwind": "$issueResult" },
+        );
+
+        let commentLookup = {
+            "$lookup": {
+                "from": "issueCommentInfo",
+                "localField": "issueResult._id",
+                "foreignField": "issueRef",
+                "as": "issueCommentsArray",
+                "pipeline": [
+                    {
+                        "$project": {
+                            "updated_at": 1,
+                            "user.login": 1
+                        }
+                    }
+                ],
+            }
+        };
+
+        if (commentsNeeded) {
+            countQueryPipeline.push(commentLookup);
+            mentionQueryPipeline.push(commentLookup);
+        }
+
+        countQueryPipeline.push(
+            { "$match": findQuery },
+            { "$count": "resultCount" },
+        );
+
+        mentionQueryPipeline.push(
             {
                 "$lookup": {
                     "from": "siteIssueLabelInfo",
@@ -639,7 +724,10 @@ class WebDataHandler {
             { "$sort": sortQuery },
             { "$skip": skipNum },
             { "$limit": limitNum },
-        ]);
+        );
+
+        var countQuery = this.IssueCommentMentionDetails.aggregate(countQueryPipeline);
+        var mentionQuery = this.IssueCommentMentionDetails.aggregate(mentionQueryPipeline);
 
         var queryResults = await Promise.all([countQuery, mentionQuery]);
 

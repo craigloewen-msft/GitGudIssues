@@ -124,6 +124,8 @@ IssueCommentDetail.index({ 'updated_at': 1, type: -1 });
 IssueCommentDetail.index({ 'created_at': 1, type: -1 });
 IssueCommentDetail.index({ 'repositoryID': 1 });
 IssueCommentDetail.index({ 'comment_id': -1 });
+IssueCommentDetail.index({ 'user.login': -1 });
+IssueCommentDetail.index({ 'issueRef': -1 });
 
 const IssueInfo = new Schema({
     // siteIssueLabels: [{ type: Schema.Types.ObjectId, ref: 'siteIssueLabelInfo' }],
@@ -155,11 +157,11 @@ IssueInfo.index({ 'state': 1 });
 IssueInfo.index({ 'number': 1 });
 IssueInfo.index({ 'repoRef': 1 });
 
-IssueInfo.virtual('issueCommentsArray', {
-    ref: 'issueCommentInfo',
-    localField: '_id',
-    foreignField: 'issueRef'
-});
+// IssueInfo.virtual('issueCommentsArray', {
+//     ref: 'issueCommentInfo',
+//     localField: '_id',
+//     foreignField: 'issueRef'
+// });
 
 IssueInfo.virtual('siteIssueLabels', {
     ref: 'siteIssueLabelInfo',
@@ -192,6 +194,7 @@ const mentionQueryDetail = new Schema({
     labels: String,
     repos: String,
     siteLabels: String,
+    commentedAliases: String,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
@@ -205,6 +208,7 @@ const searchQueryDetail = new Schema({
     labels: String,
     repos: String,
     siteLabels: String,
+    commentedAliases: String,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
