@@ -126,6 +126,23 @@
 
         <b-dropdown
           id="dropdown-1"
+          text="Commented"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-form-input
+            placeholder="Commented GH Alias"
+            size="sm"
+            v-model="inputQuery.commentedAliases"
+            v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
+            >Created</b-form-input
+          >
+        </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
           text="Labels"
           class="m-md-2"
           size="sm"
