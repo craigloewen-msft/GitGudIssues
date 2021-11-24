@@ -210,16 +210,24 @@ body {
   justify-content: space-between;
 }
 
+.user-form-box {
+  max-width: 450px !important;
+}
+
+.btn-block {
+  width: 100%;
+}
+
 @keyframes placeholderColorChanges {
-  0% { 
-    background: rgb(200,200,200);
+  0% {
+    background: rgb(200, 200, 200);
   }
   100% {
-    background: rgb(50,50,50);
+    background: rgb(50, 50, 50);
   }
 }
 
-.placeholder { 
+.placeholder {
   animation-name: placeholderColorChanges;
   animation-duration: 5s;
   animation-iteration-count: infinite;
@@ -228,6 +236,6 @@ body {
 }
 
 .footer-box-right {
-  text-align:right;
+  text-align: right;
 }
 </style>

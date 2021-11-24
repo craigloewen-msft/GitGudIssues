@@ -6,30 +6,30 @@
       <input
         class="form-control"
         type="text"
-        name="username"
-        v-model="input.username"
-        placeholder="Username"
+        name="githubUsername"
+        v-model="input.githubUsername"
+        placeholder="Github username (to track your mentions)"
       />
       <input
         class="form-control"
         type="text"
         name="email"
         v-model="input.email"
-        placeholder="Email"
+        placeholder="Email (to receive notifications)"
       />
       <input
         class="form-control"
         type="text"
-        name="githubUsername"
-        v-model="input.githubUsername"
-        placeholder="Github Username"
+        name="username"
+        v-model="input.username"
+        placeholder="Create your GitGudIssues username"
       />
       <input
         class="form-control"
         type="password"
         name="password"
         v-model="input.password"
-        placeholder="Password"
+        placeholder="Create your GitGud password"
         @keyup.enter="register"
       />
       <input
@@ -37,7 +37,7 @@
         type="password"
         name="passwordconfirm"
         v-model="input.passwordconfirm"
-        placeholder="Confirm Password"
+        placeholder="Confirm your GitGud password"
         @keyup.enter="register"
       />
       <br />

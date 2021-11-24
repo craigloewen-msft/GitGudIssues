@@ -5,5 +5,4 @@
 
 ## Features
 
-- Add a gif at the front explaining this to ship out broadly
 - Add a 'Mentions' searhc option at the top

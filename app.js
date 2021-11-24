@@ -417,28 +417,35 @@ app.get('/api/logout', function (req, res) {
 
 app.post('/api/register', async function (req, res) {
     try {
-        let doesUserExist = await UserDetails.exists({ username: req.body.username });
+        let doesUserExistPromise = UserDetails.exists({ username: req.body.username });
+        let doesGithubUserExistPromise = UserDetails.exists({ githubUsername: req.body.githubUsername });
+
+        let [doesUserExist, doesGithubUserExist] = await Promise.all([doesUserExistPromise, doesGithubUserExistPromise]);
 
         if (doesUserExist) {
-            return res.json(returnFailure("User already exists"));
+            return res.json(returnFailure("GitGudIssues username already exists"));
+        }
+
+        if (doesGithubUserExist) {
+            return res.json(returnFailure("Github username already in use"));
         }
 
         let defaultQuery = {
-          title: "New Query",
-          repo: null,
-          state: null,
-          sort: null,
-          limit: 10,
-          creator: null,
-          assignee: null,
-          labels: null,
-          repos: null,
-          page_num: 1,
+            title: "New Query",
+            repo: null,
+            state: null,
+            sort: null,
+            limit: 10,
+            creator: null,
+            assignee: null,
+            labels: null,
+            repos: null,
+            page_num: 1,
         };
 
         let registeredUser = await UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [], githubUsername: req.body.githubUsername }, req.body.password);
-        await dataHandler.modifyUserManageIssueQuery({username: req.body.username, inAction: "save", inQuery: defaultQuery});
-        await dataHandler.modifyUserManageMentionQuery({username: req.body.username, inAction: "save", inQuery: defaultQuery});
+        await dataHandler.modifyUserManageIssueQuery({ username: req.body.username, inAction: "save", inQuery: defaultQuery });
+        await dataHandler.modifyUserManageMentionQuery({ username: req.body.username, inAction: "save", inQuery: defaultQuery });
 
         let token = jwt.sign({ id: req.body.username }, config.secret, { expiresIn: JWTTimeout });
         returnBasicUserInfo(registeredUser.username, (userDataResponse) => {
@@ -602,7 +609,7 @@ app.post('/api/modifyusermanagementionquery', authenticateToken, async function 
     try {
         const inputData = { username: req.user.id, inAction: req.body.action, inQuery: req.body.query };
 
-        let returnID = await dataHandler.modifyUserManageMentionQuery(inputData);         
+        let returnID = await dataHandler.modifyUserManageMentionQuery(inputData);
 
         return res.json({ success: true, issueID: returnID });
     } catch (error) {

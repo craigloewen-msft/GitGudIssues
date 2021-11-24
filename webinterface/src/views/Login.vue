@@ -89,11 +89,4 @@ export default {
 </script>
 
 <style>
-.user-form-box {
-  max-width: 330px;
-}
-
-.btn-block {
-  width: 100%;
-}
 </style>
