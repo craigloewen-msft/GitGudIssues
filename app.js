@@ -537,7 +537,7 @@ app.post('/api/setuserrepo', authenticateToken, async function (req, res) {
             dataHandler.refreshRepo(inputData.username, inputData.inRepoShortURL);
             return res.json({ success: true });
         } else {
-            return res.json(returnFailure("Server error"));
+            return res.json(returnFailure("Unable to add repo, check repo name is valid"));
         }
     } catch (error) {
         return res.json(returnFailure(error));

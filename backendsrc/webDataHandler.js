@@ -1,5 +1,6 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 const RepoScanner = require('./repoScanner')
+const axios = require('axios');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
@@ -18,10 +19,29 @@ class WebDataHandler {
         this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
     }
 
-    isValidGithubShortURL(inString) {
+    async isValidGithubShortURL(inString) {
         let splitStringArray = inString.split("/");
+        let repoOwner = splitStringArray[0];
+        let repoName = splitStringArray[1];
 
-        return splitStringArray.length == 2;
+        let apiString = "https://api.github.com/repos/" + repoOwner + "/" + repoName;
+
+        try {
+            let response = null;
+            if (this.ghToken) {
+                response = await axios.get(apiString, {
+                    headers: {
+                        "Authorization": "token " + this.ghToken,
+                    },
+                });
+            } else {
+                response = await axios.get(apiString, {
+                });
+            }
+            return true;
+        } catch (error) {
+            return false;
+        }
     }
 
     async refreshData(inUsername) {
@@ -517,7 +537,9 @@ class WebDataHandler {
     async setUserRepo(queryData) {
         const inputData = { username: queryData.username, inRepoShortURL: queryData.inRepoShortURL.toLowerCase() };
 
-        if (!this.isValidGithubShortURL(inputData.inRepoShortURL)) {
+        let isValidRepo = await this.isValidGithubShortURL(inputData.inRepoShortURL);
+
+        if (!isValidRepo) {
             return false;
         }
 

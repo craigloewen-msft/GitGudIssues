@@ -3,6 +3,9 @@
     <b-container>
       <h1>Welcome {{ user.username }} !</h1>
       <h2>Your followed repositories</h2>
+      <div v-if="errorText">
+        <p>{{ errorText }}</p>
+      </div>
       <div class="user-repo-control-box">
         <div class="custom-tag-collection">
           <div
@@ -67,6 +70,7 @@ export default {
         repo: "",
       },
       loading: true,
+      errorText: "",
     };
   },
   methods: {
@@ -87,8 +91,7 @@ export default {
               this.refreshUserInfoUntilNonUpdated();
               this.input.repo = "";
             } else {
-              console.log(response);
-              // TODO Add in some error catching condition
+              this.errorText = response.data.log;
             }
           });
       }
