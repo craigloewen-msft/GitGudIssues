@@ -55,6 +55,13 @@ class WebDataHandler {
         }
     }
 
+    async refreshAllData() {
+        var userList = await this.UserDetails.find({});
+        for (let i = 0; i < userList.length; i++) {
+            this.refreshData(userList[i].username);
+        }
+    }
+
     async scanUserForMentions(inUsername, inReponame) {
         // Check in user exists
         // Check in repo exists else return error

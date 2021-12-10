@@ -626,3 +626,8 @@ app.get('/api/refreshrepos', authenticateToken, async function (req, res) {
         return res.json(returnFailure(error));
     }
 });
+
+// Interval jobs
+
+// Refresh all user data every hour
+setInterval(dataHandler.refreshAllData.bind(dataHandler), 1000 * 60 * 60 * 2);
