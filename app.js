@@ -257,8 +257,7 @@ const IssueCommentDetails = mongoose.model('issueCommentInfo', IssueCommentDetai
 const IssueCommentMentionDetails = mongoose.model('issueCommentMentionInfo', IssueCommentMentionDetail, 'issueCommentMentionInfo');
 const IssueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
 
-const JWTTimeout = 43200;
-const mineTimeoutCounter = 5;
+const JWTTimeout = 604800; // 7 Days
 
 const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken);

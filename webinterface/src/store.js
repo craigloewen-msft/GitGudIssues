@@ -7,7 +7,8 @@ export default new Vuex.Store({
     state: {
         status: '',
         token: localStorage.getItem('token') || '',
-        user: JSON.parse(localStorage.getItem('user')) || {}
+        user: JSON.parse(localStorage.getItem('user')) || {},
+        lastLoginDate: localStorage.getItem('lastLoginDate') || null
     },
     mutations: {
         auth_request(state) {
@@ -17,6 +18,7 @@ export default new Vuex.Store({
             state.status = "Success";
             state.token = authdata.token;
             state.user = authdata.user;
+            state.lastLoginDate = new Date();
         },
         auth_error(state) {
             state.status = "Error";
@@ -24,6 +26,7 @@ export default new Vuex.Store({
         logout(state) {
             state.status = "";
             state.token = "";
+            state.lastLoginDate = null;
         },
         refresh_user_info(state, refresheduser) {
             state.user = refresheduser;
@@ -37,6 +40,7 @@ export default new Vuex.Store({
                 commit('auth_request');
                 localStorage.setItem('token', logindata.token);
                 localStorage.setItem('user', JSON.stringify(logindata.user));
+                localStorage.setItem('lastLoginDate', new Date());
 
                 Vue.prototype.$http.defaults.headers.common['Authorization'] = logindata.token;
                 commit('auth_success', { token: logindata.token, user: logindata.user });
@@ -48,6 +52,7 @@ export default new Vuex.Store({
                 commit('auth_request');
                 localStorage.setItem('token', registerdata.token);
                 localStorage.setItem('user', JSON.stringify(registerdata.user));
+                localStorage.setItem('lastLoginDate', new Date());
 
                 Vue.prototype.$http.defaults.headers.common['Authorization'] = registerdata.token;
                 commit('auth_success', { token: registerdata.token, user: registerdata.user });
@@ -59,6 +64,7 @@ export default new Vuex.Store({
                 commit('logout');
                 localStorage.removeItem('token')
                 localStorage.removeItem('user');
+                localStorage.removeItem('lastLoginDate');
                 delete Vue.prototype.$http.defaults.headers.common['Authorization'];
                 resolve();
             })

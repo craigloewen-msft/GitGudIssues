@@ -82,7 +82,27 @@ const router = new VueRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
+
+  let loginCheckPromise = null;
+
+  if (store.getters.isLoggedIn) {
+    let lastLoginDate = store.getters.lastLoginDate;
+    let expireLoginDate = new Date(lastLoginDate);
+    expireLoginDate = new Date(expireLoginDate.setDate(expireLoginDate.getDate() + 7));
+    if (new Date() > expireLoginDate) {
+      //Logout
+      store.dispatch("logout");
+      // this.$store.dispatch("logout").then(() => {
+      //   this.$router.push("/");
+      // });
+    }
+  }
+
+  if (loginCheckPromise) {
+    await loginCheckPromise;
+  }
+
   if (to.matched.some(record => record.meta.requiresAuth)) {
     if (!store.getters.isLoggedIn) {
       next({
