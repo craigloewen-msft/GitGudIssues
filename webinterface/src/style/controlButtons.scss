@@ -1,0 +1,38 @@
+
+.table-header-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-search-box {
+  display: flex;
+}
+
+.page-number-input {
+  height: 10px;
+  width: 55px;
+}
+
+.title-row-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title-row-controls-left {
+  display: flex;
+  align-items: center;
+}
+
+.title-row-controls-right {
+  display: inline-block;
+}
+
+.title-row-controls button {
+  margin-left: 5px;
+}
+
+.graph-controls {
+    display: flex;
+}

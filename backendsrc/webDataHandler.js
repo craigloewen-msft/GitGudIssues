@@ -1,6 +1,8 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 const RepoScanner = require('./repoScanner')
 const axios = require('axios');
+const mongoose = require('mongoose');
+const ObjectId = mongoose.Types.ObjectId;
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
@@ -296,6 +298,35 @@ class WebDataHandler {
         // End level 1
 
         return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded];
+    }
+
+    async transformRepoUrlsToRepoIds(inputFindQuery) {
+        if (inputFindQuery.repository_url) {
+            let repoNameArray = [];
+            if (inputFindQuery.repository_url["$in"]) {
+                repoNameArray = inputFindQuery.repository_url["$in"];
+            } else {
+                repoNameArray.push(inputFindQuery.repository_url);
+            }
+
+            let repoIDListPromises = [];
+
+            for (let i = 0; i < repoNameArray.length; i++) {
+                let repoName = repoNameArray[i] + "/issues";
+                repoIDListPromises.push(this.RepoDetails.findOne({ 'url': repoName }));
+            }
+
+            let repoList = await Promise.all(repoIDListPromises);
+            let repoIDList = repoList.map((inputRepo) => ObjectId(inputRepo._id.toString()));
+
+            if (repoIDList.length == 1) {
+                inputFindQuery.repositoryID = repoIDList[0];
+            } else {
+                inputFindQuery.repositoryID = { "$in": repoIDList };
+            }
+
+            delete inputFindQuery.repository_url;
+        }
     }
 
     async setIfIssuesAreRead(inputIssueArray, inUser) {
@@ -834,6 +865,275 @@ class WebDataHandler {
         }
 
         return returnID;
+    }
+
+    // Chart data functions
+
+    getDateListBetweenDates(startDate, endDate, interval) {
+        const datesList = [];
+        let visitorDate = new Date(startDate);
+
+        while (visitorDate < endDate) {
+            datesList.push(new Date(visitorDate));
+            visitorDate.setDate(visitorDate.getDate() + interval);
+        }
+
+        return datesList;
+    }
+
+    async getActiveIssues(inputDate, firstFindQuery) {
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": inputDate
+                    },
+                    "$or": [
+                        { "closed_at": { "$gt": inputDate } },
+                        { "closed_at": null },
+                    ]
+                }
+            },
+            {
+                "$count": "resultCount"
+            }
+        ])
+        if (countData[0]) {
+            return countData[0].resultCount;
+        } else {
+            return 0;
+        }
+    }
+
+    async getIssuesCreated(inputDate, inputPeriod, firstFindQuery) {
+        let previousDate = new Date(inputDate);
+        previousDate.setDate(inputDate.getDate() - inputPeriod);
+
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": inputDate,
+                        "$gt": previousDate,
+                    },
+                }
+            },
+            {
+                "$count": "resultCount"
+            }
+        ])
+        if (countData[0]) {
+            return countData[0].resultCount;
+        } else {
+            return 0;
+        }
+    }
+
+    async getIssuesClosed(inputDate, inputPeriod, firstFindQuery) {
+        let previousDate = new Date(inputDate);
+        previousDate.setDate(inputDate.getDate() - inputPeriod);
+
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "closed_at": {
+                        "$lt": inputDate,
+                        "$gt": previousDate,
+                    },
+                }
+            },
+            {
+                "$count": "resultCount"
+            }
+        ])
+        if (countData[0]) {
+            return countData[0].resultCount;
+        } else {
+            return 0;
+        }
+    }
+
+    getIntervalPeriod(startDate, endDate) {
+        let inputPeriod = 7;
+
+        let dayDifference = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (dayDifference > 200) {
+            inputPeriod = 30;
+        }
+
+        return inputPeriod;
+    }
+
+    async getActiveIssuesGraphData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+        let inputPeriod = this.getIntervalPeriod(startDate, endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+
+        let datesPromiseList = [];
+
+        for (let i = 0; i < dateArray.length; i++) {
+            let inputDate = dateArray[i];
+            datesPromiseList.push(this.getActiveIssues(inputDate, firstFindQuery));
+        }
+
+        let xData = await Promise.all(datesPromiseList);
+        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+        return { datasets: [{ data: xData, label: "Active Issues" }], labels: labelData };
+    }
+
+    async getIssueActivityGraphData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+        let inputPeriod = this.getIntervalPeriod(startDate, endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+
+        let issuesClosedPromiseList = [];
+        let issuesCreatedPromiseList = [];
+
+        for (let i = 0; i < dateArray.length; i++) {
+            let inputDate = dateArray[i];
+            let issueClosedPromise = this.getIssuesClosed(inputDate, inputPeriod, firstFindQuery);
+            let issuesCreatedPromise = this.getIssuesCreated(inputDate, inputPeriod, firstFindQuery);
+            issuesClosedPromiseList.push(issueClosedPromise);
+            issuesCreatedPromiseList.push(issuesCreatedPromise);
+        }
+
+        let [issuesClosedData, issuesCreatedData] = await Promise.all([Promise.all(issuesClosedPromiseList), Promise.all(issuesCreatedPromiseList)]);
+        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+        return { datasets: [{ data: issuesClosedData, label: "Closed Issues" }, { data: issuesCreatedData, label: "Created Issues" }], labels: labelData };
+    }
+
+    // Highlight functions
+
+    async getTopIssueOpeners(startDate, endDate, firstFindQuery) {
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    },
+                }
+            },
+            {
+                "$group": {
+                    _id: "$user.login",
+                    count: { "$count": {} },
+                }
+            },
+            {
+                "$sort": {
+                    "count": -1
+                }
+            },
+            {
+                "$limit": 5,
+            },
+        ])
+        return countData;
+    }
+
+    async getTopIssueCommenters(startDate, endDate, firstFindQuery) {
+        let countData = await this.IssueCommentDetails.aggregate([
+            {
+                "$match": firstFindQuery
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    },
+                }
+            },
+            {
+                "$group": {
+                    _id: "$user.login",
+                    count: { "$count": {} },
+                }
+            },
+            {
+                "$sort": {
+                    "count": -1
+                }
+            },
+            {
+                "$limit": 5,
+            },
+        ])
+        return countData;
+    }
+
+    async getTopIssueOpenersHighlightData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let queryResult = await this.getTopIssueOpeners(startDate, endDate, firstFindQuery);
+
+        return queryResult;
+    }
+
+    async getTopIssueCommentersHighlightData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        await this.transformRepoUrlsToRepoIds(firstFindQuery);
+
+        let queryResult = await this.getTopIssueCommenters(startDate, endDate, firstFindQuery);
+
+        return queryResult;
     }
 
 

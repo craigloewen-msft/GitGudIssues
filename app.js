@@ -627,6 +627,55 @@ app.get('/api/refreshrepos', authenticateToken, async function (req, res) {
     }
 });
 
+// Graph functions
+
+app.post('/api/getactiveissuesgraph', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getActiveIssuesGraphData(req.body);
+
+        return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getissueactivitygraph', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getIssueActivityGraphData(req.body);
+
+        return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+
+// Highlight functions
+
+app.post('/api/gettopissueopenershighlight', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getTopIssueOpenersHighlightData(req.body);
+
+        return res.json({ success: true, highlightData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/gettopissuecommentershighlight', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getTopIssueCommentersHighlightData(req.body);
+
+        return res.json({ success: true, highlightData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 // Interval jobs
 
 // Refresh all user data every hour
