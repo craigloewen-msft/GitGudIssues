@@ -2,7 +2,7 @@ const axios = require('axios');
 const helperFunctions = require('./helpers');
 
 class RefreshRepoTask {
-    constructor(inRepo, inRepoDetails, inIssueDetails, inGHToken) {
+    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken) {
         this.pageNum = 1;
         this.repoUrl = inRepo.url;
         this.repoIssuesUrl = inRepo.url;
@@ -11,6 +11,10 @@ class RefreshRepoTask {
         this.perPageResults = 100;
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
+        this.UserDetails = inUserDetails;
+        this.IssueCommentDetails = inIssueCommentDetails;
+        this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
+        this.IssueReadDetails = inIssueReadDetails;
 
         this.maxUpdatedTime = new Date('1/1/1900');
         this.minUpdatedTime = new Date();
@@ -69,7 +73,7 @@ class RefreshRepoTask {
         }
     }
 
-    async getNewRepoPage(inBulkWriteList, inPageNum) {
+    async getNewRepoPage(inPageNum) {
 
         if (this.repoDocument == null) {
             return true;
@@ -90,14 +94,14 @@ class RefreshRepoTask {
         var response = await this.makeRequest(pageNum);
 
         if (response == null) {
-            return this.getNewRepoPage(inBulkWriteList, pageNum);
+            return this.getNewRepoPage(pageNum);
         } else if (response.status == 200) {
             // If no issues are reported then we are done
             if (response.data.length == 0) {
                 console.log("Update Request Complete - " + this.shortRepoUrl + " - No more issues");
                 return true;
             } else {
-                var dbSaveResult = await this.storeInArray(response.data, inBulkWriteList);
+                var dbSaveResult = await this.storeInArray(response.data);
                 // If up to date after saving we are done
                 if (dbSaveResult == 'uptodate') {
                     console.log("Update Request Complete -  " + this.shortRepoUrl + " - Up to date");
@@ -108,18 +112,10 @@ class RefreshRepoTask {
                 }
             }
         } else if (response.status == 403) {
-            var responseUnixTime = response.headers['x-ratelimit-reset'];
-            if (!responseUnixTime) {
-                responseUnixTime = Math.floor(+new Date() / 1000) + 60;
-            }
-            var currentTime = Math.floor(+new Date() / 1000);
-            var retryTime = new Date(Number(responseUnixTime) * 1000);
-            var retryDifference = responseUnixTime - currentTime;
-            console.log("Rate limited waiting until: ", retryTime);
-            await helperFunctions.PromiseTimeout(retryDifference * 1000);
-            return this.getNewRepoPage(inBulkWriteList, pageNum);
+            await this.waitOnResponseRateLimited(response);
+            return this.getNewRepoPage(pageNum);
         } else if (response.status == 502) {
-            return this.getNewRepoPage(inBulkWriteList, pageNum);
+            return this.getNewRepoPage(pageNum);
         } else if (response.status == 422) {
             console.log("Update request completed through pagination limit - " + this.shortRepoUrl);
             return true;
@@ -129,6 +125,18 @@ class RefreshRepoTask {
             await this.repoDocument.save();
             return true;
         }
+    }
+
+    async waitOnResponseRateLimited(response) {
+        var responseUnixTime = response.headers['x-ratelimit-reset'];
+        if (!responseUnixTime) {
+            responseUnixTime = Math.floor(+new Date() / 1000) + 60;
+        }
+        var currentTime = Math.floor(+new Date() / 1000);
+        var retryTime = new Date(Number(responseUnixTime) * 1000);
+        var retryDifference = responseUnixTime - currentTime;
+        console.log("Rate limited waiting until: ", retryTime);
+        await helperFunctions.PromiseTimeout(retryDifference * 1000);
     }
 
     async makeRequest(pageNum) {
@@ -158,12 +166,63 @@ class RefreshRepoTask {
         }
     }
 
-    async storeInArray(data, inBulkWriteList) {
+    async makeIssueEventRequest(responseItem) {
+        try {
+            let response = null;
+            let inParams = {}
+            if (this.ghToken) {
+                response = await axios.get(responseItem.events_url, {
+                    headers: {
+                        "Authorization": "token " + this.ghToken,
+                    },
+                    params: inParams,
+                });
+            } else {
+                response = await axios.get(responseItem.events_url, {
+                    params: inParams,
+                });
+            }
+            return response;
+        } catch (error) {
+            if (error.response.status == 403) {
+                await this.waitOnResponseRateLimited(error.response);
+                return this.makeIssueEventRequest(responseItem);
+            } else if (error.response.status == 502) {
+                return this.makeIssueEventRequest(responseItem);
+            } else if (error.response.status == 422) {
+                // Pagination limits
+                return null;
+            } else {
+                console.log("Error getting closed user");
+                return null;
+            }
+        }
+    }
+
+    async getIssueClosedBy(responseItem) {
+        let returnUser = null;
+        let response = await this.makeIssueEventRequest(responseItem);
+
+        if (response) {
+            // From response get who closed it
+            for (let i = 0; i < response.data.length; i++) {
+                let eventVisitor = response.data[i];
+                if (eventVisitor.event == "closed") {
+                    returnUser = eventVisitor.actor;
+                }
+            }
+        }
+
+        return returnUser;
+    }
+
+    async storeInArray(data) {
         var response = 'success';
 
-        // await Promise.all(data.map(async (responseItem) => {
-        for (let i = 0; i < data.length; i++) {
-            let responseItem = data[i];
+        await Promise.all(data.map(async (responseItem) => {
+            // for (let i = 0; i < data.length; i++) {
+            //     let responseItem = data[i];
+
             if (responseItem.pull_request == null) {
                 var updatedAtDate = new Date(responseItem['updated_at']);
 
@@ -192,6 +251,14 @@ class RefreshRepoTask {
 
                     let mentionsArray = helperFunctions.GetMentions(responseItem.body);
 
+                    // If issue is closed
+                    // Get who it's closed by
+                    // Add in closed by user data
+
+                    if (responseItem.state == "closed") {
+                        responseItem.closed_by = await this.getIssueClosedBy(responseItem);
+                    }
+
                     let updateObject = { repoRef: this.repoDocument._id, '$addToSet': { userCommentsList: responseItem.user.login } };
 
                     helperFunctions.CopyAllKeys(updateObject, responseItem);
@@ -207,7 +274,21 @@ class RefreshRepoTask {
 
                     bulkRequestData.mentionsArray = mentionsArray;
 
-                    inBulkWriteList.push(bulkRequestData);
+                    // Update Issue
+                    let updateResultRaw = await this.IssueDetails.findOneAndUpdate(bulkRequestData.updateOne.filter, bulkRequestData.updateOne.update, { returnDocument: 'after', upsert: true, rawResult: true });
+                    let updateResult = updateResultRaw.value;
+                    let authorName = updateResult.user.login;
+                    let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
+
+                    if (authorUser != null) {
+                        await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at);
+                    }
+
+                    // For each name in the mention array, attempt to create a mention
+                    if (!updateResultRaw.lastErrorObject.updatedExisting) {
+                        await helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult);
+                    }
+
                 } else {
                     // Check if we're done
                     if (updatedAtDate < this.repoDocument.lastIssuesCompleteUpdate) {
@@ -215,7 +296,7 @@ class RefreshRepoTask {
                     }
                 }
             }
-        }
+        }));
 
         return response;
     }
@@ -223,8 +304,8 @@ class RefreshRepoTask {
 }
 
 class RefreshRepoCommentsTask extends RefreshRepoTask {
-    constructor(inRepo, inRepoDetails, inIssueDetails, inGHToken) {
-        super(inRepo, inRepoDetails, inIssueDetails, inGHToken);
+    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken) {
+        super(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken);
         this.repoIssueCommentsUrl = inRepo.url + '/comments';
     }
 
@@ -474,6 +555,7 @@ class RefreshRepoHandler {
         this.refreshingRepos = false;
 
         this.simultaneousMessages = 2;
+        this.simultaneousCommentMessages = 2;
     }
 
     addRepoForRefresh(inRepo) {
@@ -486,12 +568,12 @@ class RefreshRepoHandler {
         let refreshRepoCommentIndex = this.repoRefreshCommentsList.findIndex((element, index) => { if (element.repoDocument._id.toString() == inRepo._id.toString()) { return true } });
 
         if (inputIndex == -1 && refreshRepoIndex == -1) {
-            let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.ghToken);
+            let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
             this.inputRefreshRepoList.push(newRefreshRepoTask);
         }
 
         if (inputCommentIndex == -1 && refreshRepoCommentIndex == -1) {
-            let newRefreshRepoCommentsTask = new RefreshRepoCommentsTask(inRepo, this.RepoDetails, this.IssueDetails, this.ghToken);
+            let newRefreshRepoCommentsTask = new RefreshRepoCommentsTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
             this.inputRefreshRepoCommentsList.push(newRefreshRepoCommentsTask);
         }
 
@@ -537,7 +619,7 @@ class RefreshRepoHandler {
                     }
 
                     for (let j = 0; j < messageAmount; j++) {
-                        refreshResultPromiseArray.push(loopRefreshRepoList[i].getNewRepoPage(this.bulkWriteData, null));
+                        refreshResultPromiseArray.push(loopRefreshRepoList[i].getNewRepoPage(null));
                     }
                     let promiseResults = await Promise.all(refreshResultPromiseArray);
 
@@ -547,17 +629,13 @@ class RefreshRepoHandler {
                         }
                     }
 
-                    if (this.bulkWriteData.length >= this.maxBulkWriteCount) {
-                        await this.bulkWriteDataRequest();
-                        await loopRefreshRepoList[i].saveProgress();
-                    }
+                    await loopRefreshRepoList[i].saveProgress();
                 }
 
                 if (loopRefreshRepoList.length == 0) {
-                    await this.bulkWriteDataRequest();
                     for (let i = 0; i < loopRefreshRepoCommentsList.length; i++) {
                         let refreshResultPromiseArray = [];
-                        let messageAmount = this.simultaneousMessages;
+                        let messageAmount = this.simultaneousCommentMessages;
 
                         if (loopRefreshRepoCommentsList[i].pageNum == 1) {
                             messageAmount = 1;
@@ -594,39 +672,10 @@ class RefreshRepoHandler {
 
             // Push any buffer remaining
             await this.bulkWriteDataCommentRequest();
-            await this.bulkWriteDataRequest();
 
             this.refreshingRepos = false;
             console.log("Finished refreshing repos!");
         }
-    }
-
-    async bulkWriteDataRequest() {
-        let result = null;
-        if (this.bulkWriteData.length > 0) {
-            let bulkWriteDataCopy = this.bulkWriteData;
-            this.bulkWriteData = [];
-            console.log("Starting bulk Write request insert request - ", bulkWriteDataCopy.length);
-            await Promise.all(bulkWriteDataCopy.map(async (bulkWriteDataItem) => {
-
-                let mentionsArray = bulkWriteDataItem.mentionsArray;
-                let updateResultRaw = await this.IssueDetails.findOneAndUpdate(bulkWriteDataItem.updateOne.filter, bulkWriteDataItem.updateOne.update, { returnDocument: 'after', upsert: true, rawResult: true });
-                let updateResult = updateResultRaw.value;
-                let authorName = updateResult.user.login;
-                let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
-
-                if (authorUser != null) {
-                    await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at);
-                }
-
-                // For each name in the mention array, attempt to create a mention
-                if (!updateResultRaw.lastErrorObject.updatedExisting) {
-                    await helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult);
-                }
-            }));
-            result = true;
-        }
-        return result;
     }
 
     async bulkWriteDataCommentRequest() {

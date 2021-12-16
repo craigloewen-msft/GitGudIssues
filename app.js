@@ -147,6 +147,7 @@ const IssueInfo = new Schema({
     milestone: Object,
     comments: Number,
     closed_at: Date,
+    closed_by: GHUserSchema,
     body: String,
     userMentionsList: [String],
     userCommentsList: [String],
