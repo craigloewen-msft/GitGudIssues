@@ -8,4 +8,4 @@
 - Add a 'Mentions' searhc option at the top
 - Add a user metrics page
 - Add PR support
-- Add initial queries for mentions and managing issues
+- Add a "Closed Issues" tracker

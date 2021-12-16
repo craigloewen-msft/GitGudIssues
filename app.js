@@ -157,11 +157,11 @@ IssueInfo.index({ 'state': 1 });
 IssueInfo.index({ 'number': 1 });
 IssueInfo.index({ 'repoRef': 1 });
 
-// IssueInfo.virtual('issueCommentsArray', {
-//     ref: 'issueCommentInfo',
-//     localField: '_id',
-//     foreignField: 'issueRef'
-// });
+IssueInfo.virtual('issueCommentsArray', {
+    ref: 'issueCommentInfo',
+    localField: '_id',
+    foreignField: 'issueRef'
+});
 
 IssueInfo.virtual('siteIssueLabels', {
     ref: 'siteIssueLabelInfo',
@@ -429,22 +429,45 @@ app.post('/api/register', async function (req, res) {
             return res.json(returnFailure("Github username already in use"));
         }
 
-        let defaultQuery = {
-            title: "New Query",
-            repo: null,
-            state: null,
-            sort: null,
+        let newIssuesQuery = {
+            title: "New Issues",
+            state: "open",
+            sort: "created",
             limit: 10,
-            creator: null,
-            assignee: null,
-            labels: null,
-            repos: null,
             page_num: 1,
-        };
+        }
+
+        let updatedIssuesQuery = {
+            title: "Updated Issues",
+            state: "all",
+            sort: "updated",
+            limit: 10,
+            page_num: 1,
+        }
+
+        let commentedIssuesQuery = {
+            title: "Issues I've Commented On",
+            state: "all",
+            sort: "updated",
+            commentedAliases: req.body.githubUsername,
+            limit: 10,
+            page_num: 1,
+        }
+
+        let recentlyMentionedQuery = {
+            title: "Recent Mentions",
+            state: "all",
+            limit: 10,
+            page_num: 1,
+        }
 
         let registeredUser = await UserDetails.register({ username: req.body.username, active: false, email: req.body.email, repoTitles: [], githubUsername: req.body.githubUsername }, req.body.password);
-        await dataHandler.modifyUserManageIssueQuery({ username: req.body.username, inAction: "save", inQuery: defaultQuery });
-        await dataHandler.modifyUserManageMentionQuery({ username: req.body.username, inAction: "save", inQuery: defaultQuery });
+        let newIssuePromise = dataHandler.modifyUserManageIssueQuery({ username: req.body.username, inAction: "save", inQuery: newIssuesQuery });
+        let updateIssuePromise = dataHandler.modifyUserManageIssueQuery({ username: req.body.username, inAction: "save", inQuery: updatedIssuesQuery });
+        let commentedIssuePromise = dataHandler.modifyUserManageIssueQuery({ username: req.body.username, inAction: "save", inQuery: commentedIssuesQuery });
+        let recentlyMentionPromise = dataHandler.modifyUserManageMentionQuery({ username: req.body.username, inAction: "save", inQuery: recentlyMentionedQuery });
+
+        await Promise.all([newIssuePromise, updateIssuePromise, commentedIssuePromise, recentlyMentionPromise]);
 
         let token = jwt.sign({ id: req.body.username }, config.secret, { expiresIn: JWTTimeout });
         returnBasicUserInfo(registeredUser.username, (userDataResponse) => {
