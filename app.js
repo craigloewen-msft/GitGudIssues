@@ -689,6 +689,17 @@ app.post('/api/gettopissueopenershighlight', authenticateToken, async function (
     }
 });
 
+app.post('/api/gettopissueclosershighlight', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getTopIssueClosersHighlightData(req.body);
+
+        return res.json({ success: true, highlightData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 app.post('/api/gettopissuecommentershighlight', authenticateToken, async function (req, res) {
     try {
         req.body.username = req.user.id;

@@ -1066,6 +1066,41 @@ class WebDataHandler {
         return countData;
     }
 
+    async getTopIssueClosers(startDate, endDate, firstFindQuery) {
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    },
+                    "state": "closed",
+                    // "closed_by.login" : {
+                    //     "$ne": "",
+                    // }
+                }
+            },
+            {
+                "$group": {
+                    _id: "$closed_by.login",
+                    count: { "$count": {} },
+                }
+            },
+            {
+                "$sort": {
+                    "count": -1
+                }
+            },
+            {
+                "$limit": 5,
+            },
+        ])
+        return countData;
+    }
+
     async getTopIssueCommenters(startDate, endDate, firstFindQuery) {
         let countData = await this.IssueCommentDetails.aggregate([
             {
@@ -1112,6 +1147,25 @@ class WebDataHandler {
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
 
         let queryResult = await this.getTopIssueOpeners(startDate, endDate, firstFindQuery);
+
+        return queryResult;
+    }
+
+    async getTopIssueClosersHighlightData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let queryResult = await this.getTopIssueClosers(startDate, endDate, firstFindQuery);
 
         return queryResult;
     }

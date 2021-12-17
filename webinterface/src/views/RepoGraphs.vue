@@ -53,14 +53,21 @@
       </div>
       <div class="active-issues-graph row">
         <!-- top openers top commenters -->
-        <div class="col-md-6">
+        <div class="col-md-4">
           <TopOpenersHighlightBox
             v-if="!loading"
             :inputQuery="inputQuery"
             ref="topopenershighlight"
           />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
+          <TopClosersHighlightBox
+            v-if="!loading"
+            :inputQuery="inputQuery"
+            ref="topclosershighlight"
+          />
+        </div>
+        <div class="col-md-4">
           <TopCommentersHighlightBox
             v-if="!loading"
             :inputQuery="inputQuery"
@@ -77,6 +84,7 @@ import ActiveIssuesGraph from "../components/RepoGraphs/ActiveIssuesGraph.vue";
 import IssueActivityGraph from "../components/RepoGraphs/IssueActivityGraph.vue";
 import TopOpenersHighlightBox from "../components/RepoGraphs/TopOpenersHighlightBox.vue";
 import TopCommentersHighlightBox from "../components/RepoGraphs/TopCommentersHighlightBox.vue";
+import TopClosersHighlightBox from "../components/RepoGraphs/TopClosersHighlightBox.vue";
 
 export default {
   name: "RepoGraphs",
@@ -85,6 +93,7 @@ export default {
     IssueActivityGraph,
     TopOpenersHighlightBox,
     TopCommentersHighlightBox,
+    TopClosersHighlightBox,
   },
   data() {
     return {
@@ -121,6 +130,7 @@ export default {
       this.$refs.issueactivitygraph.refreshData();
       this.$refs.topopenershighlight.refreshData();
       this.$refs.topcommentershighlight.refreshData();
+      this.$refs.topclosershighlight.refreshData();
     },
   },
 };
