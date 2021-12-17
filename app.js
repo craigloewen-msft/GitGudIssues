@@ -711,6 +711,30 @@ app.post('/api/gettopissuecommentershighlight', authenticateToken, async functio
     }
 });
 
+// Key numbers functions
+
+app.post('/api/getopenedissueskeynumber', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getOpenIssuesKeyNumber(req.body);
+
+        return res.json({ success: true, keyNumber: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getclosedissueskeynumber', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getClosedIssuesKeyNumber(req.body);
+
+        return res.json({ success: true, keyNumber: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 // Interval jobs
 
 // Refresh all user data every hour

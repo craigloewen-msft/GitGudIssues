@@ -1190,6 +1190,91 @@ class WebDataHandler {
         return queryResult;
     }
 
+    async getOpenIssuesKeyNumberValue(startDate, endDate, firstFindQuery) {
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    },
+                }
+            },
+            {
+                "$count": "resultCount"
+            }
+        ])
+        if (countData[0]) {
+            return countData[0].resultCount;
+        } else {
+            return 0;
+        }
+    }
+
+    async getClosedIssuesKeyNumberValue(startDate, endDate, firstFindQuery) {
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "closed_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    },
+                }
+            },
+            {
+                "$count": "resultCount"
+            }
+        ])
+        if (countData[0]) {
+            return countData[0].resultCount;
+        } else {
+            return 0;
+        }
+    }
+
+    async getOpenIssuesKeyNumber(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let queryResult = await this.getOpenIssuesKeyNumberValue(startDate, endDate, firstFindQuery);
+
+        return queryResult;
+    }
+
+    async getClosedIssuesKeyNumber(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let queryResult = await this.getClosedIssuesKeyNumberValue(startDate, endDate, firstFindQuery);
+
+        return queryResult;
+    }
 
 }
 

@@ -75,6 +75,22 @@
           />
         </div>
       </div>
+      <div class="row">
+        <div class="col-md-6">
+          <OpenedIssuesKeyNumber
+            v-if="!loading"
+            :inputQuery="inputQuery"
+            ref="openedissueskeynumber"
+          />
+        </div>
+        <div class="col-md-6">
+          <ClosedIssuesKeyNumber
+            v-if="!loading"
+            :inputQuery="inputQuery"
+            ref="closedissueskeynumber"
+          />
+        </div>
+      </div>
     </b-container>
   </div>
 </template>
@@ -85,6 +101,8 @@ import IssueActivityGraph from "../components/RepoGraphs/IssueActivityGraph.vue"
 import TopOpenersHighlightBox from "../components/RepoGraphs/TopOpenersHighlightBox.vue";
 import TopCommentersHighlightBox from "../components/RepoGraphs/TopCommentersHighlightBox.vue";
 import TopClosersHighlightBox from "../components/RepoGraphs/TopClosersHighlightBox.vue";
+import OpenedIssuesKeyNumber from "../components/RepoGraphs/OpenedIssuesKeyNumber.vue"
+import ClosedIssuesKeyNumber from "../components/RepoGraphs/ClosedIssuesKeyNumber.vue"
 
 export default {
   name: "RepoGraphs",
@@ -94,6 +112,8 @@ export default {
     TopOpenersHighlightBox,
     TopCommentersHighlightBox,
     TopClosersHighlightBox,
+    OpenedIssuesKeyNumber,
+    ClosedIssuesKeyNumber,
   },
   data() {
     return {
@@ -131,6 +151,8 @@ export default {
       this.$refs.topopenershighlight.refreshData();
       this.$refs.topcommentershighlight.refreshData();
       this.$refs.topclosershighlight.refreshData();
+      this.$refs.openedissueskeynumber.refreshData();
+      this.$refs.closedissueskeynumber.refreshData();
     },
   },
 };
