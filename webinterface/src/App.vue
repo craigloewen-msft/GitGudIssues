@@ -188,7 +188,9 @@ body {
 }
 
 .custom-tag-collection {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .custom-tag-box a:hover {

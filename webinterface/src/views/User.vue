@@ -2,10 +2,17 @@
   <div class="pageContent">
     <b-container>
       <h1>Welcome {{ user.username }} !</h1>
-      <h2>Your followed repositories</h2>
       <div v-if="errorText">
         <p>{{ errorText }}</p>
       </div>
+      <div class="tutorial-box" v-if="showTutorialCheck()">
+        <h2>
+          To get started input the name of a repository you're interested in
+          below and hit enter.
+        </h2>
+        <h2>For example enter: <code>microsoft/wsl</code> and press enter.</h2>
+      </div>
+      <h2 v-if="showRepoTitleInfoCheck()">Your followed repositories</h2>
       <div class="user-repo-control-box">
         <div class="custom-tag-collection">
           <div
@@ -36,24 +43,36 @@
             style="width: 100px"
           ></div>
         </div>
-        <div class="small-input-form-box">
-          <b-form-input
-            size="sm"
-            v-model="input.repo"
-            @keyup.enter="addUserRepo"
-          ></b-form-input>
+        <div class="user-repo-input-box">
+          <div class="small-input-form-box">
+            <b-form-input
+              size="sm"
+              v-model="input.repo"
+              @keyup.enter="addUserRepo"
+              class="repo-input-form"
+            ></b-form-input>
+          </div>
+          <button
+            v-on:click="addUserRepo"
+            class="btn btn-secondary"
+            type="button"
+          >
+            Add Repo
+          </button>
         </div>
       </div>
-      <p class="text-muted">
-        You can add repos that you're interested in here by typing them in above
-        and pressing enter.
-      </p>
-      <router-link class="btn btn-primary" to="/manageissues"
-        >Start triaging issues!</router-link
-      >
-      <b-button class="btn btn-primary" v-on:click="refreshRepos"
-        >Refresh repos</b-button
-      >
+      <div v-if="!showTutorialCheck()">
+        <p class="text-muted">
+          You can add repos that you're interested in here by typing them in
+          above and pressing enter.
+        </p>
+        <router-link class="btn btn-primary" to="/manageissues"
+          >Start triaging issues!</router-link
+        >
+        <b-button class="btn btn-primary" v-on:click="refreshRepos"
+          >Refresh repos</b-button
+        >
+      </div>
     </b-container>
   </div>
 </template>
@@ -165,6 +184,26 @@ export default {
 
       this.refreshUserInfo(refreshFunction);
     },
+    showTutorialCheck: function () {
+      if (this.user.repos) {
+        return !this.loading && this.user.repos.length == 0;
+      } else {
+        return false;
+      }
+    },
+    showRepoTitleInfoCheck: function () {
+      if (this.loading) {
+        return true;
+      } else {
+        if (this.user.repos) {
+          if (this.user.repos.length == 0) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    },
   },
   mounted() {
     this.$http.defaults.headers.common["Authorization"] =
@@ -183,5 +222,14 @@ export default {
 
 .repo-placeholder {
   margin: 0px 10px;
+}
+
+.user-repo-input-box {
+  display: flex;
+  align-items: center;
+}
+
+.repo-input-form {
+  background-color: #ffffff;
 }
 </style>
