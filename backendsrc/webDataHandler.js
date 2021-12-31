@@ -142,7 +142,13 @@ class WebDataHandler {
         }
 
         if (queryData.creator) {
-            findQuery['user.login'] = { "$regex": queryData.creator, "$options": "gi" }
+            let creatorSplitString = queryData.creator.split(",");
+            findQuery['user.login'] = { "$in": creatorSplitString };
+        }
+
+        if (queryData.closed_by) {
+            let closedBySplitString = queryData.closed_by.split(",");
+            findQuery["closed_by.login"] = { "$in": closedBySplitString };
         }
 
         if (queryData.assignee) {
@@ -1031,6 +1037,280 @@ class WebDataHandler {
         let [issuesClosedData, issuesCreatedData] = await Promise.all([Promise.all(issuesClosedPromiseList), Promise.all(issuesCreatedPromiseList)]);
         let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
         return { datasets: [{ data: issuesClosedData, label: "Closed Issues" }, { data: issuesCreatedData, label: "Created Issues" }], labels: labelData };
+    }
+
+    async getUserActivityData(inputDate, inputPeriod, firstFindQuery, inGHUsernameList) {
+        let previousDate = new Date(inputDate);
+        previousDate.setDate(inputDate.getDate() - inputPeriod);
+        let returnObject = {};
+
+        // Convert name list to an array
+        let splitGHUsernameList = inGHUsernameList.split(",");
+
+        let closedSummaryPromise = this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "closed_at": {
+                        "$lt": inputDate,
+                        "$gt": previousDate,
+                    },
+                    "closed_by.login": {
+                        "$in": splitGHUsernameList
+                    }
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "repoInfo",
+                    "localField": "repoRef",
+                    "foreignField": "_id",
+                    "as": "repoInfo"
+                }
+            },
+            {
+                "$group": {
+                    _id: "$repoInfo.shortURL",
+                    count: { "$count": {} },
+                }
+            },
+            {
+                "$sort": {
+                    "count": -1
+                }
+            },
+        ]);
+
+        let openedSummaryPromise = this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": inputDate,
+                        "$gt": previousDate,
+                    },
+                    "user.login": {
+                        "$in": splitGHUsernameList
+                    }
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "repoInfo",
+                    "localField": "repoRef",
+                    "foreignField": "_id",
+                    "as": "repoInfo"
+                }
+            },
+            {
+                "$group": {
+                    _id: "$repoInfo.shortURL",
+                    count: { "$count": {} },
+                }
+            },
+            {
+                "$sort": {
+                    "count": -1
+                }
+            },
+        ]);
+
+        let closedSummary = await closedSummaryPromise;
+        let openedSummary = await openedSummaryPromise;
+
+        for (let i = 0; i < closedSummary.length; i++) {
+            let repoInfoVisitor = closedSummary[i];
+            if (repoInfoVisitor._id.length == 0) {
+                throw "Malformed issue with no reference repos"
+            } else if (repoInfoVisitor._id.length > 1) {
+                throw "Malformed issue with multiple repo refs"
+            }
+            returnObject[repoInfoVisitor._id[0]] = { closed: -repoInfoVisitor.count };
+        }
+
+        for (let i = 0; i < openedSummary.length; i++) {
+            let repoInfoVisitor = openedSummary[i];
+            if (repoInfoVisitor._id.length == 0) {
+                throw "Malformed issue with no reference repos"
+            } else if (repoInfoVisitor._id.length > 1) {
+                throw "Malformed issue with multiple repo refs"
+            }
+            if (!returnObject[repoInfoVisitor._id[0]]) {
+                returnObject[repoInfoVisitor._id[0]] = { closed: 0, opened: repoInfoVisitor.count };
+            } else {
+                returnObject[repoInfoVisitor._id[0]].opened = repoInfoVisitor.count;
+            }
+        }
+
+        // Final processing of data
+        let totalOpened = 0;
+        let totalClosed = 0;
+
+        for (let repoName in returnObject) {
+            let repoVisitorObject = returnObject[repoName];
+
+            // If data doesn't exist put in a 0
+            if (!repoVisitorObject.opened) {
+                repoVisitorObject.opened = 0;
+            }
+
+            totalOpened = totalOpened + repoVisitorObject.opened;
+            totalClosed = totalClosed + repoVisitorObject.closed;
+        }
+
+        returnObject.aggregateData = { opened: totalOpened, closed: totalClosed };
+
+        return returnObject;
+    }
+
+    async getUserActivityGraphData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+        let inputPeriod = this.getIntervalPeriod(startDate, endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+
+        // Get [Opened issues by repo, closed issues by repo, total open issues, total closed issues, and net]
+        let dataPointGatherPromiseList = [];
+
+        for (let i = 0; i < dateArray.length; i++) {
+            let inputDate = dateArray[i];
+            let dataPointGatherPromise = this.getUserActivityData(inputDate, inputPeriod, firstFindQuery, queryData.names);
+            dataPointGatherPromiseList.push(dataPointGatherPromise);
+        }
+
+        let dataPointArray = await Promise.all(dataPointGatherPromiseList);
+        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+
+        let returnChartObject = {};
+        returnChartObject.labels = labelData;
+        returnChartObject.datasets = [];
+
+        let datasetObject = {};
+        datasetObject.totalOpened = new Array(dateArray.length).fill(0);
+        datasetObject.totalClosed = new Array(dateArray.length).fill(0);
+        datasetObject.netOpened = new Array(dateArray.length).fill(0);
+
+        let repoDatasetsObject = {};
+
+        for (let i = 0; i < dateArray.length; i++) {
+            let dataPointVisitor = dataPointArray[i];
+            for (let dataPointLabel in dataPointVisitor) {
+                let dataPointSpecificValue = dataPointVisitor[dataPointLabel];
+                if (dataPointLabel == "aggregateData") {
+                    datasetObject.totalOpened[i] = dataPointSpecificValue.opened;
+                    datasetObject.totalClosed[i] = dataPointSpecificValue.closed;
+                    datasetObject.netOpened[i] = dataPointSpecificValue.opened + dataPointSpecificValue.closed;
+                } else {
+                    let openedInputName = dataPointLabel + " - opened";
+                    let closedInputName = dataPointLabel + " - closed";
+                    if (!repoDatasetsObject[openedInputName]) {
+                        repoDatasetsObject[openedInputName] = new Array(dateArray.length).fill(0);
+                    }
+                    if (!repoDatasetsObject[closedInputName]) {
+                        repoDatasetsObject[closedInputName] = new Array(dateArray.length).fill(0);
+                    }
+                    repoDatasetsObject[openedInputName][i] = dataPointSpecificValue.opened;
+                    repoDatasetsObject[closedInputName][i] = dataPointSpecificValue.closed;
+                }
+            }
+        }
+
+        // Process array into the chart data format below and then send off the results
+
+        let chartReturnDatasets = [];
+        // Left out aggregate counts since it got too busy with them
+        // chartReturnDatasets.push({ data: datasetObject.totalOpened, label: "Total opened", type: "line", fill: false, yAxisID: "line-y-axis" });
+        // chartReturnDatasets.push({ data: datasetObject.totalClosed, label: "Total closed", type: "line", fill: false, yAxisID: "line-y-axis" });
+        // chartReturnDatasets.push({ data: datasetObject.netOpened, label: "Net opened", type: "line", fill: false, yAxisID: "line-y-axis" });
+
+        for (let chartDataLabel in repoDatasetsObject) {
+            chartReturnDatasets.push({ data: repoDatasetsObject[chartDataLabel], label: chartDataLabel });
+        }
+
+
+        return { datasets: chartReturnDatasets, labels: labelData };
+    }
+
+    async getUserOpenedPieGraphData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        let totalDateTimeDifference = endDate.getTime() - startDate.getTime();
+        let totalDateDayDifference = totalDateTimeDifference / (1000 * 60 * 60 * 24);
+
+        let inputPeriod = totalDateDayDifference;
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let totalIssueRepoData = await this.getUserActivityData(endDate, inputPeriod, firstFindQuery, queryData.names);
+
+        delete totalIssueRepoData.aggregateData;
+
+        let returnDataArray = [];
+        let returnLabelArray = [];
+        
+        for (let repoLabel in totalIssueRepoData) {
+            returnDataArray.push(totalIssueRepoData[repoLabel].opened);
+            returnLabelArray.push(repoLabel);
+        }
+
+        return { datasets: [{ data: returnDataArray, label: "Opened Issues" , hoverOffset: 4}], labels: returnLabelArray };
+    }
+
+    async getUserClosedPieGraphData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        let totalDateTimeDifference = endDate.getTime() - startDate.getTime();
+        let totalDateDayDifference = totalDateTimeDifference / (1000 * 60 * 60 * 24);
+
+        let inputPeriod = totalDateDayDifference;
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let totalIssueRepoData = await this.getUserActivityData(endDate, inputPeriod, firstFindQuery, queryData.names);
+
+        delete totalIssueRepoData.aggregateData;
+
+        let returnDataArray = [];
+        let returnLabelArray = [];
+        
+        for (let repoLabel in totalIssueRepoData) {
+            returnDataArray.push(-totalIssueRepoData[repoLabel].closed);
+            returnLabelArray.push(repoLabel);
+        }
+
+        return { datasets: [{ data: returnDataArray, label: "Closed Issues" , hoverOffset: 4}], labels: returnLabelArray };
     }
 
     // Highlight functions

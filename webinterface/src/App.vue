@@ -18,6 +18,9 @@
             <Bootstrapnavlinkcustom to="/repographs"
               >Repo Graphs</Bootstrapnavlinkcustom
             >
+            <Bootstrapnavlinkcustom to="/usergraphs"
+              >User Graphs</Bootstrapnavlinkcustom
+            >
           </b-navbar-nav>
           <b-navbar-nav>
             <Bootstrapnavlinkcustom to="/about">About</Bootstrapnavlinkcustom>

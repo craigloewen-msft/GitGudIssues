@@ -401,7 +401,7 @@ app.get('/api/user/:username/', authenticateToken, (req, res) => {
                 var returnValue = {
                     success: true, auth: true,
                     user: {
-                        username: docs[0].username, email: docs[0].email, repos: repoInfoList
+                        username: docs[0].username, email: docs[0].email, repos: repoInfoList, githubUsername: docs[0].githubUsername,
                     }
                 };
                 res.json(returnValue);
@@ -668,6 +668,39 @@ app.post('/api/getissueactivitygraph', authenticateToken, async function (req, r
     try {
         req.body.username = req.user.id;
         var returnData = await dataHandler.getIssueActivityGraphData(req.body);
+
+        return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getuseractivitygraph', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getUserActivityGraphData(req.body);
+
+        return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getuseropenedpiegraph', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getUserOpenedPieGraphData(req.body);
+
+        return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getuserclosedpiegraph', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getUserClosedPieGraphData(req.body);
 
         return res.json({ success: true, graphData: returnData });
     } catch (error) {

@@ -1,22 +1,22 @@
 <template>
   <div class="pageContent">
     <b-container>
-      <h1>{{ inputQuery.repos }}</h1>
+      <h1>{{ inputQuery.names }}</h1>
       <div class="graph-title-and-controls">
         <div class="graph-controls">
           <div class="table-header-buttons">
             <div class="table-header-buttons-group">
               <b-dropdown
                 id="dropdown-1"
-                text="Repo"
+                text="Username"
                 class="m-md-2"
                 size="sm"
                 variant="outline-secondary"
               >
                 <b-form-input
-                  placeholder="microsoft/wsl,microsoft/vscode"
+                  placeholder="user1,user2"
                   size="sm"
-                  v-model="inputQuery.repos"
+                  v-model="inputQuery.names"
                   v-debounce:1s="refreshData"
                   @keyup.enter="refreshData"
                 ></b-form-input>
@@ -38,40 +38,27 @@
         </div>
       </div>
       <div class="active-issues-graph">
-        <ActiveIssuesGraph
+        <!-- Stacked bar chart of each repo with a line of total closed, total opened, and net opened and closed -->
+        <UserIssueActivityGraph
           v-if="!loading"
           :inputQuery="inputQuery"
           ref="activeissuesgraph"
         />
       </div>
-      <div class="issue-activity-graph">
-        <IssueActivityGraph
-          v-if="!loading"
-          :inputQuery="inputQuery"
-          ref="issueactivitygraph"
-        />
-      </div>
       <div class="active-issues-graph row">
         <!-- top openers top commenters -->
-        <div class="col-md-4">
-          <TopOpenersHighlightBox
+        <div class="col-md-6">
+          <UserOpenedPieGraph
             v-if="!loading"
             :inputQuery="inputQuery"
-            ref="topopenershighlight"
+            ref="useropenedpiegraph"
           />
         </div>
-        <div class="col-md-4">
-          <TopClosersHighlightBox
+        <div class="col-md-6">
+          <UserClosedPieGraph
             v-if="!loading"
             :inputQuery="inputQuery"
-            ref="topclosershighlight"
-          />
-        </div>
-        <div class="col-md-4">
-          <TopCommentersHighlightBox
-            v-if="!loading"
-            :inputQuery="inputQuery"
-            ref="topcommentershighlight"
+            ref="userclosedpiegraph"
           />
         </div>
       </div>
@@ -79,14 +66,14 @@
         <div class="col-md-6">
           <OpenedIssuesKeyNumber
             v-if="!loading"
-            :inputQuery="inputQuery"
+            :inputQuery="openedIssuesKeyNumberInputQuery"
             ref="openedissueskeynumber"
           />
         </div>
         <div class="col-md-6">
           <ClosedIssuesKeyNumber
             v-if="!loading"
-            :inputQuery="inputQuery"
+            :inputQuery="closedIssuesKeyNumberInputQuery"
             ref="closedissueskeynumber"
           />
         </div>
@@ -96,52 +83,62 @@
 </template>
 
 <script>
-import ActiveIssuesGraph from "../components/RepoGraphs/ActiveIssuesGraph.vue";
-import IssueActivityGraph from "../components/RepoGraphs/IssueActivityGraph.vue";
-import TopOpenersHighlightBox from "../components/RepoGraphs/TopOpenersHighlightBox.vue";
-import TopCommentersHighlightBox from "../components/RepoGraphs/TopCommentersHighlightBox.vue";
-import TopClosersHighlightBox from "../components/RepoGraphs/TopClosersHighlightBox.vue";
-import OpenedIssuesKeyNumber from "../components/RepoGraphs/OpenedIssuesKeyNumber.vue"
-import ClosedIssuesKeyNumber from "../components/RepoGraphs/ClosedIssuesKeyNumber.vue"
+import OpenedIssuesKeyNumber from "../components/RepoGraphs/OpenedIssuesKeyNumber.vue";
+import UserOpenedPieGraph from "../components/RepoGraphs/UserOpenedPieGraph.vue";
+import UserClosedPieGraph from "../components/RepoGraphs/UserClosedPieGraph.vue";
+import ClosedIssuesKeyNumber from "../components/RepoGraphs/ClosedIssuesKeyNumber.vue";
+import UserIssueActivityGraph from "../components/RepoGraphs/UserIssueActivityGraph.vue";
 
 export default {
   name: "RepoGraphs",
   components: {
-    ActiveIssuesGraph,
-    IssueActivityGraph,
-    TopOpenersHighlightBox,
-    TopCommentersHighlightBox,
-    TopClosersHighlightBox,
     OpenedIssuesKeyNumber,
+    UserOpenedPieGraph,
+    UserClosedPieGraph,
     ClosedIssuesKeyNumber,
+    UserIssueActivityGraph,
   },
   data() {
     return {
       inputQuery: {
-        repos: "",
+        names: "",
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
         endDate: new Date(),
       },
       loading: true,
-      repoList: [],
     };
   },
   mounted: function () {
     this.$http.defaults.headers.common["Authorization"] =
       this.$store.state.token;
     this.$gtag.pageview(this.$route);
-    this.getInputRepos();
+    this.getGHUsername();
+  },
+  computed: {
+    closedIssuesKeyNumberInputQuery: function () {
+      return {
+        closed_by: this.inputQuery.names,
+        startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
+        endDate: new Date(),
+      };
+    },
+    openedIssuesKeyNumberInputQuery: function () {
+      return {
+        creator: this.inputQuery.names,
+        startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
+        endDate: new Date(),
+      };
+    },
   },
   methods: {
-    getInputRepos: function () {
+    getGHUsername: function () {
       this.loading = true;
-      this.repoList = [];
+      this.inputQuery.names = "";
       this.$http
         .get("/api/user/" + this.$store.state.user.username + "/")
         .then((response) => {
           const someUserData = response.data.user;
-          this.repoList = someUserData.repos;
-          this.inputQuery.repos = this.repoList[0].title;
+          this.inputQuery.names = someUserData.githubUsername;
           this.loading = false;
         });
     },
