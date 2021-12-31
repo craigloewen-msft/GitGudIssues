@@ -151,7 +151,7 @@ const IssueInfo = new Schema({
     body: String,
     userMentionsList: [String],
     userCommentsList: [String],
-}, { toJSON: { virtuals: true } });
+}, { toJSON: { virtuals: true }, collation: { locale: "en_US", strength: 2 } });
 
 IssueInfo.index({ 'repository_url': 1 });
 IssueInfo.index({ 'state': 1 });
@@ -219,7 +219,7 @@ const UserDetail = new Schema({
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
-}, { collection: 'usercollection' });
+}, { collection: 'usercollection'});
 
 UserDetail.virtual('issueLabels', {
     ref: 'siteIssueLabelInfo',
