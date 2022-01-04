@@ -191,22 +191,25 @@ class WebDataHandler {
             queryData.repos = queryData.repos.toLowerCase();
             let repoList = queryData.repos.split(',');
             let matchArray = [];
-            for (let i = 0; i < repoList.length; i++) {
-                matchArray.push("https://api.github.com/repos/" + repoList[i]);
+            for (let i = 0; i < userRepoList.length; i++) {
+                let repoVisitor = userRepoList[i];
+                if (repoList.includes(repoVisitor.shortURL)) {
+                    matchArray.push(ObjectId(userRepoList[i]._id.toString()));
+                }
             }
             repoQueryData = matchArray;
         } else {
             let matchArray = [];
             for (let i = 0; i < userRepoList.length; i++) {
-                matchArray.push(userRepoList[i].url.split('/issues')[0]);
+                matchArray.push(ObjectId(userRepoList[i]._id.toString()));
             }
             repoQueryData = matchArray;
         }
 
         if (repoQueryData.length == 1) {
-            findQuery['repository_url'] = repoQueryData[0];
+            findQuery['repoRef'] = repoQueryData[0];
         } else if (repoQueryData.length > 1) {
-            findQuery['repository_url'] = { "$in": repoQueryData };
+            findQuery['repoRef'] = { "$in": repoQueryData };
         }
 
         if (queryData.siteLabels) {
@@ -304,35 +307,6 @@ class WebDataHandler {
         // End level 1
 
         return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded];
-    }
-
-    async transformRepoUrlsToRepoIds(inputFindQuery) {
-        if (inputFindQuery.repository_url) {
-            let repoNameArray = [];
-            if (inputFindQuery.repository_url["$in"]) {
-                repoNameArray = inputFindQuery.repository_url["$in"];
-            } else {
-                repoNameArray.push(inputFindQuery.repository_url);
-            }
-
-            let repoIDListPromises = [];
-
-            for (let i = 0; i < repoNameArray.length; i++) {
-                let repoName = repoNameArray[i] + "/issues";
-                repoIDListPromises.push(this.RepoDetails.findOne({ 'url': repoName }));
-            }
-
-            let repoList = await Promise.all(repoIDListPromises);
-            let repoIDList = repoList.map((inputRepo) => ObjectId(inputRepo._id.toString()));
-
-            if (repoIDList.length == 1) {
-                inputFindQuery.repositoryID = repoIDList[0];
-            } else {
-                inputFindQuery.repositoryID = { "$in": repoIDList };
-            }
-
-            delete inputFindQuery.repository_url;
-        }
     }
 
     async setIfIssuesAreRead(inputIssueArray, inUser) {
@@ -639,7 +613,7 @@ class WebDataHandler {
 
                 await this.IssueCommentMentionDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueReadDetails.deleteMany({ repoRef: inputRepo._id })
-                await this.IssueCommentDetails.deleteMany({ repositoryID: inputRepo._id })
+                await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.RepoDetails.deleteOne({ '_id': inputRepo._id })
             }
@@ -941,6 +915,33 @@ class WebDataHandler {
         }
     }
 
+    async getCommentsCreated(inputDate, inputPeriod, firstFindQuery) {
+        let previousDate = new Date(inputDate);
+        previousDate.setDate(inputDate.getDate() - inputPeriod);
+
+        let countData = await this.IssueCommentDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": inputDate,
+                        "$gt": previousDate,
+                    },
+                }
+            },
+            {
+                "$count": "resultCount"
+            }
+        ])
+        if (countData[0]) {
+            return countData[0].resultCount;
+        } else {
+            return 0;
+        }
+    }
+
     async getIssuesClosed(inputDate, inputPeriod, firstFindQuery) {
         let previousDate = new Date(inputDate);
         previousDate.setDate(inputDate.getDate() - inputPeriod);
@@ -1037,6 +1038,35 @@ class WebDataHandler {
         let [issuesClosedData, issuesCreatedData] = await Promise.all([Promise.all(issuesClosedPromiseList), Promise.all(issuesCreatedPromiseList)]);
         let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
         return { datasets: [{ data: issuesClosedData, label: "Closed Issues" }, { data: issuesCreatedData, label: "Created Issues" }], labels: labelData };
+    }
+
+    async getCommentActivityGraphData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+        let inputPeriod = this.getIntervalPeriod(startDate, endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+
+        let commentNumberPromiseList = [];
+
+        for (let i = 0; i < dateArray.length; i++) {
+            let inputDate = dateArray[i];
+            let commentNumberPromise = this.getCommentsCreated(inputDate, inputPeriod, firstFindQuery);
+            commentNumberPromiseList.push(commentNumberPromise);
+        }
+
+        let xData = await Promise.all(commentNumberPromiseList);
+        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+        return { datasets: [{ data: xData, label: "Number of Comments" }], labels: labelData };
     }
 
     async getUserActivityData(inputDate, inputPeriod, firstFindQuery, inGHUsernameList) {
@@ -1270,13 +1300,13 @@ class WebDataHandler {
 
         let returnDataArray = [];
         let returnLabelArray = [];
-        
+
         for (let repoLabel in totalIssueRepoData) {
             returnDataArray.push(totalIssueRepoData[repoLabel].opened);
             returnLabelArray.push(repoLabel);
         }
 
-        return { datasets: [{ data: returnDataArray, label: "Opened Issues" , hoverOffset: 4}], labels: returnLabelArray };
+        return { datasets: [{ data: returnDataArray, label: "Opened Issues", hoverOffset: 4 }], labels: returnLabelArray };
     }
 
     async getUserClosedPieGraphData(queryData) {
@@ -1304,13 +1334,13 @@ class WebDataHandler {
 
         let returnDataArray = [];
         let returnLabelArray = [];
-        
+
         for (let repoLabel in totalIssueRepoData) {
             returnDataArray.push(-totalIssueRepoData[repoLabel].closed);
             returnLabelArray.push(repoLabel);
         }
 
-        return { datasets: [{ data: returnDataArray, label: "Closed Issues" , hoverOffset: 4}], labels: returnLabelArray };
+        return { datasets: [{ data: returnDataArray, label: "Closed Issues", hoverOffset: 4 }], labels: returnLabelArray };
     }
 
     // Highlight functions
@@ -1463,7 +1493,6 @@ class WebDataHandler {
 
         // Get issue query data
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
-        await this.transformRepoUrlsToRepoIds(firstFindQuery);
 
         let queryResult = await this.getTopIssueCommenters(startDate, endDate, firstFindQuery);
 
@@ -1518,6 +1547,30 @@ class WebDataHandler {
         }
     }
 
+    async getCommentsKeyNumberValue(startDate, endDate, firstFindQuery) {
+        let countData = await this.IssueCommentDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    },
+                }
+            },
+            {
+                "$count": "resultCount"
+            }
+        ])
+        if (countData[0]) {
+            return countData[0].resultCount;
+        } else {
+            return 0;
+        }
+    }
+
     async getOpenIssuesKeyNumber(queryData) {
         // Get User Data
         var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
@@ -1552,6 +1605,25 @@ class WebDataHandler {
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
 
         let queryResult = await this.getClosedIssuesKeyNumberValue(startDate, endDate, firstFindQuery);
+
+        return queryResult;
+    }
+
+    async getCommentsKeyNumber(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let queryResult = await this.getCommentsKeyNumberValue(startDate, endDate, firstFindQuery);
 
         return queryResult;
     }

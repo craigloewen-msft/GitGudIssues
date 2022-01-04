@@ -104,7 +104,7 @@ IssueCommentMentionDetail.index({ 'repoRef': -1 });
 IssueCommentMentionDetail.index({ 'mentionedAt': 1, type: -1 });
 
 const IssueCommentDetail = new Schema({
-    repositoryID: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
+    repoRef: { type: Schema.Types.ObjectId, ref: 'repoInfo' },
     issueRef: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
     mentionStrings: [String],
     author_association: String,
@@ -122,7 +122,7 @@ const IssueCommentDetail = new Schema({
 
 IssueCommentDetail.index({ 'updated_at': 1, type: -1 });
 IssueCommentDetail.index({ 'created_at': 1, type: -1 });
-IssueCommentDetail.index({ 'repositoryID': 1 });
+IssueCommentDetail.index({ 'repoRef': 1 });
 IssueCommentDetail.index({ 'comment_id': -1 });
 IssueCommentDetail.index({ 'user.login': -1 });
 IssueCommentDetail.index({ 'issueRef': -1 });
@@ -219,7 +219,7 @@ const UserDetail = new Schema({
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
-}, { collection: 'usercollection'});
+}, { collection: 'usercollection' });
 
 UserDetail.virtual('issueLabels', {
     ref: 'siteIssueLabelInfo',
@@ -675,6 +675,17 @@ app.post('/api/getissueactivitygraph', authenticateToken, async function (req, r
     }
 });
 
+app.post('/api/getcommentactivitygraph', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getCommentActivityGraphData(req.body);
+
+        return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 app.post('/api/getuseractivitygraph', authenticateToken, async function (req, res) {
     try {
         req.body.username = req.user.id;
@@ -761,6 +772,17 @@ app.post('/api/getclosedissueskeynumber', authenticateToken, async function (req
     try {
         req.body.username = req.user.id;
         var returnData = await dataHandler.getClosedIssuesKeyNumber(req.body);
+
+        return res.json({ success: true, keyNumber: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getcommentskeynumber', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getCommentsKeyNumber(req.body);
 
         return res.json({ success: true, keyNumber: returnData });
     } catch (error) {

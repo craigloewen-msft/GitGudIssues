@@ -51,6 +51,13 @@
           ref="issueactivitygraph"
         />
       </div>
+      <div class="issue-activity-graph">
+        <CommentActivityGraph
+          v-if="!loading"
+          :inputQuery="inputQuery"
+          ref="commentactivitygraph"
+        />
+      </div>
       <div class="active-issues-graph row">
         <!-- top openers top commenters -->
         <div class="col-md-4">
@@ -76,18 +83,25 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
           <OpenedIssuesKeyNumber
             v-if="!loading"
             :inputQuery="inputQuery"
             ref="openedissueskeynumber"
           />
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <ClosedIssuesKeyNumber
             v-if="!loading"
             :inputQuery="inputQuery"
             ref="closedissueskeynumber"
+          />
+        </div>
+        <div class="col-md-4">
+          <CommentsKeyNumber
+            v-if="!loading"
+            :inputQuery="inputQuery"
+            ref="commentskeynumber"
           />
         </div>
       </div>
@@ -98,22 +112,26 @@
 <script>
 import ActiveIssuesGraph from "../components/RepoGraphs/ActiveIssuesGraph.vue";
 import IssueActivityGraph from "../components/RepoGraphs/IssueActivityGraph.vue";
+import CommentActivityGraph from "../components/RepoGraphs/CommentActivityGraph.vue";
 import TopOpenersHighlightBox from "../components/RepoGraphs/TopOpenersHighlightBox.vue";
 import TopCommentersHighlightBox from "../components/RepoGraphs/TopCommentersHighlightBox.vue";
 import TopClosersHighlightBox from "../components/RepoGraphs/TopClosersHighlightBox.vue";
-import OpenedIssuesKeyNumber from "../components/RepoGraphs/OpenedIssuesKeyNumber.vue"
-import ClosedIssuesKeyNumber from "../components/RepoGraphs/ClosedIssuesKeyNumber.vue"
+import OpenedIssuesKeyNumber from "../components/RepoGraphs/OpenedIssuesKeyNumber.vue";
+import ClosedIssuesKeyNumber from "../components/RepoGraphs/ClosedIssuesKeyNumber.vue";
+import CommentsKeyNumber from "../components/RepoGraphs/CommentsKeyNumber.vue";
 
 export default {
   name: "RepoGraphs",
   components: {
     ActiveIssuesGraph,
     IssueActivityGraph,
+    CommentActivityGraph,
     TopOpenersHighlightBox,
     TopCommentersHighlightBox,
     TopClosersHighlightBox,
     OpenedIssuesKeyNumber,
     ClosedIssuesKeyNumber,
+    CommentsKeyNumber,
   },
   data() {
     return {

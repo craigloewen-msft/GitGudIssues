@@ -492,7 +492,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                         let mentionsArray = helperFunctions.GetMentions(responseItem.body);
 
                         let updateObject = {
-                            repositoryID: this.repoDocument._id.toString(),
+                            repoRef: this.repoDocument._id.toString(),
                             issueRef: parentIssue._id, repoRef: this.repoDocument._id, mentionStrings: mentionsArray
                         };
 
@@ -501,7 +501,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
                         let bulkRequestData = {};
                         bulkRequestData.commentUpdate = {
                             updateOne: {
-                                filter: { 'repositoryID': this.repoDocument._id.toString(), 'comment_id': responseItem.comment_id },
+                                filter: { 'repoRef': this.repoDocument._id.toString(), 'comment_id': responseItem.comment_id },
                                 update: updateObject,
                                 upsert: true,
                             }
