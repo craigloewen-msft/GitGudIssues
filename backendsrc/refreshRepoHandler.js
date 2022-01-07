@@ -278,10 +278,30 @@ class RefreshRepoTask {
                     let updateResultRaw = await this.IssueDetails.findOneAndUpdate(bulkRequestData.updateOne.filter, bulkRequestData.updateOne.update, { returnDocument: 'after', upsert: true, rawResult: true });
                     let updateResult = updateResultRaw.value;
                     let authorName = updateResult.user.login;
+                    let closerUserPromise = null;
+                    if (updateResult.closed_by) {
+                        if (updateResult.closed_by.login) {
+                            closerUserPromise = this.UserDetails.findOne({ "githubUsername": updateResult.closed_by.login });
+                        }
+                    }
                     let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
 
                     if (authorUser != null) {
                         await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at);
+                    }
+
+                    // If closer user exists and issue is closed
+                    if (updateResult.state == "closed") {
+                        let closerUser = null;
+                        if (closerUserPromise) {
+                            closerUser = await closerUserPromise;
+                        }
+                        if (closerUser) {
+                            // Add 10 seconds to the closed date to account for 1 off second differences
+                            let inputReadDate = new Date(updateResult.closed_at);
+                            inputReadDate.setSeconds(inputReadDate.getSeconds() + 10);
+                            await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, closerUser, inputReadDate);
+                        }
                     }
 
                     // For each name in the mention array, attempt to create a mention
