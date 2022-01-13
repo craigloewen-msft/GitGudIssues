@@ -118,15 +118,15 @@ export default {
     closedIssuesKeyNumberInputQuery: function () {
       return {
         closed_by: this.inputQuery.names,
-        startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
-        endDate: new Date(),
+        startDate: this.inputQuery.startDate,
+        endDate: this.inputQuery.endDate,
       };
     },
     openedIssuesKeyNumberInputQuery: function () {
       return {
         creator: this.inputQuery.names,
-        startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
-        endDate: new Date(),
+        startDate: this.inputQuery.startDate,
+        endDate: this.inputQuery.endDate,
       };
     },
   },
@@ -143,9 +143,13 @@ export default {
         });
     },
     refreshData: function () {
-      Object.entries(this.$refs).forEach(([key, refItem]) => {
-        refItem.refreshData();
-      });
+      // IN this case because computed functions above will lag a little we need to input a small delay before updating
+      setTimeout(() => {
+        Object.entries(this.$refs).forEach(([key, refItem]) => {
+          console.log("Refreshing items");
+          refItem.refreshData();
+        });
+      },100);
     },
   },
 };

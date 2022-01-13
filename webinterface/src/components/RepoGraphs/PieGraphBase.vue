@@ -85,9 +85,7 @@ export default {
               );
             }
 
-            console.log(backgroundColorArray);
             datasetItem.backgroundColor = backgroundColorArray;
-
           }
 
           this.loading = false;
