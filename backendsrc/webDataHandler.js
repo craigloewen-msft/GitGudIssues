@@ -1020,7 +1020,7 @@ class WebDataHandler {
         }
 
         let xData = await Promise.all(datesPromiseList);
-        let labelData = dateArray.map(getDateLabel);
+        let labelData = dateArray.map((date) => getDateLabel(date));
         return { datasets: [{ data: xData, label: "Active Issues" }], labels: labelData };
     }
 
@@ -1052,7 +1052,7 @@ class WebDataHandler {
         }
 
         let [issuesClosedData, issuesCreatedData] = await Promise.all([Promise.all(issuesClosedPromiseList), Promise.all(issuesCreatedPromiseList)]);
-        let labelData = dateArray.map(getDateLabel);
+        let labelData = dateArray.map((date) => getDateLabel(date));
         return { datasets: [{ data: issuesClosedData, label: "Closed Issues" }, { data: issuesCreatedData, label: "Created Issues" }], labels: labelData };
     }
 
@@ -1081,7 +1081,7 @@ class WebDataHandler {
         }
 
         let xData = await Promise.all(commentNumberPromiseList);
-        let labelData = dateArray.map(getDateLabel);
+        let labelData = dateArray.map((date) => getDateLabel(date));
         return { datasets: [{ data: xData, label: "Number of Comments" }], labels: labelData };
     }
 
