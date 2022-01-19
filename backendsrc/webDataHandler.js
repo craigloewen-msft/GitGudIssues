@@ -987,9 +987,10 @@ class WebDataHandler {
         return inputPeriod;
     }
 
-    getDateLabel(inDate){
+    // This has to be a static method, because arrow functions (like the callers below) can't call non-static methods.
+    static getDateLabel(inDate) {
         // months are 0-indexed, so add 1 so that they make sense to a human
-        return (inDate.getMonth()+1) + " " + inDate.getDate() + " " + inDate.getFullYear();
+        return (inDate.getMonth() + 1) + " " + inDate.getDate() + " " + inDate.getFullYear();
     }
 
     async getActiveIssuesGraphData(queryData) {
@@ -1020,7 +1021,7 @@ class WebDataHandler {
         }
 
         let xData = await Promise.all(datesPromiseList);
-        let labelData = dateArray.map((date) => getDateLabel(date));
+        let labelData = dateArray.map((inDate) => WebDataHandler.getDateLabel(inDate));
         return { datasets: [{ data: xData, label: "Active Issues" }], labels: labelData };
     }
 
@@ -1052,7 +1053,7 @@ class WebDataHandler {
         }
 
         let [issuesClosedData, issuesCreatedData] = await Promise.all([Promise.all(issuesClosedPromiseList), Promise.all(issuesCreatedPromiseList)]);
-        let labelData = dateArray.map((date) => getDateLabel(date));
+        let labelData = dateArray.map((inDate) => WebDataHandler.getDateLabel(inDate));
         return { datasets: [{ data: issuesClosedData, label: "Closed Issues" }, { data: issuesCreatedData, label: "Created Issues" }], labels: labelData };
     }
 
@@ -1081,7 +1082,7 @@ class WebDataHandler {
         }
 
         let xData = await Promise.all(commentNumberPromiseList);
-        let labelData = dateArray.map((date) => getDateLabel(date));
+        let labelData = dateArray.map((inDate) => WebDataHandler.getDateLabel(inDate));
         return { datasets: [{ data: xData, label: "Number of Comments" }], labels: labelData };
     }
 
