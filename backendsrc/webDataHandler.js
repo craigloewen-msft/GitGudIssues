@@ -849,6 +849,8 @@ class WebDataHandler {
 
     // Chart data functions
 
+    // Create an array of Date values between `startDate` and `endDate`, separated
+    // by `interval` days.
     getDateListBetweenDates(startDate, endDate, interval) {
         const datesList = [];
         let visitorDate = new Date(startDate);
@@ -861,6 +863,7 @@ class WebDataHandler {
         return datesList;
     }
 
+    // Collect the active issues for a given day.
     async getActiveIssues(inputDate, firstFindQuery) {
         let countData = await this.IssueDetails.aggregate([
             {
@@ -970,6 +973,10 @@ class WebDataHandler {
     }
 
     getIntervalPeriod(startDate, endDate) {
+        // Determine the resolution in days that we should use for graphs for
+        // the given date range. If the date range is fewer than 200 days, then
+        // we'll return 7, for "weekly" resolution. If it's more than 200 days,
+        // then return 30 for "monthly"
         let inputPeriod = 7;
 
         let dayDifference = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -978,6 +985,11 @@ class WebDataHandler {
         }
 
         return inputPeriod;
+    }
+
+    getDateLabel(inDate){
+        // months are 0-indexed, so add 1 so that they make sense to a human
+        return (inDate.getMonth()+1) + " " + inDate.getDate() + " " + inDate.getFullYear();
     }
 
     async getActiveIssuesGraphData(queryData) {
@@ -994,17 +1006,21 @@ class WebDataHandler {
 
         // Get issue query data
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        // Create a list of days to get issue data for.
         let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
 
         let datesPromiseList = [];
 
+        // Collect up the async functions to query the number of active issues
+        // on each day in our dateArray
         for (let i = 0; i < dateArray.length; i++) {
             let inputDate = dateArray[i];
             datesPromiseList.push(this.getActiveIssues(inputDate, firstFindQuery));
         }
 
         let xData = await Promise.all(datesPromiseList);
-        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+        let labelData = dateArray.map(getDateLabel);
         return { datasets: [{ data: xData, label: "Active Issues" }], labels: labelData };
     }
 
@@ -1036,7 +1052,7 @@ class WebDataHandler {
         }
 
         let [issuesClosedData, issuesCreatedData] = await Promise.all([Promise.all(issuesClosedPromiseList), Promise.all(issuesCreatedPromiseList)]);
-        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+        let labelData = dateArray.map(getDateLabel);
         return { datasets: [{ data: issuesClosedData, label: "Closed Issues" }, { data: issuesCreatedData, label: "Created Issues" }], labels: labelData };
     }
 
@@ -1065,7 +1081,7 @@ class WebDataHandler {
         }
 
         let xData = await Promise.all(commentNumberPromiseList);
-        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+        let labelData = dateArray.map(getDateLabel);
         return { datasets: [{ data: xData, label: "Number of Comments" }], labels: labelData };
     }
 
