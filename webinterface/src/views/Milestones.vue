@@ -1,11 +1,12 @@
 <template>
   <div class="pageContent">
     <b-container>
-      <h1>{{ inputQuery.repos }}</h1>
+
+        <h1>{{ inputQuery.repos }}</h1>
+
+
       <div class="graph-title-and-controls">
-        <div class="graph-controls">
           <div class="table-header-buttons">
-            <div class="table-header-buttons-group">
               <b-dropdown
                 id="dropdown-1"
                 text="Repo"
@@ -56,21 +57,21 @@
                 ></b-form-input>
               </b-dropdown>
 
-            </div>
           </div>
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.startDate"
-            class="mb-2"
-            @input="refreshData"
-          ></b-form-datepicker>
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.endDate"
-            class="mb-2"
-            @input="refreshData"
-          ></b-form-datepicker>
-        </div>
+          <div class="table-header-buttons">
+            <b-form-datepicker
+              size="sm"
+              v-model="inputQuery.startDate"
+              class="mb-2"
+              @input="refreshData"
+            />
+            <b-form-datepicker
+              size="sm"
+              v-model="inputQuery.endDate"
+              class="mb-2"
+              @input="refreshData"
+            />
+          </div>
       </div>
       <div class="active-issues-graph">
         <MilestoneIssuesGraph

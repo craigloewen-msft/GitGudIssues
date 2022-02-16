@@ -1,11 +1,11 @@
 <template>
   <div class="pageContent">
     <b-container>
+
       <h1>{{ inputQuery.repos }}</h1>
+
       <div class="graph-title-and-controls">
-        <div class="graph-controls">
           <div class="table-header-buttons">
-            <div class="table-header-buttons-group">
               <b-dropdown
                 id="dropdown-1"
                 text="Repo"
@@ -21,22 +21,58 @@
                   @keyup.enter="refreshData"
                 ></b-form-input>
               </b-dropdown>
-            </div>
+
+              <b-dropdown
+                id="milestone-dropdown"
+                text="milestone"
+                class="m-md-2"
+                size="sm"
+                variant="outline-secondary"
+              >
+                <b-form-input
+                  placeholder="Terminal v1.14,22H1"
+                  size="sm"
+                  v-model="inputQuery.milestones"
+                  v-debounce:1s="refreshData"
+                  @keyup.enter="refreshData"
+                ></b-form-input>
+              </b-dropdown>
+
+              <b-dropdown
+                id="date-resolution"
+                text="fidelity"
+                class="m-md-2"
+                size="sm"
+                variant="outline-secondary"
+              >
+                (In days)
+                <b-form-input
+                  placeholder=""
+                  size="sm"
+                  :number="true"
+                  v-model="inputQuery.inputPeriod"
+                  v-debounce:1s="refreshData"
+                  @keyup.enter="refreshData"
+                ></b-form-input>
+              </b-dropdown>
+
           </div>
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.startDate"
-            class="mb-2"
-            @input="refreshData"
-          ></b-form-datepicker>
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.endDate"
-            class="mb-2"
-            @input="refreshData"
-          ></b-form-datepicker>
-        </div>
+          <div class="table-header-buttons">
+            <b-form-datepicker
+              size="sm"
+              v-model="inputQuery.startDate"
+              class="mb-2"
+              @input="refreshData"
+            />
+            <b-form-datepicker
+              size="sm"
+              v-model="inputQuery.endDate"
+              class="mb-2"
+              @input="refreshData"
+            />
+          </div>
       </div>
+
       <div class="active-issues-graph">
         <ActiveIssuesGraph
           v-if="!loading"
@@ -139,7 +175,8 @@ export default {
         repos: "",
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
         endDate: new Date(),
-        inputPeriod: 1
+        inputPeriod: 0,
+        milestones: ""
       },
       loading: true,
       repoList: [],
