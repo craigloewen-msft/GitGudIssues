@@ -1269,7 +1269,7 @@ class WebDataHandler {
         }
 
         let dataPointArray = await Promise.all(dataPointGatherPromiseList);
-        let labelData = dateArray.map((inDate) => inDate.getMonth() + " " + inDate.getDate() + " " + inDate.getFullYear());
+        let labelData = dateArray.map((inDate) => WebDataHandler.getDateLabel(inDate));
 
         let returnChartObject = {};
         returnChartObject.labels = labelData;
