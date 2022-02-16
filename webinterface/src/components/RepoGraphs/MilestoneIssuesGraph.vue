@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2>Active Issues</h2>
+  <h2>{{inputQuery.milestones? inputQuery.milestones : "Active Issues"}}</h2>
     <GraphBase
       :chartEndPoint="'/api/getactiveissuesgraph'"
       :chartColors="['#e6892c']"

@@ -38,6 +38,24 @@
                 ></b-form-input>
               </b-dropdown>
 
+              <b-dropdown
+                id="date-resolution"
+                text="fidelity"
+                class="m-md-2"
+                size="sm"
+                variant="outline-secondary"
+              >
+                (In days)
+                <b-form-input
+                  placeholder=""
+                  size="sm"
+                  :number="true"
+                  v-model="inputQuery.inputPeriod"
+                  v-debounce:1s="refreshData"
+                  @keyup.enter="refreshData"
+                ></b-form-input>
+              </b-dropdown>
+
             </div>
           </div>
           <b-form-datepicker
