@@ -18,9 +18,6 @@
             <Bootstrapnavlinkcustom to="/repographs"
               >Repo Graphs</Bootstrapnavlinkcustom
             >
-            <Bootstrapnavlinkcustom to="/milestones"
-              >Milestones</Bootstrapnavlinkcustom
-            >
             <Bootstrapnavlinkcustom to="/usergraphs"
               >User Graphs</Bootstrapnavlinkcustom
             >
