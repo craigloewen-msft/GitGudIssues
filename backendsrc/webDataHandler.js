@@ -250,15 +250,45 @@ class WebDataHandler {
 
         console.log(queryData);
         if (queryData.milestones) {
-            let emplaceObject = [];
-            andOrArrays.push(emplaceObject);
-            let andObject = { "$and": [] };
+            let orMilestoneList = queryData.milestones.split(',');
+            console.log(orMilestoneList);
+            console.log(orMilestoneList.length);
+            if (orMilestoneList.length > 0)
+            {
+                let emplaceObject = [];
+                andOrArrays.push(emplaceObject);
+                let andObject = { "$and": [] };
+                andObject["$and"].push({ "milestone.title": { "$in": orMilestoneList } });
+                // andObject["$and"].push({ "milestone.title": { "$in": ["Terminal v1.14", "22H2"] } });
+                console.log(andObject);
+                emplaceObject.push(andObject);
+            }
+
+
+            // for (let i = 0; i < orMilestoneList.length; i++) {
+            //     let m = orMilestoneList[i];
+            //     let orObject = { "$or": [] };
+            //     orObject.push({ "milestone.title": { "$in": [m] } });
+
+            //     if (andLabelList.length == 1) {
+            //         emplaceObject.push({ "siteIssueLabels": { "$elemMatch": { "name": andLabelList[0] } } });
+            //     } else {
+            //         for (let j = 0; j < andLabelList.length; j++) {
+            //             let putLabel = andLabelList[j];
+            //             andObject["$and"].push({ "siteIssueLabels": { "$elemMatch": { "name": putLabel } } });
+            //         }
+            //         // emplaceObject.push(andObject);
+            //     }
+            // }
+
+
+
+
             // andObject["$and"].push({ "milestone": { "$elemMatch": { "name": "Terminal v1.14" } } });
             // andObject["$and"].push({ "milestone": { "$elemMatch": { "id": 41 } } });
             // andObject["$and"].push({ "milestone.id": { "$in": [ 41 ] } });
-            andObject["$and"].push({ "milestone.title": { "$in": ["Terminal v1.14" ] } });
+            // andObject["$and"].push({ "milestone.title": { "$in": ["Terminal v1.14" ] } });
 
-            emplaceObject.push(andObject);
         }
 
         // findQuery['milestone'] = { "$elemMatch": { "name": "Terminal v1.14" } };
