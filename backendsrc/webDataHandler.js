@@ -104,6 +104,7 @@ class WebDataHandler {
         var limitNum = 10;
         var skipNum = 0;
         let commentsNeeded = false;
+        let readNeeded = false;
 
         let andOrArrays = [];
 
@@ -279,6 +280,16 @@ class WebDataHandler {
             }
         }
 
+        if (queryData.read) {
+            if (queryData.read == "unread") {
+                findQuery["readByUser"] = false;
+                readNeeded = true;
+            } else if (queryData.read == "read") {
+                findQuery["readByUser"] = true;
+                readNeeded = true;
+            }
+        }
+
         // Get and array (level 1)
         let rootAndArray = [];
         for (let i = 0; i < andOrArrays.length; i++) {
@@ -306,25 +317,7 @@ class WebDataHandler {
         }
         // End level 1
 
-        return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded];
-    }
-
-    async setIfIssuesAreRead(inputIssueArray, inUser) {
-        inputIssueArray.map((issueItem) => {
-            let issueReadArray = issueItem.issueReadArray;
-            if (issueReadArray.length > 0) {
-                // Choose the highest read at
-                let issueReadItem = issueReadArray.reduce((max, issueRead) => max.readAt > issueRead.readAt ? max : issueRead);
-                if (new Date(issueReadItem.readAt) >= new Date(issueItem.updated_at)) {
-                    issueItem.readByUser = true;
-                } else {
-                    issueItem.readByUser = false;
-                }
-            } else {
-                issueItem.readByUser = false;
-            }
-        });
-
+        return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded, readNeeded];
     }
 
     setIssueLabelsForUser(inputIssueArray, inUser) {
@@ -349,14 +342,41 @@ class WebDataHandler {
         }
 
         // Get issue query data
-        let [findQuery, sortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let [findQuery, sortQuery, limitNum, skipNum, commentsNeeded, readNeeded] = this.getQueryInputs(queryData, inUser);
 
         let countQueryPipeline = [];
         let issueQueryPipeline = [];
 
-        issueQueryPipeline.push(
-            { "$project": { "body": 0 } }
-        );
+        let issueReadLookUpStage = {
+            "$lookup": {
+                "from": "issueReadInfo",
+                "localField": "_id",
+                "foreignField": "issueRef",
+                "as": "issueReadArray",
+                "pipeline": [
+                    {
+                        "$match": {
+                            "userRef": inUser._id
+                        }
+                    }
+                ],
+            }
+        };
+
+        let addIssueReadStage = {
+            "$addFields": {
+                "readByUser": {
+                    // "$comments"
+                    "$reduce": {
+                        "input": "$issueReadArray", initialValue: false,
+                        "in": {
+                            "$cond": { "if": { "$gt": ["$$this.readAt", "$updated_at"] }, "then": true, "else": false }
+                        }
+                    }
+                    // { "$cond": { "if": { "$gt": ["$comments", currentDate] }, "then": true, "else": false } }
+                }
+            }
+        };
 
         let commentLookup = {
             "$lookup": {
@@ -379,6 +399,12 @@ class WebDataHandler {
             countQueryPipeline.push(commentLookup);
             issueQueryPipeline.push(commentLookup);
         }
+
+        if (readNeeded) {
+            countQueryPipeline.push(issueReadLookUpStage, addIssueReadStage);
+        }
+
+        issueQueryPipeline.push(issueReadLookUpStage, addIssueReadStage);
 
         countQueryPipeline.push(
             {
@@ -409,26 +435,12 @@ class WebDataHandler {
                     ],
                 }
             },
-            {
-                "$lookup": {
-                    "from": "issueReadInfo",
-                    "localField": "_id",
-                    "foreignField": "issueRef",
-                    "as": "issueReadArray",
-                    "pipeline": [
-                        {
-                            "$match": {
-                                "userRef": inUser._id
-                            }
-                        }
-                    ],
-                }
-            },
             { "$match": findQuery },
             // { "$unwind": "$issueResult" },
             { "$sort": sortQuery },
             { "$skip": skipNum },
             { "$limit": limitNum },
+            { "$project": { "body": 0 } }
         );
 
         var countQuery = this.IssueDetails.aggregate(countQueryPipeline);
@@ -438,9 +450,6 @@ class WebDataHandler {
 
         // Get a return array
         var returnIssueResultsArray = JSON.parse(JSON.stringify(queryResults[1]));
-
-        // For each issue get whether it's read or unread
-        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
 
         // Get what issues have what labels for this user (can be done in parallel with above)
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);
@@ -627,7 +636,7 @@ class WebDataHandler {
     transformIssueSearchLeafRecursive(findQuery, firstFindQuery) {
         for (let objectKey of Object.keys(firstFindQuery)) {
             if (objectKey != "$and" && objectKey != "$or") {
-                if (objectKey != "siteIssueLabels" && objectKey != "issueReadArray" && objectKey != "issueCommentsArray") {
+                if (objectKey != "siteIssueLabels" && objectKey != "issueReadArray" && objectKey != "issueCommentsArray" && objectKey != "readByUser") {
                     findQuery["issueResult." + objectKey] = firstFindQuery[objectKey];
                 } else {
                     findQuery[objectKey] = firstFindQuery[objectKey];
@@ -669,13 +678,44 @@ class WebDataHandler {
         }
 
         // Get issue query data
-        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded, readNeeded] = this.getQueryInputs(queryData, inUser);
 
         let [findQuery, sortQuery] = this.transformIssueSearchCriteriaToMentions(firstFindQuery, firstSortQuery);
 
 
         let countQueryPipeline = [];
         let mentionQueryPipeline = [];
+
+        let issueReadLookUpStage = {
+            "$lookup": {
+                "from": "issueReadInfo",
+                "localField": "issueResult._id",
+                "foreignField": "issueRef",
+                "as": "issueReadArray",
+                "pipeline": [
+                    {
+                        "$match": {
+                            "userRef": inUser._id
+                        }
+                    }
+                ],
+            }
+        };
+
+        let addIssueReadStage = {
+            "$addFields": {
+                "readByUser": {
+                    // "$comments"
+                    "$reduce": {
+                        "input": "$issueReadArray", initialValue: false,
+                        "in": {
+                            "$cond": { "if": { "$gt": ["$$this.readAt", "$issueResult.updated_at"] }, "then": true, "else": false }
+                        }
+                    }
+                    // { "$cond": { "if": { "$gt": ["$comments", currentDate] }, "then": true, "else": false } }
+                }
+            }
+        };
 
         countQueryPipeline.push(
             { "$match": { "userRef": inUser._id } },
@@ -698,7 +738,6 @@ class WebDataHandler {
                     "as": "issueResult"
                 }
             },
-            { "$project": { "issueResult.body": 0 } },
             { "$unwind": "$issueResult" },
         );
 
@@ -724,6 +763,12 @@ class WebDataHandler {
             mentionQueryPipeline.push(commentLookup);
         }
 
+        if (readNeeded) {
+            countQueryPipeline.push(issueReadLookUpStage, addIssueReadStage);
+        }
+
+        mentionQueryPipeline.push(issueReadLookUpStage, addIssueReadStage);
+
         countQueryPipeline.push(
             { "$match": findQuery },
             { "$count": "resultCount" },
@@ -745,25 +790,11 @@ class WebDataHandler {
                     ],
                 }
             },
-            {
-                "$lookup": {
-                    "from": "issueReadInfo",
-                    "localField": "issueResult._id",
-                    "foreignField": "issueRef",
-                    "as": "issueReadArray",
-                    "pipeline": [
-                        {
-                            "$match": {
-                                "userRef": inUser._id
-                            }
-                        }
-                    ],
-                }
-            },
             { "$match": findQuery },
             { "$sort": sortQuery },
             { "$skip": skipNum },
             { "$limit": limitNum },
+            { "$project": { "issueResult.body": 0 } },
         );
 
         var countQuery = this.IssueCommentMentionDetails.aggregate(countQueryPipeline);
@@ -780,11 +811,9 @@ class WebDataHandler {
             pushItem.mentionAuthor = queryResults[1][i].mentionAuthor;
             pushItem.issueReadArray = queryResults[1][i].issueReadArray;
             pushItem.siteIssueLabels = queryResults[1][i].siteIssueLabels;
+            pushItem.readByUser = queryResults[1][i].readByUser;
             returnIssueResultsArray.push(pushItem);
         }
-
-        // For each issue get whether it's read or unread
-        this.setIfIssuesAreRead(returnIssueResultsArray, inUser);
 
         // Get what issues have what labels for this user (can be done in parallel with above)
         this.setIssueLabelsForUser(returnIssueResultsArray, inUser);

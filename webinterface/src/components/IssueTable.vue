@@ -188,6 +188,30 @@
             @keyup.enter="refreshIssues"
           ></b-form-input>
         </b-dropdown>
+
+        <b-dropdown
+          id="dropdown-1"
+          text="Read"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-dropdown-item
+            :active="inputQuery.read == 'all'"
+            v-on:click="setQueryProperty('read', 'all')"
+            >All</b-dropdown-item
+          >
+          <b-dropdown-item
+            :active="inputQuery.read == 'Unread'"
+            v-on:click="setQueryProperty('read', 'unread')"
+            >Unread</b-dropdown-item
+          >
+          <b-dropdown-item
+            :active="inputQuery.read == 'read'"
+            v-on:click="setQueryProperty('read', 'read')"
+            >Read</b-dropdown-item
+          >
+        </b-dropdown>
       </div>
 
       <div class="page-search-box">
