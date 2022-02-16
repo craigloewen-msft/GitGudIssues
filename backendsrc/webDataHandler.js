@@ -333,7 +333,6 @@ class WebDataHandler {
             findQuery["$and"] = rootAndArray;
         }
         // End level 1
-        console.log(findQuery);
 
         return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded, inputPeriod];
     }
