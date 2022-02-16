@@ -248,6 +248,21 @@ class WebDataHandler {
             }
         }
 
+        console.log(queryData);
+        if (queryData.milestones) {
+            let emplaceObject = [];
+            andOrArrays.push(emplaceObject);
+            let andObject = { "$and": [] };
+            // andObject["$and"].push({ "milestone": { "$elemMatch": { "name": "Terminal v1.14" } } });
+            // andObject["$and"].push({ "milestone": { "$elemMatch": { "id": 41 } } });
+            // andObject["$and"].push({ "milestone.id": { "$in": [ 41 ] } });
+            andObject["$and"].push({ "milestone.title": { "$in": ["Terminal v1.14" ] } });
+
+            emplaceObject.push(andObject);
+        }
+
+        // findQuery['milestone'] = { "$elemMatch": { "name": "Terminal v1.14" } };
+
         if (queryData.number) {
             findQuery['number'] = Number(queryData.number);
         }
@@ -310,6 +325,7 @@ class WebDataHandler {
             findQuery["$and"] = rootAndArray;
         }
         // End level 1
+        console.log(findQuery);
 
         return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded, inputPeriod];
     }
