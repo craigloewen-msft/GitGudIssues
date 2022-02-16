@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const connectEnsureLogin = require('connect-ensure-login');
 // Custom requires
 const WebDataHandler = require('./backendsrc/webDataHandler')
+const TeamsDataHandler = require('./backendsrc/teamsDataHandler')
 // Get config
 const config = fs.existsSync('./config.js') ? require('./config') : require('./defaultconfig');
 
@@ -245,6 +246,24 @@ UserDetail.virtual('manageIssueSearchQueries', {
     foreignField: 'userRef'
 });
 
+UserDetail.virtual('teams', {
+    ref: 'teamInfo',
+    localField: '_id',
+    foreignField: 'users'
+});
+
+const TeamDetail = new Schema({
+    name: String,
+    repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
+    users: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
+    owner: {type: Schema.Types.ObjectId, ref: 'userInfo'},
+    triageSettings: Object,
+});
+
+TeamDetail.index({ 'repos': 1 });
+TeamDetail.index({ 'users': 1 });
+TeamDetail.index({ 'owner': 1 });
+
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
 UserDetail.plugin(passportLocalMongoose);
@@ -257,11 +276,15 @@ const siteIssueLabelDetails = mongoose.model('siteIssueLabelInfo', siteIssueLabe
 const IssueCommentDetails = mongoose.model('issueCommentInfo', IssueCommentDetail, 'issueCommentInfo');
 const IssueCommentMentionDetails = mongoose.model('issueCommentMentionInfo', IssueCommentMentionDetail, 'issueCommentMentionInfo');
 const IssueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
+const TeamDetails = mongoose.model('teamInfo', TeamDetail, 'teamInfo');
 
 const JWTTimeout = 604800; // 7 Days
 
 const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken);
+
+const teamDataHandler = new TeamsDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
+    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails);
 
 // App set up
 
@@ -785,6 +808,41 @@ app.post('/api/getcommentskeynumber', authenticateToken, async function (req, re
         var returnData = await dataHandler.getCommentsKeyNumber(req.body);
 
         return res.json({ success: true, keyNumber: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+// Teams functions
+
+app.post('/api/createnewteam', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.addNewTeam(req.body);
+
+        return res.json({ success: true, newTeam: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/deleteteam', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.deleteTeam(req.body);
+
+        return res.json({ success: true, teamsList: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.get('/api/getuserteams', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.getUserTeams(req.body);
+
+        return res.json({ success: true, teamsList: returnData });
     } catch (error) {
         return res.json(returnFailure(error));
     }
