@@ -43,10 +43,12 @@ export default {
             const graphData = response.data.graphData;
             this.labels = graphData.labels;
             this.datasets = graphData.datasets;
-            
+
             for (let i = 0; i < this.datasets.length; i++) {
               let datasetItem = this.datasets[i];
               datasetItem.backgroundColor = this.chartColors[i % this.chartColors.length];
+              // If there's a ton of data, the points on the graph only add noise
+              if (datasetItem.data.length > 50) { datasetItem.pointStyle='line'; /* datasetItem.tension=0; */ }
             }
 
             this.loading = false;
