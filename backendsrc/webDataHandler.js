@@ -248,50 +248,28 @@ class WebDataHandler {
             }
         }
 
-        console.log(queryData);
+        // If requested, filter to a set of milestones. This obviously won't
+        // work across multiple repos, unless they happen to have the same
+        // milestone names.
         if (queryData.milestones) {
+            // Obviously, this won't work if the milestone has a comma in it's title.
             let orMilestoneList = queryData.milestones.split(',');
-            console.log(orMilestoneList);
-            console.log(orMilestoneList.length);
+
+            // Theoretically we should trim leading/trailing whitespace here.
+
+            // if we actually found a milestone to filter by...
             if (orMilestoneList.length > 0)
             {
+                // Add a clause to make sure that the issues are in at least one
+                // of the requested milestones, by title of the milestone.
+
                 let emplaceObject = [];
                 andOrArrays.push(emplaceObject);
                 let andObject = { "$and": [] };
                 andObject["$and"].push({ "milestone.title": { "$in": orMilestoneList } });
-                // andObject["$and"].push({ "milestone.title": { "$in": ["Terminal v1.14", "22H2"] } });
-                console.log(andObject);
                 emplaceObject.push(andObject);
             }
-
-
-            // for (let i = 0; i < orMilestoneList.length; i++) {
-            //     let m = orMilestoneList[i];
-            //     let orObject = { "$or": [] };
-            //     orObject.push({ "milestone.title": { "$in": [m] } });
-
-            //     if (andLabelList.length == 1) {
-            //         emplaceObject.push({ "siteIssueLabels": { "$elemMatch": { "name": andLabelList[0] } } });
-            //     } else {
-            //         for (let j = 0; j < andLabelList.length; j++) {
-            //             let putLabel = andLabelList[j];
-            //             andObject["$and"].push({ "siteIssueLabels": { "$elemMatch": { "name": putLabel } } });
-            //         }
-            //         // emplaceObject.push(andObject);
-            //     }
-            // }
-
-
-
-
-            // andObject["$and"].push({ "milestone": { "$elemMatch": { "name": "Terminal v1.14" } } });
-            // andObject["$and"].push({ "milestone": { "$elemMatch": { "id": 41 } } });
-            // andObject["$and"].push({ "milestone.id": { "$in": [ 41 ] } });
-            // andObject["$and"].push({ "milestone.title": { "$in": ["Terminal v1.14" ] } });
-
         }
-
-        // findQuery['milestone'] = { "$elemMatch": { "name": "Terminal v1.14" } };
 
         if (queryData.number) {
             findQuery['number'] = Number(queryData.number);
