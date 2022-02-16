@@ -104,6 +104,7 @@ class WebDataHandler {
         var limitNum = 10;
         var skipNum = 0;
         let commentsNeeded = false;
+        var inputPeriod = 0;
 
         let andOrArrays = [];
 
@@ -135,6 +136,10 @@ class WebDataHandler {
             } else {
                 limitNum = 30;
             }
+        }
+
+        if (queryData.inputPeriod) {
+            inputPeriod = queryData.inputPeriod;
         }
 
         if (queryData.page_num) {
@@ -306,7 +311,7 @@ class WebDataHandler {
         }
         // End level 1
 
-        return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded];
+        return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded, inputPeriod];
     }
 
     async setIfIssuesAreRead(inputIssueArray, inUser) {
@@ -1006,10 +1011,10 @@ class WebDataHandler {
         let inputPeriod = this.getIntervalPeriod(startDate, endDate);
 
         // Get issue query data
-        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded, queryInputPeriod] = this.getQueryInputs(queryData, inUser);
 
         // Create a list of days to get issue data for.
-        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, queryInputPeriod == 0 ? inputPeriod : queryInputPeriod);
 
         let datesPromiseList = [];
 

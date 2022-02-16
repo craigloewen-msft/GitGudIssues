@@ -139,6 +139,7 @@ export default {
         repos: "",
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
         endDate: new Date(),
+        inputPeriod: 1
       },
       loading: true,
       repoList: [],
