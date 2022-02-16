@@ -22,4 +22,4 @@ The frontend will hot reload, but the backend won't.
 
 ### Further set up
 * You can replace `defaultconfig.js` with your actual one once you want to go live.
-* You will probably want to generate a github API token, and stick that in `ghToken` in `defaultConfig.js`, so that you don't instantly run into the rate limit.
+* You will probably want to generate a github API token. Copy `defaultConfig.json` to `config.json`, and stick that in `ghToken` in `config.js`, so that you don't instantly run into the rate limit.
