@@ -254,8 +254,7 @@ class WebDataHandler {
             // Theoretically we should trim leading/trailing whitespace here.
 
             // if we actually found a milestone to filter by...
-            if (orMilestoneList.length > 0)
-            {
+            if (orMilestoneList.length > 0) {
                 // Add a clause to make sure that the issues are in at least one
                 // of the requested milestones, by title of the milestone.
 
@@ -1100,8 +1099,8 @@ class WebDataHandler {
 
         for (let i = 0; i < dateArray.length; i++) {
             let inputDate = dateArray[i];
-            let issueClosedPromise = this.getIssuesClosed(inputDate, inputPeriod, firstFindQuery);
-            let issuesCreatedPromise = this.getIssuesCreated(inputDate, inputPeriod, firstFindQuery);
+            let issueClosedPromise = this.getIssuesClosed(inputDate, queryInputPeriod == 0 ? inputPeriod : queryInputPeriod, firstFindQuery);
+            let issuesCreatedPromise = this.getIssuesCreated(inputDate, queryInputPeriod == 0 ? inputPeriod : queryInputPeriod, firstFindQuery);
             issuesClosedPromiseList.push(issueClosedPromise);
             issuesCreatedPromiseList.push(issuesCreatedPromise);
         }
@@ -1132,7 +1131,7 @@ class WebDataHandler {
 
         for (let i = 0; i < dateArray.length; i++) {
             let inputDate = dateArray[i];
-            let commentNumberPromise = this.getCommentsCreated(inputDate, inputPeriod, firstFindQuery);
+            let commentNumberPromise = this.getCommentsCreated(inputDate, queryInputPeriod == 0 ? inputPeriod : queryInputPeriod, firstFindQuery);
             commentNumberPromiseList.push(commentNumberPromise);
         }
 
