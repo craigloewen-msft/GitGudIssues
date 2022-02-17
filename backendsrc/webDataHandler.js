@@ -244,6 +244,29 @@ class WebDataHandler {
             }
         }
 
+        // If requested, filter to a set of milestones. This obviously won't
+        // work across multiple repos, unless they happen to have the same
+        // milestone names.
+        if (queryData.milestones) {
+            // Obviously, this won't work if the milestone has a comma in it's title.
+            let orMilestoneList = queryData.milestones.split(',');
+
+            // Theoretically we should trim leading/trailing whitespace here.
+
+            // if we actually found a milestone to filter by...
+            if (orMilestoneList.length > 0)
+            {
+                // Add a clause to make sure that the issues are in at least one
+                // of the requested milestones, by title of the milestone.
+
+                let emplaceObject = [];
+                andOrArrays.push(emplaceObject);
+                let andObject = { "$and": [] };
+                andObject["$and"].push({ "milestone.title": { "$in": orMilestoneList } });
+                emplaceObject.push(andObject);
+            }
+        }
+
         if (queryData.number) {
             findQuery['number'] = Number(queryData.number);
         }
@@ -1033,12 +1056,13 @@ class WebDataHandler {
         let startDate = new Date(queryData.startDate);
         let endDate = new Date(queryData.endDate);
         let inputPeriod = this.getIntervalPeriod(startDate, endDate);
+        let queryInputPeriod = queryData.inputPeriod;
 
         // Get issue query data
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
 
         // Create a list of days to get issue data for.
-        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, queryInputPeriod == 0 ? inputPeriod : queryInputPeriod);
 
         let datesPromiseList = [];
 
@@ -1065,10 +1089,11 @@ class WebDataHandler {
         let startDate = new Date(queryData.startDate);
         let endDate = new Date(queryData.endDate);
         let inputPeriod = this.getIntervalPeriod(startDate, endDate);
+        let queryInputPeriod = queryData.inputPeriod;
 
         // Get issue query data
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
-        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, queryInputPeriod == 0 ? inputPeriod : queryInputPeriod);
 
         let issuesClosedPromiseList = [];
         let issuesCreatedPromiseList = [];
@@ -1097,10 +1122,11 @@ class WebDataHandler {
         let startDate = new Date(queryData.startDate);
         let endDate = new Date(queryData.endDate);
         let inputPeriod = this.getIntervalPeriod(startDate, endDate);
+        let queryInputPeriod = queryData.inputPeriod;
 
         // Get issue query data
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
-        let dateArray = this.getDateListBetweenDates(startDate, endDate, inputPeriod);
+        let dateArray = this.getDateListBetweenDates(startDate, endDate, queryInputPeriod == 0 ? inputPeriod : queryInputPeriod);
 
         let commentNumberPromiseList = [];
 

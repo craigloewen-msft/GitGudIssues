@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2>Active Issues</h2>
+  <h2>Active Issues</h2>
     <GraphBase
       :chartEndPoint="'/api/getactiveissuesgraph'"
       :chartColors="['#f87979']"
