@@ -196,6 +196,7 @@ const mentionQueryDetail = new Schema({
     repos: String,
     siteLabels: String,
     commentedAliases: String,
+    read: String,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
@@ -210,6 +211,7 @@ const searchQueryDetail = new Schema({
     repos: String,
     siteLabels: String,
     commentedAliases: String,
+    read: String,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
