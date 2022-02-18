@@ -95,6 +95,12 @@ export default {
       errorResponseFunc.bind(this)
     );
   },
+  metaInfo: {
+    meta: [
+      { name: "description", content:"Easily manage your Github issues using this tool. This is a great way to never lose track of a Github issue again."},
+      { name: "kewyords", content:"manage, github, issues"}
+    ]
+  }
 };
 </script>
 

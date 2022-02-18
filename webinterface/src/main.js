@@ -6,6 +6,7 @@ import store from './store.js'
 import Axios from 'axios'
 import vueDebounce from 'vue-debounce'
 import VueGtag from "vue-gtag"
+import VueMeta from 'vue-meta'
 
 // import 'bootstrap/dist/css/bootstrap.css'
 // import 'bootstrap-vue/dist/bootstrap-vue.css'
@@ -26,6 +27,8 @@ Vue.use(vueDebounce, {
 Vue.use(VueGtag, {
   config: { id: "G-RGZMG4RTH7" }
 });
+
+Vue.use(VueMeta);
 
 new Vue({
   router,
