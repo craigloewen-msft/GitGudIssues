@@ -6,22 +6,7 @@
       v-for="(team, teamIndex) in teamsList"
       :key="teamIndex"
     >
-      <h2>{{ team.name }}</h2>
-      <h3>Members</h3>
-      <p v-for="(member, memberIndex) in team.users" :key="memberIndex">
-        {{ member.githubUsername }}
-      </p>
-      <h3>Repos</h3>
-      <p v-for="(repo, repoIndex) in team.repos" :key="repoIndex">
-        {{ repo.shortURL }}
-      </p>
-      <button
-        v-on:click="deleteTeam(team)"
-        class="btn btn-warning"
-        type="button"
-      >
-        Delete
-      </button>
+      <TeamsCard @deleteTeamsEvent="loadTeamInfo" :team="team" />
     </div>
     <button v-on:click="addTeam" class="btn btn-primary" type="button">
       Add Team
@@ -30,8 +15,13 @@
 </template>
 
 <script>
+import TeamsCard from "./TeamsCard.vue";
+
 export default {
   name: "TeamsView",
+  components: {
+    TeamsCard,
+  },
   props: {},
   data() {
     return {
@@ -50,16 +40,6 @@ export default {
         }
       });
     },
-    getGHUsername: function () {
-      this.loading = true;
-      this.$http
-        .get("/api/user/" + this.$store.state.user.username + "/")
-        .then((response) => {
-          const someUserData = response.data.user;
-          this.githubUsername = someUserData.githubUsername;
-          this.loading = false;
-        });
-    },
     addTeam: function () {
       this.$http.post("/api/createnewteam/", {}).then((response) => {
         if (response.data.success) {
@@ -68,14 +48,17 @@ export default {
         }
       });
     },
-    deleteTeam: function (inTeam) {
+    loadTeamInfo: function (inTeamInfo) {
+      this.teamsList = inTeamInfo;
+    },
+    getGHUsername: function () {
+      this.loading = true;
       this.$http
-        .post("/api/deleteteam/", { teamID: inTeam._id })
+        .get("/api/user/" + this.$store.state.user.username + "/")
         .then((response) => {
-          if (response.data.success) {
-            const teamsListData = response.data.teamsList;
-            this.teamsList = teamsListData;
-          }
+          const someUserData = response.data.user;
+          this.githubUsername = someUserData.githubUsername;
+          this.loading = false;
         });
     },
   },

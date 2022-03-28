@@ -826,6 +826,17 @@ app.post('/api/createnewteam', authenticateToken, async function (req, res) {
     }
 });
 
+app.post('/api/updateteam', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.updateTeam(req.body);
+
+        return res.json({ success: true, newTeam: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 app.post('/api/deleteteam', authenticateToken, async function (req, res) {
     try {
         req.body.username = req.user.id;

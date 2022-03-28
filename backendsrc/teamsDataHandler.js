@@ -30,8 +30,26 @@ class TeamsDataHandler {
         };
 
         let newTeam = await this.TeamDetails.create(defaultTeamData);
+        await newTeam.save();
 
         return newTeam;
+    }
+
+    async updateTeam(inData) {
+        var inUser = (await this.UserDetails.find({ username: inData.username }).populate('teams'))[0];
+        var inTeam = await this.UserDetails.findOne({"id": inData._id});
+
+        if (inUser == null || inTeam == null) {
+            return false;
+        }
+
+        let editedTeamID = inData._id;
+        let editedTeam = inData;
+        delete editedTeam._id;
+
+        let updateResult = await this.TeamDetails.update({'_id': editedTeamID}, editedTeam);
+
+        return updateResult;
     }
 
     async getUserTeams(inData) {
