@@ -1,6 +1,10 @@
 This repository's goal is to make a web interface to more easily triage, manage and respond to Github Issues.
 
-## Set up
+## Use codspaces 
+
+This project is set up with codespaces. If you launch the project with codespaces and then run `npm run dev` in the root directory you will get set up immediately. 
+
+## Set up locally
 
 1. Have a MongoDB running. The easiest way to do this is in WSL.
   * `sudo apt install docker` to make sure you have docker.
