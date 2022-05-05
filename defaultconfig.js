@@ -1,5 +1,5 @@
 module.exports = {
-    'devMongoDBConnectionString': 'mongodb://localhost/GithubIssueManagement',
+    'devMongoDBConnectionString': 'mongodb://db/GithubIssueManagement',
     'secret': 'mysecret',
     'sessionSecret': 'somesessionsecret',
     'ghToken': null,
