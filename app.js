@@ -345,6 +345,7 @@ function returnBasicUserInfo(inputUsername, callback) {
                 var returnValue = {
                     username: docs[0].username,
                     repos: docs[0].repoTitles,
+                    id: docs[0]._id,
                 };
                 callback(returnValue);
             }
@@ -854,6 +855,28 @@ app.get('/api/getuserteams', authenticateToken, async function (req, res) {
         var returnData = await teamDataHandler.getUserTeams(req.body);
 
         return res.json({ success: true, teamsList: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getinvitestatus', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.getInviteStatus(req.body);
+
+        return res.json({ success: true, inviteData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/handleinvite', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.handleInvite(req.body);
+
+        return res.json({ success: true, handleResult: returnData });
     } catch (error) {
         return res.json(returnFailure(error));
     }

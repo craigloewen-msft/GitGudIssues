@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="title-row-controls">
+    <div class="title-row-controls" v-if="team.owner == userid">
       <h3 v-if="!editMode">{{ team.name }}</h3>
       <div v-if="!editMode">
         <b-button size="sm" v-on:click="enterEditMode">Edit</b-button>
@@ -16,6 +16,15 @@
     <p v-for="(member, memberIndex) in team.users" :key="memberIndex">
       {{ member.githubUsername }}
     </p>
+    <b-button v-b-modal="'team-invite-modal' + team._id"
+      >Invite Member</b-button
+    >
+    <b-modal :id="'team-invite-modal' + team._id" title="Invite modal">
+      <p>To invite someone to this team please send them this link:</p>
+      <p>{{ this.$router.resolve({ path: ("/team/invite/" + team._id) }).href }}</p>
+      <p>Or copy the address of this link:</p>
+      <router-link :to="'/team/invite/' + team._id">Link</router-link>
+    </b-modal>
     <h3>Repos</h3>
     <p v-for="(repo, repoIndex) in team.repos" :key="repoIndex">
       {{ repo.shortURL }}
@@ -34,6 +43,7 @@ export default {
     return {
       editMode: false,
       loading: true,
+      userid: this.$store.state.user.id,
     };
   },
   methods: {
@@ -46,22 +56,23 @@ export default {
           }
         });
     },
-    saveTeam: function() {
-      this.$http
-        .post("/api/updateteam/", this.team)
-        .then((response) => {
-          if (response.data.success) {
-            this.cancelEditMode();
-          } else {
-            console.log(response);
-          }
-        });
+    saveTeam: function () {
+      this.$http.post("/api/updateteam/", this.team).then((response) => {
+        if (response.data.success) {
+          this.cancelEditMode();
+        } else {
+          console.log(response);
+        }
+      });
     },
     cancelEditMode: function () {
       this.editMode = false;
     },
     enterEditMode: function () {
       this.editMode = true;
+    },
+    inviteMember: function () {
+      console.log("invite member");
     },
   },
   mounted() {

@@ -37,17 +37,21 @@ class TeamsDataHandler {
 
     async updateTeam(inData) {
         var inUser = (await this.UserDetails.find({ username: inData.username }).populate('teams'))[0];
-        var inTeam = await this.UserDetails.findOne({"id": inData._id});
+        var inTeam = await this.TeamDetails.findOne({ "_id": inData._id });
 
         if (inUser == null || inTeam == null) {
             return false;
+        }
+
+        if (inTeam.owner != inUser._id) {
+            return false; 
         }
 
         let editedTeamID = inData._id;
         let editedTeam = inData;
         delete editedTeam._id;
 
-        let updateResult = await this.TeamDetails.update({'_id': editedTeamID}, editedTeam);
+        let updateResult = await this.TeamDetails.update({ '_id': editedTeamID }, editedTeam);
 
         return updateResult;
     }
@@ -66,6 +70,63 @@ class TeamsDataHandler {
         var deleteResult = await this.TeamDetails.deleteOne({ _id: inData.teamID });
 
         return this.getUserTeams(inData);
+    }
+
+    async getInviteStatus(inData) {
+        let inTeamID = inData.inviteID;
+        var inUser = (await this.UserDetails.find({ username: inData.username }).populate('teams'))[0];
+        var inTeam = await this.TeamDetails.findOne({ "_id": inTeamID });
+
+        let returnObject = { inviteStatus: null, teamData: null };
+
+        if (inUser == null || inTeam == null) {
+            returnObject.inviteStatus = "error";
+            return returnObject;
+        }
+
+        let teamMatch = inUser.teams.find(teamVisitor => teamVisitor._id.toString() == inTeam._id.toString())
+        returnObject.teamData = inTeam;
+
+        if (teamMatch != undefined) {
+            returnObject.inviteStatus = "in-team";
+            return returnObject;
+        } else {
+            returnObject.inviteStatus = "not-in-team"
+            return returnObject;
+        }
+    }
+
+    async addUserToTeam(inUser, inTeam) {
+        if (inUser == null || inTeam == null) {
+            return "error";
+        }
+
+        let teamMatch = inUser.teams.find(teamVisitor => teamVisitor._id.toString() == inTeam._id.toString())
+
+        if (teamMatch != undefined) {
+            return "in-team";
+        } else {
+
+            inTeam.users.push(inUser._id);
+            await inTeam.save();
+
+            return "success";
+        }
+    }
+
+    async handleInvite(inData) {
+        let inTeamID = inData.inviteID;
+        var inUser = (await this.UserDetails.find({ username: inData.username }).populate('teams'))[0];
+        var inTeam = await this.TeamDetails.findOne({ "_id": inTeamID });
+
+        let inviteRequest = inData.inviteRequest;
+
+        if (inviteRequest == "accept") {
+            let teamAddResult = await this.addUserToTeam(inUser, inTeam);
+            return teamAddResult;
+        }
+
+        return null;
     }
 
 }

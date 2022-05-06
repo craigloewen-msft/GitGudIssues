@@ -95,6 +95,14 @@ const routes = [
       requiresAuth: true
     }
   },
+  {
+    path: '/team/invite/:invitestring',
+    name: 'Team Invite',
+    component: () => import(/* webpackChunkName: "about" */ '../views/TeamInvite.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
 ]
 
 const router = new VueRouter({
