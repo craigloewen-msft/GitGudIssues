@@ -2,7 +2,7 @@
   <div>
     <div class="title-row-controls">
       <h3 v-if="!editMode">{{ team.name }}</h3>
-      <div v-if="!editMode && team.owner == userid">
+      <div v-if="!editMode && (team.owner == userid || team.owner._id == userid)">
         <b-button size="sm" v-on:click="enterEditMode">Edit</b-button>
       </div>
       <b-form-input v-if="editMode" v-model="team.name"></b-form-input>
