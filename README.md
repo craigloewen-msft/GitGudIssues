@@ -15,14 +15,13 @@ This project is set up with codespaces. If you launch the project with codespace
   * make sure that you have an up to date `node`. See [NodeSource Node.js Binary Distributions](https://github.com/nodesource/distributions/blob/master/README.md)
   * First do an `npm install` in the root`
   * `cd webinterface/ ; npm install` in that directory too.
+3. Change `devMongoDBConnectionString` in `defaultconfig.js` to `mongodb://localhost/GithubIssueManagement` so it points to your local instance rather than the docker-compose ready version
 3. Run the webserver:
   * in the project root, `node app.js` will start the backend
   * in `webinterface/`, `npm run serve` will start the frontend.
 4. Navigate to `http://localhost:8080/#/` to view the website.
 
 The frontend will hot reload, but the backend won't.
-
-
 
 ### Further set up
 * You can replace `defaultconfig.js` with your actual one once you want to go live.
