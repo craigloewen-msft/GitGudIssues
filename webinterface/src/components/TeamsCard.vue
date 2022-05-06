@@ -1,8 +1,8 @@
 <template>
   <div>
-    <div class="title-row-controls" v-if="team.owner == userid">
+    <div class="title-row-controls">
       <h3 v-if="!editMode">{{ team.name }}</h3>
-      <div v-if="!editMode">
+      <div v-if="!editMode && team.owner == userid">
         <b-button size="sm" v-on:click="enterEditMode">Edit</b-button>
       </div>
       <b-form-input v-if="editMode" v-model="team.name"></b-form-input>
@@ -13,15 +13,25 @@
       </div>
     </div>
     <h3>Members</h3>
-    <p v-for="(member, memberIndex) in team.users" :key="memberIndex">
-      {{ member.githubUsername }}
-    </p>
+    <div v-for="(member, memberIndex) in team.users" :key="memberIndex">
+      <div>
+        {{ member.githubUsername }}
+      </div>
+      <b-button
+        v-if="editMode && member._id != userid"
+        size="sm"
+        v-on:click="removeTeamMember(member)"
+        >Remove</b-button
+      >
+    </div>
     <b-button v-b-modal="'team-invite-modal' + team._id"
       >Invite Member</b-button
     >
     <b-modal :id="'team-invite-modal' + team._id" title="Invite modal">
       <p>To invite someone to this team please send them this link:</p>
-      <p>{{ this.$router.resolve({ path: ("/team/invite/" + team._id) }).href }}</p>
+      <p>
+        {{ this.$router.resolve({ path: "/team/invite/" + team._id }).href }}
+      </p>
       <p>Or copy the address of this link:</p>
       <router-link :to="'/team/invite/' + team._id">Link</router-link>
     </b-modal>
@@ -71,8 +81,11 @@ export default {
     enterEditMode: function () {
       this.editMode = true;
     },
-    inviteMember: function () {
-      console.log("invite member");
+    removeTeamMember: function (inMember) {
+      let filteredTeamList = this.team.users.filter(
+        (user) => user._id != inMember._id
+      );
+      this.team.users = filteredTeamList;
     },
   },
   mounted() {

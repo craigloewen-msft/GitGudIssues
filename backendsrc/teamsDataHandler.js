@@ -43,7 +43,7 @@ class TeamsDataHandler {
             return false;
         }
 
-        if (inTeam.owner != inUser._id) {
+        if (inTeam.owner._id.toString() != inUser._id.toString()) {
             return false; 
         }
 
