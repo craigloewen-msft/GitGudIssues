@@ -61,7 +61,7 @@
           </button>
         </div>
       </div>
-      <div v-if="!showTutorialCheck()">
+      <div class="user-button-list" v-if="!showTutorialCheck()">
         <p class="text-muted">
           You can add repos that you're interested in here by typing them in
           above and pressing enter.
@@ -73,15 +73,20 @@
           >Refresh repos</b-button
         >
       </div>
+      <TeamsView :userRepoList="getRepoList()" v-if="!showTutorialCheck()" />
     </b-container>
   </div>
 </template>
 
 <script>
 import router from "../router";
+import TeamsView from "../components/TeamsView.vue"
 
 export default {
   name: "User",
+  components: {
+    TeamsView,
+  },
   data() {
     return {
       user: this.$store.state.user,
@@ -204,6 +209,13 @@ export default {
 
       return true;
     },
+    getRepoList: function () {
+      if (this.user) {
+        return this.user.repos;
+      } else {
+        return [];
+      }
+    }
   },
   mounted() {
     this.$http.defaults.headers.common["Authorization"] =
@@ -231,5 +243,9 @@ export default {
 
 .repo-input-form {
   background-color: #ffffff;
+}
+
+.user-button-list {
+  margin-bottom: 50px;
 }
 </style>
