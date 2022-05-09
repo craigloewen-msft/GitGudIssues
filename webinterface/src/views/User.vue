@@ -73,7 +73,7 @@
           >Refresh repos</b-button
         >
       </div>
-      <TeamsView v-if="!showTutorialCheck()" />
+      <TeamsView :userRepoList="getRepoList()" v-if="!showTutorialCheck()" />
     </b-container>
   </div>
 </template>
@@ -209,6 +209,13 @@ export default {
 
       return true;
     },
+    getRepoList: function () {
+      if (this.user) {
+        return this.user.repos;
+      } else {
+        return [];
+      }
+    }
   },
   mounted() {
     this.$http.defaults.headers.common["Authorization"] =

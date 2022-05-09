@@ -44,7 +44,7 @@ class TeamsDataHandler {
         }
 
         if (inTeam.owner._id.toString() != inUser._id.toString()) {
-            return false; 
+            return false;
         }
 
         let editedTeamID = inData._id;

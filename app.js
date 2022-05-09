@@ -256,7 +256,7 @@ const TeamDetail = new Schema({
     name: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
     users: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
-    owner: {type: Schema.Types.ObjectId, ref: 'userInfo'},
+    owner: { type: Schema.Types.ObjectId, ref: 'userInfo' },
     triageSettings: Object,
 });
 
@@ -420,7 +420,7 @@ app.get('/api/user/:username/', authenticateToken, (req, res) => {
             } else {
                 let repoInfoList = [];
                 for (let i = 0; i < docs[0].repos.length; i++) {
-                    repoInfoList.push({ title: docs[0].repos[i].shortURL, updating: docs[0].repos[i].updating });
+                    repoInfoList.push({ title: docs[0].repos[i].shortURL, "_id": docs[0].repos[i]._id, updating: docs[0].repos[i].updating });
                 }
                 var returnValue = {
                     success: true, auth: true,

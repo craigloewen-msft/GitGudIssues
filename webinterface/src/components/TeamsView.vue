@@ -6,7 +6,11 @@
       v-for="(team, teamIndex) in teamsList"
       :key="teamIndex"
     >
-      <TeamsCard @deleteTeamsEvent="loadTeamInfo" :team="team" />
+      <TeamsCard
+        @deleteTeamsEvent="loadTeamInfo"
+        :userRepoList="userRepoList"
+        :team="team"
+      />
     </div>
     <button v-on:click="addTeam" class="btn btn-primary" type="button">
       Add Team
@@ -22,7 +26,15 @@ export default {
   components: {
     TeamsCard,
   },
-  props: {},
+  props: {
+    userRepoList: {
+      type: Array,
+      required: true,
+      default() {
+        return [];
+      },
+    },
+  },
   data() {
     return {
       teamsList: [],
