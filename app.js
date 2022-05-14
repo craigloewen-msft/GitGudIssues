@@ -279,6 +279,8 @@ const TeamTriageDetail = new Schema({
         issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
     }],
     active: Boolean,
+    startDate: Date,
+    endDate: Date,
 });
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });

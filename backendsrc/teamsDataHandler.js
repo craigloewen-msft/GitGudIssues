@@ -322,7 +322,8 @@ class TeamsDataHandler {
         if (inTeam.triageList.length == 0) {
             let createdTriage = await this.TeamTriageDetails.create({
                 team: inTeam._id, active: true,
-                participants: []
+                participants: [],
+                startDate: new Date(),
             });
             await this.addUserToTeamTriage(createdTriage, inUser);
             //TODO: Assign triage issues to that user
@@ -355,6 +356,7 @@ class TeamsDataHandler {
             throw "No active team triage exists"
         } else {
             inTeam.triageList[0].active = false;
+            inTeam.triageList[0].endDate = new Date();
             await inTeam.triageList[0].save();
         }
 
