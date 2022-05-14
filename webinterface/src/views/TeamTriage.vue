@@ -60,13 +60,25 @@ export default {
         .post("/api/getteam/", { teamID: this.teamID })
         .then((response) => {
           if (response.data.success) {
+            // Load in team data
             this.team = response.data.team;
             this.loading = false;
+
+            // If triage exists
             if (this.team.triageList[0]) {
+              // If not in triage join it
               if (!this.isUserInTriage()) {
                 this.joinTriage(this.team.triageList[0]);
               }
+
+              // Request repos get updated
+              let refreshRepoList = this.team.repos;
+              this.$http.post("/api/refreshrepolist", {
+                repoList: refreshRepoList,
+              });
             }
+
+            // Execute callback
             callback();
           } else {
             console.log(response);
@@ -80,7 +92,7 @@ export default {
           function () {
             this.refreshTeamInfoContinuously();
           }.bind(this),
-          2500
+          10000
         );
       }.bind(this);
 

@@ -695,6 +695,17 @@ app.get('/api/refreshrepos', authenticateToken, async function (req, res) {
     }
 });
 
+app.post('/api/refreshrepolist', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { username: req.user.id, repoList: req.body.repoList };
+
+        dataHandler.refreshRepoList(inputData);
+        return res.json({ success: true });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 // Graph functions
 
 app.post('/api/getactiveissuesgraph', authenticateToken, async function (req, res) {

@@ -77,6 +77,24 @@ class WebDataHandler {
         }
     }
 
+    async refreshRepoList(inputData) {
+        // Get repolist
+        let repoList = await this.RepoDetails.find({ _id: { "$in": inputData.repoList } });
+
+        for (let i = 0; i < repoList.length; i++) {
+            let visitorRepo = repoList[i];
+            this.refreshRepoHandler.addRepoForRefresh(visitorRepo);
+        }
+
+        try {
+            await this.refreshRepoHandler.startRefreshingRepos();
+        } catch (error) {
+            this.refreshRepoHandler.reset();
+            console.log("Couldn't refresh repos");
+            console.log(error);
+        }
+    }
+
     async refreshAllData() {
         var userList = await this.UserDetails.find({});
         for (let i = 0; i < userList.length; i++) {
