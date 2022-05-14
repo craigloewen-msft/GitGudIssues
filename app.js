@@ -260,11 +260,26 @@ const TeamDetail = new Schema({
     users: [{ type: Schema.Types.ObjectId, ref: 'userInfo' }],
     owner: { type: Schema.Types.ObjectId, ref: 'userInfo' },
     triageSettings: Object,
-});
+}, { toJSON: { virtuals: true } });
 
 TeamDetail.index({ 'repos': 1 });
 TeamDetail.index({ 'users': 1 });
 TeamDetail.index({ 'owner': 1 });
+
+TeamDetail.virtual('triageList', {
+    ref: 'teamTriageInfo',
+    localField: '_id',
+    foreignField: 'team'
+});
+
+const TeamTriageDetail = new Schema({
+    team: { type: Schema.Types.ObjectId, ref: 'teamInfo' },
+    participants: [{
+        user: { type: Schema.Types.ObjectId, ref: 'userInfo' },
+        issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
+    }],
+    active: Boolean,
+});
 
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -279,14 +294,15 @@ const IssueCommentDetails = mongoose.model('issueCommentInfo', IssueCommentDetai
 const IssueCommentMentionDetails = mongoose.model('issueCommentMentionInfo', IssueCommentMentionDetail, 'issueCommentMentionInfo');
 const IssueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
 const TeamDetails = mongoose.model('teamInfo', TeamDetail, 'teamInfo');
+const TeamTriageDetails = mongoose.model('teamTriageInfo', TeamTriageDetail, 'teamTriageInfo');
 
-const JWTTimeout = 604800; // 7 Days
+const JWTTimeout = 4 * 604800; // 28 Days
 
 const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken);
 
 const teamDataHandler = new TeamsDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
-    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails);
+    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails, TeamTriageDetails, dataHandler);
 
 // App set up
 
@@ -862,6 +878,17 @@ app.get('/api/getuserteams', authenticateToken, async function (req, res) {
     }
 });
 
+app.post('/api/getteam', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.getTeam(req.body);
+
+        return res.json({ success: true, team: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 app.post('/api/getinvitestatus', authenticateToken, async function (req, res) {
     try {
         req.body.username = req.user.id;
@@ -879,6 +906,50 @@ app.post('/api/handleinvite', authenticateToken, async function (req, res) {
         var returnData = await teamDataHandler.handleInvite(req.body);
 
         return res.json({ success: true, handleResult: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/createteamtriage', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.createTeamTriage(req.body);
+
+        return res.json({ success: true, team: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/jointeamtriage', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.joinTeamTriage(req.body);
+
+        return res.json({ success: true, team: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/endteamtriage', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.endTeamTriage(req.body);
+
+        return res.json({ success: true, team: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/addissuestoteamtriageuser', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await teamDataHandler.addIssuesToTeamTriageUser(req.body);
+
+        return res.json({ success: true, team: returnData });
     } catch (error) {
         return res.json(returnFailure(error));
     }

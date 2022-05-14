@@ -176,7 +176,13 @@ class WebDataHandler {
                 let andLabelList = labelMatchObject[i];
                 let andObject = { "$and": [] };
                 if (andLabelList.length == 1) {
-                    emplaceObject.push({ "labels": { "$elemMatch": { "name": andLabelList[0] } } });
+                    // If the user searches for NONE then use special function
+                    // Only applies to the 1 and case (Can't NONE with an AND)
+                    if (andLabelList[0] == "NONE") {
+                        emplaceObject.push({ "labels": { "$size": 0 } });
+                    } else {
+                        emplaceObject.push({ "labels": { "$elemMatch": { "name": andLabelList[0] } } });
+                    }
                 } else {
                     for (let j = 0; j < andLabelList.length; j++) {
                         let putLabel = andLabelList[j];
@@ -199,6 +205,8 @@ class WebDataHandler {
                 }
             }
             repoQueryData = matchArray;
+        } else if (queryData.repoIDList) {
+            repoQueryData = queryData.repoIDList;
         } else {
             let matchArray = [];
             for (let i = 0; i < userRepoList.length; i++) {
@@ -242,6 +250,10 @@ class WebDataHandler {
                     emplaceObject.push(andObject);
                 }
             }
+        }
+
+        if (queryData.issueIDList) {
+            findQuery["_id"] = { "$in": queryData.issueIDList };
         }
 
         // If requested, filter to a set of milestones. This obviously won't

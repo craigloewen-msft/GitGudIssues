@@ -103,6 +103,22 @@ const routes = [
       requiresAuth: true
     }
   },
+  {
+    path: '/team/triage/',
+    name: 'Team Triage Selection',
+    component: () => import(/* webpackChunkName: "about" */ '../views/TeamTriageSelector.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/team/triage/:teamid',
+    name: 'Team Triage',
+    component: () => import(/* webpackChunkName: "about" */ '../views/TeamTriage.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
 ]
 
 const router = new VueRouter({

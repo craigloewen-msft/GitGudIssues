@@ -21,6 +21,9 @@
             <Bootstrapnavlinkcustom to="/usergraphs"
               >User Graphs</Bootstrapnavlinkcustom
             >
+            <Bootstrapnavlinkcustom to="/team/triage"
+              >Team Triage</Bootstrapnavlinkcustom
+            >
           </b-navbar-nav>
           <b-navbar-nav>
             <Bootstrapnavlinkcustom to="/about">About</Bootstrapnavlinkcustom>

@@ -13,7 +13,8 @@
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"dbaeumer.vscode-eslint",
-		"mongodb.mongodb-vscode" 
+		"mongodb.mongodb-vscode",
+		"octref.vetur"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
