@@ -109,6 +109,9 @@ export default {
 
 
 <style>
+
+@import "./style/controlButtons.scss";
+
 #app {
   /* font-family: "Nunito", sans-serif; */
   -webkit-font-smoothing: antialiased;

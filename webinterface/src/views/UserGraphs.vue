@@ -156,5 +156,4 @@ export default {
 </script>
 
 <style>
-@import "../style/controlButtons.scss";
 </style>

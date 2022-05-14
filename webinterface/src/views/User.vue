@@ -80,7 +80,7 @@
 
 <script>
 import router from "../router";
-import TeamsView from "../components/TeamsView.vue"
+import TeamsView from "../components/TeamsView.vue";
 
 export default {
   name: "User",
@@ -187,7 +187,9 @@ export default {
         }
       }.bind(this);
 
-      this.refreshUserInfo(refreshFunction);
+      if (this.$route.name == "User") {
+        this.refreshUserInfo(refreshFunction);
+      }
     },
     showTutorialCheck: function () {
       if (this.user.repos) {
@@ -215,7 +217,7 @@ export default {
       } else {
         return [];
       }
-    }
+    },
   },
   mounted() {
     this.$http.defaults.headers.common["Authorization"] =
@@ -239,6 +241,7 @@ export default {
 .user-repo-input-box {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .repo-input-form {
