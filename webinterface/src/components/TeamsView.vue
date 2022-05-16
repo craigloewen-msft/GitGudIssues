@@ -59,6 +59,11 @@ export default {
           this.teamsList.push(newTeam);
         }
       });
+      this.$gtag.event("addTeam", {
+        event_category: "teamFunctions",
+        event_label: this.githubUsername,
+        value: 1,
+      });
     },
     loadTeamInfo: function (inTeamInfo) {
       this.teamsList = inTeamInfo;

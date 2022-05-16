@@ -137,6 +137,11 @@ export default {
           console.log(response);
         }
       });
+      this.$gtag.event("saveTeam", {
+        event_category: "teamFunctions",
+        event_label: this.team.name,
+        value: 1,
+      });
     },
     cancelEditMode: function () {
       this.editMode = false;
@@ -152,6 +157,11 @@ export default {
       this.team.users = filteredTeamList;
     },
     addRepo: function (inputRepo) {
+      this.$gtag.event("addRepo", {
+        event_category: "teamFunctions",
+        event_label: this.repoInput,
+        value: 1,
+      });
       this.errorText = "";
       let inputRepoVisitor = inputRepo;
       let userRepoFind = this.userRepoList.find(

@@ -65,6 +65,11 @@ export default {
             console.log(response);
           }
         });
+      this.$gtag.event("acceptTeamInvite", {
+        event_category: "teamFunctions",
+        event_label: this.teamData.name,
+        value: 1,
+      });
     },
     declineInvite: function () {
       //TODO: Make invites transient

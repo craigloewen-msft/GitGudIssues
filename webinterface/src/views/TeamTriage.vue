@@ -110,6 +110,11 @@ export default {
             console.log(response);
           }
         });
+      this.$gtag.event("startTriage", {
+        event_category: "teamFunctions",
+        event_label: this.team.name,
+        value: 1,
+      });
     },
     endTriage: function () {
       this.$http
@@ -121,6 +126,11 @@ export default {
             console.log(response);
           }
         });
+      this.$gtag.event("endTriage", {
+        event_category: "teamFunctions",
+        event_label: this.team.name,
+        value: 1,
+      });
     },
     joinTriage: function (inputTeamTriage) {
       this.$http
@@ -132,6 +142,11 @@ export default {
             console.log(response);
           }
         });
+      this.$gtag.event("joinTriage", {
+        event_category: "teamFunctions",
+        event_label: this.team.name,
+        value: 1,
+      });
     },
     addMoreIssues: function (inputTeamTriage, inputUser) {
       this.$http
@@ -146,6 +161,11 @@ export default {
             console.log(response);
           }
         });
+      this.$gtag.event("addIssuesToTriage", {
+        event_category: "teamFunctions",
+        event_label: this.team.name,
+        value: 1,
+      });
     },
     isUserInTriage: function () {
       for (let i = 0; i < this.team.triageList.length; i++) {
