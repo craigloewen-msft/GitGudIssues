@@ -49,6 +49,7 @@ export default {
       userID: this.$store.state.user.id,
       team: null,
       loading: true,
+      dataRefreshTime: 10*1000,
     };
   },
   components: {
@@ -61,7 +62,7 @@ export default {
         .then((response) => {
           if (response.data.success) {
             // Load in team data
-            this.team = response.data.team;
+            this.setTeamInfo(response.data.team);
             this.loading = false;
 
             // If triage exists
@@ -92,7 +93,7 @@ export default {
           function () {
             this.refreshTeamInfoContinuously();
           }.bind(this),
-          10000
+          this.dataRefreshTime
         );
       }.bind(this);
 
@@ -105,7 +106,7 @@ export default {
         .post("/api/createteamtriage/", { teamID: this.teamID })
         .then((response) => {
           if (response.data.success) {
-            this.team = response.data.team;
+            this.setTeamInfo(response.data.team);
           } else {
             console.log(response);
           }
@@ -121,7 +122,7 @@ export default {
         .post("/api/endteamtriage/", { teamID: this.teamID })
         .then((response) => {
           if (response.data.success) {
-            this.team = response.data.team;
+            this.setTeamInfo(response.data.team);
           } else {
             console.log(response);
           }
@@ -137,7 +138,7 @@ export default {
         .post("/api/jointeamtriage/", { teamTriageID: inputTeamTriage._id })
         .then((response) => {
           if (response.data.success) {
-            this.team = response.data.team;
+            this.setTeamInfo(response.data.team);
           } else {
             console.log(response);
           }
@@ -156,7 +157,7 @@ export default {
         })
         .then((response) => {
           if (response.data.success) {
-            this.team = response.data.team;
+            this.setTeamInfo(response.data.team);
           } else {
             console.log(response);
           }
@@ -178,6 +179,26 @@ export default {
         }
       }
       return false;
+    },
+    setTeamInfo: function (inTeamInfo) {
+      if (inTeamInfo.triageList) {
+        for (let i = 0; i < inTeamInfo.triageList.length; i++) {
+          let triageVisitor = inTeamInfo.triageList[i];
+          // For each triage, sort the participants to always have this user on top
+          let participantList = triageVisitor.participants;
+
+          participantList.sort((a, b) => {
+            if (a.user._id == this.userID) {
+              return -1;
+            } else if (b.user._id == this.userID) {
+              return 1;
+            } else {
+              return 0;
+            }
+          });
+        }
+        this.team = inTeamInfo;
+      }
     },
   },
   mounted() {

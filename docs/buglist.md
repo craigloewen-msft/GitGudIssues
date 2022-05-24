@@ -5,6 +5,8 @@
 - Better handling if you get a 401 response in refreshRepoHandler
 - Comment activity breaks when setting a milestone
 - Remove whitespaces in comma delimited entries to repo graphs
+- Add a "remove issue" from Team Triage
+- Issue is moved to another repo it still exists 
 
 ## Features
 

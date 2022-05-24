@@ -205,7 +205,7 @@ class TeamsDataHandler {
 
         // Get list of untriaged issues
         let untriagedIssueList = await this.WebDataHandler.getIssues({
-            repoIDList: repoIDArray, state: "open", labels: "NONE,needs-triage", username: inUser.username,
+            repoIDList: repoIDArray, state: "open", labels: "NONE,needs-triage", assignee: "NONE", username: inUser.username,
             limit: 30
         });
 

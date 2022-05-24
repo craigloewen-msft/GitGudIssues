@@ -576,23 +576,27 @@ class RefreshRepoHandler {
 
         this.simultaneousMessages = 2;
         this.simultaneousCommentMessages = 2;
+        this.minimumProcessingTimeRequest = 5; // In Minutes
     }
 
     addRepoForRefresh(inRepo) {
         // Two checks - first is if it's already in our input list, second is if it is already being processed
         let inputIndex = this.inputRefreshRepoList.findIndex((element, index) => { if (element.repoDocument._id.toString() == inRepo._id.toString()) { return true } });
         let refreshRepoIndex = this.repoRefreshList.findIndex((element, index) => { if (element.repoDocument._id.toString() == inRepo._id.toString()) { return true } });
+        // Also check for last processing time in minutes
+        let lastProcessedTime = Math.ceil((Math.abs(new Date() - inRepo.lastIssuesCompleteUpdate)) / (1000 * 60));
 
-        // Do the same two checks for comments
+        // Do the same checks for comments
         let inputCommentIndex = this.inputRefreshRepoCommentsList.findIndex((element, index) => { if (element.repoDocument._id.toString() == inRepo._id.toString()) { return true } });
         let refreshRepoCommentIndex = this.repoRefreshCommentsList.findIndex((element, index) => { if (element.repoDocument._id.toString() == inRepo._id.toString()) { return true } });
+        let lastCommentProcessedTime = Math.ceil((Math.abs(new Date() - inRepo.lastCommentsCompleteUpdate)) / (1000 * 60));
 
-        if (inputIndex == -1 && refreshRepoIndex == -1) {
+        if (inputIndex == -1 && refreshRepoIndex == -1 && lastProcessedTime > 5) {
             let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
             this.inputRefreshRepoList.push(newRefreshRepoTask);
         }
 
-        if (inputCommentIndex == -1 && refreshRepoCommentIndex == -1) {
+        if (inputCommentIndex == -1 && refreshRepoCommentIndex == -1 && lastCommentProcessedTime > 5) {
             let newRefreshRepoCommentsTask = new RefreshRepoCommentsTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
             this.inputRefreshRepoCommentsList.push(newRefreshRepoCommentsTask);
         }

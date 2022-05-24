@@ -171,7 +171,12 @@ class WebDataHandler {
         }
 
         if (queryData.assignee) {
-            findQuery['assignee.login'] = { "$regex": queryData.assignee, "$options": "gi" }
+            // If the user searches for NONE then use special function
+            if (queryData.assignee == "NONE") {
+                findQuery['assignee'] = null;
+            } else {
+                findQuery['assignee.login'] = { "$regex": queryData.assignee, "$options": "gi" }
+            }
         }
 
         if (queryData.labels) {
