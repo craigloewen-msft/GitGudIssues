@@ -512,7 +512,9 @@ app.post('/api/register', async function (req, res) {
         let commentedIssuePromise = dataHandler.modifyUserManageIssueQuery({ username: req.body.username, inAction: "save", inQuery: commentedIssuesQuery });
         let recentlyMentionPromise = dataHandler.modifyUserManageMentionQuery({ username: req.body.username, inAction: "save", inQuery: recentlyMentionedQuery });
 
-        await Promise.all([newIssuePromise, updateIssuePromise, commentedIssuePromise, recentlyMentionPromise]);
+        await newIssuePromise;
+
+        await Promise.all([updateIssuePromise, commentedIssuePromise, recentlyMentionPromise]);
 
         let token = jwt.sign({ id: req.body.username }, config.secret, { expiresIn: JWTTimeout });
         returnBasicUserInfo(registeredUser.username, (userDataResponse) => {
