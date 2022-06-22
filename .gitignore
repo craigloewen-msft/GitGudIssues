@@ -1,4 +1,5 @@
 config.js
 node_modules/
+.vscode/
 dist/
 nohup.out
