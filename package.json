@@ -8,12 +8,13 @@
     "express-session": "^1.17.2",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.0.7",
+    "nodemon": "^2.0.16",
     "passport": "^0.4.1",
     "passport-local-mongoose": "^6.1.0"
   },
   "scripts": {
     "build": "cd webinterface; npm install; npm run build; cd ..; rm -rf ./dist; mv ./webinterface/dist .",
-    "dev": "concurrently --kill-others \"node app.js\" \"cd webinterface; npm run serve\""
+    "dev": "concurrently --kill-others \"nodemon --inspect app.js\" \"cd webinterface; npm run serve\""
   },
   "devDependencies": {
     "concurrently": "^7.1.0"
