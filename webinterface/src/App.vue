@@ -79,6 +79,8 @@ export default {
     // Handle expired tokens case
     const storeRef = this.$store;
     const routerRef = this.$router;
+    this.$http.defaults.headers.common["Authorization"] =
+      this.$store.state.token;
 
     var errorResponseFunc = function (err) {
       var returnPromiseFunc = function (storeRef, routerRef) {

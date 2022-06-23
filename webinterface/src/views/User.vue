@@ -220,8 +220,6 @@ export default {
     },
   },
   mounted() {
-    this.$http.defaults.headers.common["Authorization"] =
-      this.$store.state.token;
     this.refreshUserInfoUntilNonUpdated();
     this.$gtag.pageview(this.$route);
   },

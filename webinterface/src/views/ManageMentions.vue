@@ -50,8 +50,6 @@ export default {
     };
   },
   mounted() {
-    this.$http.defaults.headers.common["Authorization"] =
-      this.$store.state.token;
     this.refreshQueryList();
     this.$gtag.pageview(this.$route);
   },
@@ -101,6 +99,7 @@ export default {
     },
     refreshQueryList: function () {
       this.mentionQueryObjects = [];
+      console.log("Getting mention queries!");
       this.$http.get("/api/getusermanagementionqueries").then((response) => {
         if (response.data.success) {
           const returnedQueries = response.data.queries;

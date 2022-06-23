@@ -184,8 +184,6 @@ export default {
     };
   },
   mounted: function () {
-    this.$http.defaults.headers.common["Authorization"] =
-      this.$store.state.token;
     this.$gtag.pageview(this.$route);
     this.getInputRepos();
   },
