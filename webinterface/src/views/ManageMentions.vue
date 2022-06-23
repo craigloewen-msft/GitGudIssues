@@ -99,7 +99,6 @@ export default {
     },
     refreshQueryList: function () {
       this.mentionQueryObjects = [];
-      console.log("Getting mention queries!");
       this.$http.get("/api/getusermanagementionqueries").then((response) => {
         if (response.data.success) {
           const returnedQueries = response.data.queries;
