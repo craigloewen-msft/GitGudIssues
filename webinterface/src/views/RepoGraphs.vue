@@ -175,7 +175,7 @@ export default {
       inputQuery: {
         repos: "",
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
-        endDate: new Date(),
+        endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
         inputPeriod: 0,
         milestones: ""
       },
@@ -206,6 +206,14 @@ export default {
       });
     },
   },
+  // watch: {
+  //   inputQuery: {
+  //     handler(newValue, oldValue) {
+  //       console.log("Changed input query!");
+  //     },
+  //     deep: true
+  //   }
+  // }
 };
 </script>
 
