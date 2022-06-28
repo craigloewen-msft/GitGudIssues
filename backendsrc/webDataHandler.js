@@ -1489,7 +1489,7 @@ class WebDataHandler {
             },
             {
                 "$match": {
-                    "created_at": {
+                    "closed_at": {
                         "$lt": endDate,
                         "$gt": startDate,
                     },
