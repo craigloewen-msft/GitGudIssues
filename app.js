@@ -234,6 +234,7 @@ const UserDetail = new Schema({
     password: String,
     email: String,
     repos: [{ type: Schema.Types.ObjectId, ref: 'repoInfo' }],
+    lastLoginDate: Date,
 }, { collection: 'usercollection' });
 
 UserDetail.virtual('issueLabels', {
@@ -436,12 +437,14 @@ app.post('/api/login', (req, res, next) => {
                 return res.json(returnFailure('Failure to login'));
             }
 
-            req.logIn(user, function (err) {
+            req.logIn(user, async function (err) {
                 if (err) {
                     return res.json(returnFailure('Failure to login'));
                 }
 
                 dataHandler.refreshData(user.username);
+
+                await UserDetails.updateOne({ "username": user.username }, { "lastLoginDate": new Date() });
 
                 let token = jwt.sign({ id: user.username }, config.secret, { expiresIn: JWTTimeout });
 
