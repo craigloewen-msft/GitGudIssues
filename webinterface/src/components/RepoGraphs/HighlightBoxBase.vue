@@ -4,7 +4,12 @@
       v-for="(highlightName, highlightIndex) in highlightList"
       :key="highlightIndex"
     >
+      <div v-if="highlightName.url">
+      <a :href="highlightName.url">{{ highlightName._id }}</a> - {{ highlightName.count }}
+      </div>
+      <div v-else>
       {{ highlightName._id }} - {{ highlightName.count }}
+        </div>
     </li>
   </ul>
 </template>

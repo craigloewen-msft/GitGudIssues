@@ -28,6 +28,8 @@ services:
   db:
     image: mongo:latest
     restart: unless-stopped
+    ports:
+    - "27017:27017"
     volumes:
       - mongodb-data:/data/db
 

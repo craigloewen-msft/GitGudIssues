@@ -2,7 +2,7 @@ const axios = require('axios');
 const helperFunctions = require('./helpers');
 
 class RefreshRepoTask {
-    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken) {
+    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails) {
         this.pageNum = 1;
         this.repoUrl = inRepo.url;
         this.repoIssuesUrl = inRepo.url;
@@ -15,6 +15,7 @@ class RefreshRepoTask {
         this.IssueCommentDetails = inIssueCommentDetails;
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.IssueReadDetails = inIssueReadDetails;
+        this.IssueLinkDetails = inIssueLinkDetails;
 
         this.maxUpdatedTime = new Date('1/1/1900');
         this.minUpdatedTime = new Date();
@@ -42,6 +43,9 @@ class RefreshRepoTask {
 
     async endRepoUpdating() {
         if (!this.isFinished) {
+            // Scan updated issues and create issue links
+            await helperFunctions.UpdateIssueLinksBetweenDatesFromIssues(this.repoDocument, this.repoDocument.lastIssuesCompleteUpdate,
+                this.maxUpdatedTime, this.IssueLinkDetails, this.IssueDetails);
             this.isUpdating = false;
             this.isFinished = true;
             this.repoDocument.issuesUpdating = false;
@@ -101,7 +105,7 @@ class RefreshRepoTask {
                 console.log("Update Request Complete - " + this.shortRepoUrl + " - No more issues");
                 return true;
             } else {
-                var dbSaveResult = await this.storeInArray(response.data);
+                var dbSaveResult = await this.storeInDatabase(response.data);
                 // If up to date after saving we are done
                 if (dbSaveResult == 'uptodate') {
                     console.log("Update Request Complete -  " + this.shortRepoUrl + " - Up to date");
@@ -216,7 +220,7 @@ class RefreshRepoTask {
         return returnUser;
     }
 
-    async storeInArray(data) {
+    async storeInDatabase(data) {
         var response = 'success';
 
         await Promise.all(data.map(async (responseItem) => {
@@ -324,8 +328,8 @@ class RefreshRepoTask {
 }
 
 class RefreshRepoCommentsTask extends RefreshRepoTask {
-    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken) {
-        super(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken);
+    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails) {
+        super(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails);
         this.repoIssueCommentsUrl = inRepo.url + '/comments';
     }
 
@@ -343,6 +347,8 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 
     async endRepoUpdating() {
         if (!this.isFinished) {
+            await helperFunctions.UpdateIssueLinksBetweenDatesFromComments(this.repoDocument, this.repoDocument.lastCommentsCompleteUpdate,
+                this.maxUpdatedTime, this.IssueLinkDetails, this.IssueDetails, this.IssueCommentDetails);
             this.isUpdating = false;
             this.isFinished = true;
             this.repoDocument.commentsUpdating = false;
@@ -551,7 +557,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 }
 
 class RefreshRepoHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken) {
+    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
@@ -559,6 +565,7 @@ class RefreshRepoHandler {
         this.UserDetails = inUserDetails;
         this.IssueReadDetails = inIssueReadDetails;
         this.ghToken = inGHToken;
+        this.IssueLinkDetails = inIssueLinkDetails;
 
         this.maxBulkWriteCount = 100; // This is trigger limit, absolute limit is maxBulkWriteCount + perPageResults
         this.bulkWriteDelayTimeout = 5000;
@@ -592,12 +599,12 @@ class RefreshRepoHandler {
         let lastCommentProcessedTime = Math.ceil((Math.abs(new Date() - inRepo.lastCommentsCompleteUpdate)) / (1000 * 60));
 
         if (inputIndex == -1 && refreshRepoIndex == -1 && lastProcessedTime > 5) {
-            let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
+            let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken, this.IssueLinkDetails);
             this.inputRefreshRepoList.push(newRefreshRepoTask);
         }
 
         if (inputCommentIndex == -1 && refreshRepoCommentIndex == -1 && lastCommentProcessedTime > 5) {
-            let newRefreshRepoCommentsTask = new RefreshRepoCommentsTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
+            let newRefreshRepoCommentsTask = new RefreshRepoCommentsTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken, this.IssueLinkDetails);
             this.inputRefreshRepoCommentsList.push(newRefreshRepoCommentsTask);
         }
 

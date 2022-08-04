@@ -6,7 +6,7 @@ const ObjectId = mongoose.Types.ObjectId;
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
-        inIssueReadDetails, inSearhQueryDetails, inMentionQueryDetails, inGHToken) {
+        inIssueReadDetails, inSearhQueryDetails, inMentionQueryDetails, inGHToken, inIssueLinkDetails) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.UserDetails = inUserDetails;
@@ -17,7 +17,9 @@ class WebDataHandler {
         this.SearchQueryDetails = inSearhQueryDetails;
         this.MentionQueryDetails = inMentionQueryDetails;
         this.ghToken = inGHToken;
-        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken);
+        this.IssueLinkDetails = inIssueLinkDetails;
+
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken, this.IssueLinkDetails);
         this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
     }
 
@@ -677,6 +679,7 @@ class WebDataHandler {
 
                 this.refreshRepoHandler.reset();
 
+                await this.issueLinkDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueCommentMentionDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueReadDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id })
@@ -1548,6 +1551,63 @@ class WebDataHandler {
         return countData;
     }
 
+    async getTopLinkedIssues(startDate, endDate, firstFindQuery) {
+        let countData = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$lookup": {
+                    "from": "issueLinkInfo",
+                    "localField": "_id",
+                    "foreignField": "toIssue",
+                    "as": "linkedIssueList",
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "linkDate": {
+                                    "$lt": endDate,
+                                    "$gt": startDate,
+                                },
+                            }
+                        }
+                    ],
+                }
+            },
+            {
+                "$addFields": {
+                    "numberLinkedIssues": { "$size": "$linkedIssueList" }
+                }
+            },
+            // Look up each linked issue to get their numbers to debug more
+            // {
+            //     "$lookup": {
+            //         "from": "issueInfo",
+            //         "localField": "linkedIssueList.fromIssue",
+            //         "foreignField": "_id",
+            //         "as": "linkedIssueInfoList",
+            //     }
+            // },
+            {
+                "$sort": {
+                    "numberLinkedIssues": -1
+                }
+            },
+            // Project only the values we care about
+            {
+                "$project": {
+                    "_id": "$number",
+                    "url": { "$concat": ["https://github.com/", { "$substr": ["$url", 29, -1] }] },
+                    "count": "$numberLinkedIssues",
+                }
+            },
+            {
+                "$limit": 5,
+            },
+        ])
+        return countData;
+    }
+
     async getTopIssueOpenersHighlightData(queryData) {
         // Get User Data
         var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
@@ -1601,6 +1661,25 @@ class WebDataHandler {
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
 
         let queryResult = await this.getTopIssueCommenters(startDate, endDate, firstFindQuery);
+
+        return queryResult;
+    }
+
+    async getTopLinkedIssuesHiglightData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let queryResult = await this.getTopLinkedIssues(startDate, endDate, firstFindQuery);
 
         return queryResult;
     }

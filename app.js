@@ -45,7 +45,7 @@ const RepoInfo = new Schema({
     commentsUpdating: Boolean,
     url: String,
     shortURL: String,
-});
+}, { toJSON: { virtuals: true }, collation: { locale: "en_US", strength: 2 } });
 
 RepoInfo.virtual('userList', {
     ref: 'userInfo',
@@ -177,6 +177,18 @@ IssueInfo.virtual('readByArray', {
     foreignField: 'issueRef'
 });
 
+IssueInfo.virtual('linkToThisIssueArray', {
+    ref: 'issueLinkInfo',
+    localField: '_id',
+    foreignField: 'toIssue'
+});
+
+IssueInfo.virtual('linkFromThisIssueArray', {
+    ref: 'issueLinkInfo',
+    localField: '_id',
+    foreignField: 'fromIssue'
+});
+
 const siteIssueLabelDetail = new Schema({
     name: String,
     issueList: [{ type: Schema.Types.ObjectId, ref: 'issueInfo' }],
@@ -283,6 +295,17 @@ const TeamTriageDetail = new Schema({
     endDate: Date,
 });
 
+const IssueLinkDetail = new Schema({
+    fromIssue: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
+    toIssue: { type: Schema.Types.ObjectId, ref: 'issueInfo' },
+    repoRef: { type: Schema.Types.ObjectId, ref: 'repoRef' },
+    linkDate: Date,
+}, { toJSON: { virtuals: true } });
+
+IssueLinkDetail.index({ 'repoRef': 1 });
+IssueLinkDetail.index({ 'fromIssue': 1 });
+IssueLinkDetail.index({ 'toIssue': 1 });
+
 mongoose.connect(mongooseConnectionString, { useNewUrlParser: true, useUnifiedTopology: true });
 
 UserDetail.plugin(passportLocalMongoose);
@@ -297,11 +320,12 @@ const IssueCommentMentionDetails = mongoose.model('issueCommentMentionInfo', Iss
 const IssueReadDetails = mongoose.model('issueReadInfo', issueReadDetail, 'issueReadInfo');
 const TeamDetails = mongoose.model('teamInfo', TeamDetail, 'teamInfo');
 const TeamTriageDetails = mongoose.model('teamTriageInfo', TeamTriageDetail, 'teamTriageInfo');
+const IssueLinkDetails = mongoose.model('issueLinkInfo', IssueLinkDetail, 'issueLinkInfo');
 
 const JWTTimeout = 4 * 604800; // 28 Days
 
 const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
-    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken);
+    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, IssueLinkDetails);
 
 const teamDataHandler = new TeamsDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails, TeamTriageDetails, dataHandler);
@@ -431,27 +455,32 @@ app.post('/api/login', (req, res, next) => {
 });
 
 app.get('/api/user/:username/', authenticateToken, (req, res) => {
-    UserDetails.find({ username: req.params.username }).populate('repos').exec(function (err, docs) {
-        if (err) {
-            return res.json(returnFailure('Server error'));
-        } else {
-            if (!docs[0]) {
-                return res.json(returnFailure("Error while obtaining user"));
+    try {
+        UserDetails.find({ username: req.params.username }).populate('repos').exec(function (err, docs) {
+            if (err) {
+                return res.json(returnFailure('Server error'));
             } else {
-                let repoInfoList = [];
-                for (let i = 0; i < docs[0].repos.length; i++) {
-                    repoInfoList.push({ title: docs[0].repos[i].shortURL, "_id": docs[0].repos[i]._id, updating: docs[0].repos[i].updating });
-                }
-                var returnValue = {
-                    success: true, auth: true,
-                    user: {
-                        username: docs[0].username, email: docs[0].email, repos: repoInfoList, githubUsername: docs[0].githubUsername,
+                if (!docs[0]) {
+                    return res.json(returnFailure("Error while obtaining user"));
+                } else {
+                    let repoInfoList = [];
+                    for (let i = 0; i < docs[0].repos.length; i++) {
+                        repoInfoList.push({ title: docs[0].repos[i].shortURL, "_id": docs[0].repos[i]._id, updating: docs[0].repos[i].updating });
                     }
-                };
-                res.json(returnValue);
+                    var returnValue = {
+                        success: true, auth: true,
+                        user: {
+                            username: docs[0].username, email: docs[0].email, repos: repoInfoList, githubUsername: docs[0].githubUsername,
+                        }
+                    };
+                    res.json(returnValue);
+                }
             }
-        }
-    });
+        });
+    } catch (error) {
+        let errorToString = error.toString();
+        return res.json(returnFailure(error));
+    }
 });
 
 app.get('/api/logout', function (req, res) {
@@ -805,6 +834,17 @@ app.post('/api/gettopissuecommentershighlight', authenticateToken, async functio
     try {
         req.body.username = req.user.id;
         var returnData = await dataHandler.getTopIssueCommentersHighlightData(req.body);
+
+        return res.json({ success: true, highlightData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/getlinkedissueshighlight', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getTopLinkedIssuesHiglightData(req.body);
 
         return res.json({ success: true, highlightData: returnData });
     } catch (error) {

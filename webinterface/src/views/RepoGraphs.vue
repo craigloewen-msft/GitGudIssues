@@ -1,77 +1,75 @@
 <template>
   <div class="pageContent">
     <b-container>
-
       <h1>{{ inputQuery.repos }}</h1>
       <h2>{{ inputQuery.milestones }}</h2>
 
       <div class="graph-title-and-controls">
-          <div class="table-header-buttons">
-              <b-dropdown
-                id="dropdown-1"
-                text="Repo"
-                class="m-md-2"
-                size="sm"
-                variant="outline-secondary"
-              >
-                <b-form-input
-                  placeholder="microsoft/wsl,microsoft/vscode"
-                  size="sm"
-                  v-model="inputQuery.repos"
-                  v-debounce:1s="refreshData"
-                  @keyup.enter="refreshData"
-                ></b-form-input>
-              </b-dropdown>
-
-              <b-dropdown
-                id="milestone-dropdown"
-                text="Milestone"
-                class="m-md-2"
-                size="sm"
-                variant="outline-secondary"
-              >
-                <b-form-input
-                  placeholder="Terminal v1.14,22H1"
-                  size="sm"
-                  v-model="inputQuery.milestones"
-                  v-debounce:1s="refreshData"
-                  @keyup.enter="refreshData"
-                ></b-form-input>
-              </b-dropdown>
-
-              <b-dropdown
-                id="date-resolution"
-                text="Fidelity"
-                class="m-md-2"
-                size="sm"
-                variant="outline-secondary"
-              >
-                (In days)
-                <b-form-input
-                  placeholder=""
-                  size="sm"
-                  :number="true"
-                  v-model="inputQuery.inputPeriod"
-                  v-debounce:1s="refreshData"
-                  @keyup.enter="refreshData"
-                ></b-form-input>
-              </b-dropdown>
-
-          </div>
-          <div class="table-header-buttons">
-            <b-form-datepicker
+        <div class="table-header-buttons">
+          <b-dropdown
+            id="dropdown-1"
+            text="Repo"
+            class="m-md-2"
+            size="sm"
+            variant="outline-secondary"
+          >
+            <b-form-input
+              placeholder="microsoft/wsl,microsoft/vscode"
               size="sm"
-              v-model="inputQuery.startDate"
-              class="mb-2"
-              @input="refreshData"
-            />
-            <b-form-datepicker
+              v-model="inputQuery.repos"
+              v-debounce:1s="refreshData"
+              @keyup.enter="refreshData"
+            ></b-form-input>
+          </b-dropdown>
+
+          <b-dropdown
+            id="milestone-dropdown"
+            text="Milestone"
+            class="m-md-2"
+            size="sm"
+            variant="outline-secondary"
+          >
+            <b-form-input
+              placeholder="Terminal v1.14,22H1"
               size="sm"
-              v-model="inputQuery.endDate"
-              class="mb-2"
-              @input="refreshData"
-            />
-          </div>
+              v-model="inputQuery.milestones"
+              v-debounce:1s="refreshData"
+              @keyup.enter="refreshData"
+            ></b-form-input>
+          </b-dropdown>
+
+          <b-dropdown
+            id="date-resolution"
+            text="Fidelity"
+            class="m-md-2"
+            size="sm"
+            variant="outline-secondary"
+          >
+            (In days)
+            <b-form-input
+              placeholder=""
+              size="sm"
+              :number="true"
+              v-model="inputQuery.inputPeriod"
+              v-debounce:1s="refreshData"
+              @keyup.enter="refreshData"
+            ></b-form-input>
+          </b-dropdown>
+        </div>
+        <div class="table-header-buttons">
+          <b-form-datepicker
+            size="sm"
+            v-model="inputQuery.startDate"
+            class="mb-2"
+            @input="refreshData"
+          />
+          <b-form-datepicker
+            size="sm"
+            v-model="inputQuery.endDate"
+            class="mb-2"
+            @input="refreshData"
+          />
+        </div>
       </div>
 
       <div class="active-issues-graph">
@@ -142,6 +140,15 @@
           />
         </div>
       </div>
+      <div class="row">
+        <div class="col-md-12">
+          <LinkedIssuesHighlightBox
+            v-if="!loading"
+            :inputQuery="inputQuery"
+            ref="linkedissueshighlight"
+          />
+        </div>
+      </div>
     </b-container>
   </div>
 </template>
@@ -156,6 +163,7 @@ import TopClosersHighlightBox from "../components/RepoGraphs/TopClosersHighlight
 import OpenedIssuesKeyNumber from "../components/RepoGraphs/OpenedIssuesKeyNumber.vue";
 import ClosedIssuesKeyNumber from "../components/RepoGraphs/ClosedIssuesKeyNumber.vue";
 import CommentsKeyNumber from "../components/RepoGraphs/CommentsKeyNumber.vue";
+import LinkedIssuesHighlightBox from "../components/RepoGraphs/LinkedIssuesHighlightBox.vue";
 
 export default {
   name: "RepoGraphs",
@@ -169,6 +177,7 @@ export default {
     OpenedIssuesKeyNumber,
     ClosedIssuesKeyNumber,
     CommentsKeyNumber,
+    LinkedIssuesHighlightBox,
   },
   data() {
     return {
@@ -177,7 +186,7 @@ export default {
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)),
         endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
         inputPeriod: 0,
-        milestones: ""
+        milestones: "",
       },
       loading: true,
       repoList: [],
