@@ -1813,6 +1813,226 @@ class WebDataHandler {
         return queryResult;
     }
 
+    async getRepoConnectedGraphData(startDate, endDate, firstFindQuery) {
+        let nodesList = {};
+        let linkReturnList = [];
+        let nodeReturnList = [];
+        let unknownNodesSearchList = [];
+        let nodeIDListArray = [];
+        let addedLabelList = [];
+
+        // Get a list of issues created between two dates to get a list of all nodes created
+        let initialIssueList = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    }
+                }
+            },
+            // Add issue links
+            {
+                "$lookup": {
+                    "from": "issueLinkInfo",
+                    "localField": "_id",
+                    "foreignField": "toIssue",
+                    "as": "linkedIssueList",
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "linkDate": {
+                                    "$lt": endDate,
+                                    "$gt": startDate,
+                                },
+                            }
+                        }
+                    ],
+                }
+            },
+            {
+                "$addFields": {
+                    "numberLinkedIssues": { "$size": "$linkedIssueList" }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "number": 1,
+                    "comments": 1,
+                    "labels": 1,
+                }
+            },
+        ]);
+
+        // Put each issue created between two dates in the "Known issue" object
+        for (let i = 0; i < initialIssueList.length; i++) {
+            let issueVisitor = initialIssueList[i];
+            if (nodesList[issueVisitor._id.toString()] == null) {
+                nodesList[issueVisitor._id.toString()] = issueVisitor;
+            }
+        }
+
+        // Get a list of issue links created between two dates 
+        let issueLinkList = await this.IssueLinkDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "linkDate": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    }
+                }
+            }
+        ]);
+
+        // For each link, add the link to the linked return object
+        // And if the issue is unknown then add it to a list
+        for (let i = 0; i < issueLinkList.length; i++) {
+            let linkVisitor = issueLinkList[i];
+            linkReturnList.push({ source: linkVisitor.fromIssue, target: linkVisitor.toIssue });
+
+            if (nodesList[linkVisitor.fromIssue.toString()] == null) {
+                unknownNodesSearchList.push(linkVisitor.fromIssue);
+                nodesList[linkVisitor.fromIssue.toString()] = {};
+            }
+            if (nodesList[linkVisitor.toIssue.toString()] == null) {
+                unknownNodesSearchList.push(linkVisitor.toIssue);
+                nodesList[linkVisitor.toIssue.toString()] = {};
+            }
+        }
+
+        // Get list of comments between dates
+        let commentsList = await this.IssueCommentDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "created_at": {
+                        "$lt": endDate,
+                        "$gt": startDate,
+                    },
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "issueRef": 1,
+                }
+            },
+        ]);
+
+        // Link each found comment to an issue and add it as a node
+        for (let i = 0; i < commentsList.length; i++) {
+            let commentVisitor = commentsList[i];
+            nodeReturnList.push({ "id": commentVisitor._id.toString(), name: null, val: 4, group: 0 })
+            linkReturnList.push({ source: commentVisitor._id.toString(), target: commentVisitor.issueRef.toString() });
+
+            if (nodesList[commentVisitor.issueRef.toString()] == null) {
+                unknownNodesSearchList.push(commentVisitor.issueRef);
+                nodesList[commentVisitor.issueRef.toString()] = {};
+            }
+        }
+
+        // Get issue info for all unknown issues
+        let unknownIssueList = await this.IssueDetails.aggregate([
+            {
+                "$match": firstFindQuery,
+            },
+            {
+                "$match": {
+                    "_id": {
+                        "$in": unknownNodesSearchList,
+                    }
+                }
+            },
+            // Add issue links
+            {
+                "$lookup": {
+                    "from": "issueLinkInfo",
+                    "localField": "_id",
+                    "foreignField": "toIssue",
+                    "as": "linkedIssueList",
+                    "pipeline": [
+                        {
+                            "$match": {
+                                "linkDate": {
+                                    "$lt": endDate,
+                                    "$gt": startDate,
+                                },
+                            }
+                        }
+                    ],
+                }
+            },
+            {
+                "$addFields": {
+                    "numberLinkedIssues": { "$size": "$linkedIssueList" }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "number": 1,
+                    "comments": 1,
+                    "labels": 1,
+                }
+            },
+        ]);
+
+        for (let i = 0; i < unknownIssueList.length; i++) {
+            let unknownIssueVisitor = unknownIssueList[i];
+            nodesList[unknownIssueVisitor._id.toString()] = unknownIssueVisitor;
+        }
+
+        // Format nodes list for return
+        nodeIDListArray = Object.keys(nodesList);
+        for (let i = 0; i < nodeIDListArray.length; i++) {
+            let nodeVisitor = nodesList[nodeIDListArray[i]];
+            // let inputVal = (1 + nodeVisitor.comments + nodeVisitor.numberLinkedIssues);
+            let inputVal = 10;
+            nodeReturnList.push({ "id": nodeVisitor._id.toString(), name: nodeVisitor.number, val: inputVal, group: 2 })
+
+            // Add labels to node list
+            for (let j = 0; j < nodeVisitor.labels.length; j++) {
+                let labelVisitor = nodeVisitor.labels[j];
+                linkReturnList.push({ "source": nodeVisitor._id.toString(), "target": labelVisitor.name });
+
+                if (!addedLabelList.includes(labelVisitor.name)) {
+                    addedLabelList.push(labelVisitor.name);
+                    nodeReturnList.push({ id: labelVisitor.name, name: labelVisitor.name, val: 20, group: 3 });
+                }
+            }
+        }
+
+        return { nodes: nodeReturnList, links: linkReturnList };
+    }
+
+    async getRepoIssueGraphData(queryData) {
+        // Get User Data
+        var inUser = (await this.UserDetails.find({ username: queryData.username }).populate('issueLabels').populate('repos'))[0];
+
+        if (inUser == null) {
+            throw "User can't be found";
+        }
+
+        let startDate = new Date(queryData.startDate);
+        let endDate = new Date(queryData.endDate);
+
+        // Get issue query data
+        let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+
+        let queryResult = await this.getRepoConnectedGraphData(startDate, endDate, firstFindQuery);
+
+        return queryResult;
+    }
+
 }
 
 module.exports = WebDataHandler;

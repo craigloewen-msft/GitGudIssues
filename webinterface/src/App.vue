@@ -24,6 +24,9 @@
             <Bootstrapnavlinkcustom to="/team/triage"
               >Team Triage</Bootstrapnavlinkcustom
             >
+            <Bootstrapnavlinkcustom to="/repoissuegraph"
+              >Repo Issue Graph</Bootstrapnavlinkcustom
+            >
           </b-navbar-nav>
           <b-navbar-nav>
             <Bootstrapnavlinkcustom to="/about">About</Bootstrapnavlinkcustom>
@@ -102,16 +105,19 @@ export default {
   },
   metaInfo: {
     meta: [
-      { name: "description", content:"Easily manage your Github issues using this tool. This is a great way to never lose track of a Github issue again."},
-      { name: "kewyords", content:"manage, github, issues"}
-    ]
-  }
+      {
+        name: "description",
+        content:
+          "Easily manage your Github issues using this tool. This is a great way to never lose track of a Github issue again.",
+      },
+      { name: "kewyords", content: "manage, github, issues" },
+    ],
+  },
 };
 </script>
 
 
 <style>
-
 @import "./style/controlButtons.scss";
 
 #app {
