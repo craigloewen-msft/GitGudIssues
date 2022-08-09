@@ -55,9 +55,6 @@ const routes = [
   {
     path: '/usergraphs',
     name: 'User Graphs',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
     component: () => import(/* webpackChunkName: "about" */ '../views/UserGraphs.vue'),
     meta: {
       requiresAuth: true
@@ -115,6 +112,14 @@ const routes = [
     path: '/team/triage/:teamid',
     name: 'Team Triage',
     component: () => import(/* webpackChunkName: "about" */ '../views/TeamTriage.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/repoissuegraph/',
+    name: 'Repo Issue Graph',
+    component: () => import(/* webpackChunkName: "about" */ '../views/RepoIssueGraph.vue'),
     meta: {
       requiresAuth: true
     }

@@ -1013,6 +1013,19 @@ app.post('/api/addissuestoteamtriageuser', authenticateToken, async function (re
     }
 });
 
+// Repo Issue Graph functions
+
+app.post('/api/getrepoissuegraph', authenticateToken, async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getRepoIssueGraphData(req.body);
+
+        return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
 // Interval jobs
 
 // Refresh all user data every hour
