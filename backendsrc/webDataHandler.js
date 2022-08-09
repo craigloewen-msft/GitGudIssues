@@ -106,16 +106,14 @@ class WebDataHandler {
     }
 
     async tempScanRepos() {
-        var repoList = await this.RepoDetails.find({});
-        for (let i = 0; i < repoList.length; i++) {
+       var repoList = await this.RepoDetails.find({});
+       for (let i = 0; i < repoList.length; i++) {
             let repoVisitor = repoList[i];
-            if (repoVisitor.shortURL != "microsoft/vscode") {
-                console.log("Doing scan for: ", repoVisitor.shortURL);
-                await helperFunctions.UpdateIssueLinksBetweenDatesFromIssues(repoVisitor, new Date('Jan 1 1990'), new Date('Aug 15 2022'), this.IssueLinkDetails, this.IssueDetails);
-                await helperFunctions.UpdateIssueLinksBetweenDatesFromIssues(repoVisitor, new Date('Jan 1 1990'), new Date('Aug 15 2022'), this.IssueLinkDetails, this.IssueDetails);
-                console.log("Done scan for: ", repoVisitor.shortURL);
-            }
-        }
+            console.log("Doing scan for: ", repoVisitor.shortURL);
+            await helperFunctions.UpdateIssueLinksBetweenDatesFromIssues(repoVisitor, new Date('Jan 1 1990'), new Date('Aug 15 2022'), this.IssueLinkDetails, this.IssueDetails);
+            await helperFunctions.UpdateIssueLinksBetweenDatesFromIssues(repoVisitor, new Date('Jan 1 1990'), new Date('Aug 15 2022'), this.IssueLinkDetails, this.IssueDetails);
+            console.log("Done scan for: ", repoVisitor.shortURL);
+       } 
     }
 
     async scanUserForMentions(inUsername, inReponame) {
