@@ -1017,4 +1017,3 @@ app.post('/api/addissuestoteamtriageuser', authenticateToken, async function (re
 
 // Refresh all user data every hour
 setInterval(dataHandler.refreshAllData.bind(dataHandler), 1000 * 60 * 60 * 2);
-dataHandler.tempScanRepos();
