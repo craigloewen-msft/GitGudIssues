@@ -192,6 +192,11 @@ export default {
           }
         })
         .autoPauseRedraw(false) // keep redrawing after engine has stopped
+        .onNodeClick((node) => {
+          if (node.url) {
+            window.open(node.url);
+          }
+        })
         .linkColor(linkColorFunction);
     },
   },
