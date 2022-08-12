@@ -137,6 +137,7 @@ const IssueInfo = new Schema({
     user: GHUserSchema,
     number: Number,
     url: String,
+    html_url: String,
     repository_url: String,
     labels_url: String,
     comments_url: String,

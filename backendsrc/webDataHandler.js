@@ -1820,6 +1820,7 @@ class WebDataHandler {
         let unknownNodesSearchList = [];
         let nodeIDListArray = [];
         let addedLabelList = [];
+        let nodeReturnDictionary = {};
 
         // Get a list of issues created between two dates to get a list of all nodes created
         let initialIssueList = await this.IssueDetails.aggregate([
@@ -1864,6 +1865,7 @@ class WebDataHandler {
                     "number": 1,
                     "comments": 1,
                     "labels": 1,
+                    "url": 1
                 }
             },
         ]);
@@ -1924,6 +1926,7 @@ class WebDataHandler {
                 "$project": {
                     "_id": 1,
                     "issueRef": 1,
+                    "html_url": 1,
                 }
             },
         ]);
@@ -1931,7 +1934,8 @@ class WebDataHandler {
         // Link each found comment to an issue and add it as a node
         for (let i = 0; i < commentsList.length; i++) {
             let commentVisitor = commentsList[i];
-            nodeReturnList.push({ "id": commentVisitor._id.toString(), name: null, val: 4, group: 0 })
+            let commentNode = { "id": commentVisitor._id.toString(), name: null, val: 1, group: 0, url: commentVisitor.html_url };
+            nodeReturnDictionary[commentNode.id] = commentNode;
             linkReturnList.push({ source: commentVisitor._id.toString(), target: commentVisitor.issueRef.toString() });
 
             if (nodesList[commentVisitor.issueRef.toString()] == null) {
@@ -1982,6 +1986,7 @@ class WebDataHandler {
                     "number": 1,
                     "comments": 1,
                     "labels": 1,
+                    "url": 1,
                 }
             },
         ]);
@@ -1995,9 +2000,11 @@ class WebDataHandler {
         nodeIDListArray = Object.keys(nodesList);
         for (let i = 0; i < nodeIDListArray.length; i++) {
             let nodeVisitor = nodesList[nodeIDListArray[i]];
-            // let inputVal = (1 + nodeVisitor.comments + nodeVisitor.numberLinkedIssues);
-            let inputVal = 10;
-            nodeReturnList.push({ "id": nodeVisitor._id.toString(), name: nodeVisitor.number, val: inputVal, group: 2 })
+
+            let formattedURL = nodeVisitor.url.replace("https://api.github.com/repos/", "https://github.com/");
+
+            let issueNode = { "id": nodeVisitor._id.toString(), name: nodeVisitor.number, val: 1, group: 2, url: formattedURL };
+            nodeReturnDictionary[issueNode.id] = issueNode;
 
             // Add labels to node list
             for (let j = 0; j < nodeVisitor.labels.length; j++) {
@@ -2006,9 +2013,35 @@ class WebDataHandler {
 
                 if (!addedLabelList.includes(labelVisitor.name)) {
                     addedLabelList.push(labelVisitor.name);
-                    nodeReturnList.push({ id: labelVisitor.name, name: labelVisitor.name, val: 20, group: 3 });
+                    let labelNode = { id: labelVisitor.name, name: labelVisitor.name, val: 1, group: 3};
+                    nodeReturnDictionary[labelVisitor.name] = labelNode;
                 }
             }
+        }
+
+        for (let i = 0; i < linkReturnList.length; i++) {
+            let linkVisitor = linkReturnList[i];
+            let target = linkVisitor.target;
+            let source = linkVisitor.source; 
+
+            let targetNode = nodeReturnDictionary[target];
+            let sourceNode = nodeReturnDictionary[source];
+            
+            if (!targetNode || !sourceNode) {
+                console.log("Uh oh");
+            }
+
+            nodeReturnDictionary[target].val = nodeReturnDictionary[target].val + 1;
+        }
+
+        // Format nodes list for return
+        nodeIDListArray = Object.keys(nodeReturnDictionary);
+        for (let i = 0; i < nodeIDListArray.length; i++) {
+            let nodeVisitor = nodeReturnDictionary[nodeIDListArray[i]];
+            if (!nodeVisitor) {
+                console.log("UHOH");
+            }
+            nodeReturnList.push(nodeVisitor);
         }
 
         return { nodes: nodeReturnList, links: linkReturnList };
