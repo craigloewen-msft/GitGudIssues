@@ -148,6 +148,7 @@ const IssueInfo = new Schema({
     assignees: [GHUserSchema],
     milestone: Object,
     comments: Number,
+    reactions: Object,
     closed_at: Date,
     closed_by: GHUserSchema,
     body: String,
