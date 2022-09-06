@@ -1,6 +1,6 @@
 This repository's goal is to make a web interface to more easily triage, manage and respond to Github Issues.
 
-## Use codspaces 
+## Use codespaces 
 
 This project is set up with codespaces. If you launch the project with codespaces and then run `npm run dev` in the root directory you will get set up immediately. 
 
@@ -25,4 +25,4 @@ The frontend will hot reload, but the backend won't.
 
 ### Further set up
 * You can replace `defaultconfig.js` with your actual one once you want to go live.
-* You will probably want to generate a github API token. Copy `defaultConfig.json` to `config.json`, and stick that in `ghToken` in `config.js`, so that you don't instantly run into the rate limit.
+* You will probably want to generate a github API token. Copy `defaultconfig.js` to `config.js`, and stick that in `ghToken` in `config.js`, so that you don't instantly run into the rate limit.

@@ -44,6 +44,7 @@ class WebDataHandler {
             }
             return true;
         } catch (error) {
+            console.error(`Got error while checking repo validity, error: `, error)
             return false;
         }
     }
@@ -619,6 +620,7 @@ class WebDataHandler {
         let isValidRepo = await this.isValidGithubShortURL(inputData.inRepoShortURL);
 
         if (!isValidRepo) {
+            console.error(`Repo: "${inputData.inRepoShortURL}" is not a valid Github short url`)
             return false;
         }
 
@@ -639,9 +641,11 @@ class WebDataHandler {
                 inputUser.repos.push(inputRepo._id);
                 await inputUser.save();
             } else {
+                console.log(`Input User: "${inputData.username}" already contains repo, not doing anything`)
                 return false;
             }
         } else {
+            console.error(`Input User: "${inputData.username}" doesn't exist.`)
             return false;
         }
 
@@ -1504,7 +1508,7 @@ class WebDataHandler {
             },
             {
                 "$group": {
-                    _id: "$closed_by.login",
+                    _id: "$closed_by.in",
                     count: { "$count": {} },
                 }
             },

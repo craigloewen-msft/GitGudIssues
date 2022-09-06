@@ -211,9 +211,26 @@
             v-on:click="setQueryProperty('read', 'read')"
             >Read</b-dropdown-item
           >
+        </b-dropdown> 
+        
+        <b-dropdown
+          id="dropdown-1"
+          text="Milestone"
+          class="m-md-2"
+          size="sm"
+          variant="outline-secondary"
+        >
+          <b-form-input
+            placeholder="milestone"
+            size="sm"
+            v-model="inputQuery.milestones"
+            v-debounce:1s="refreshIssues"
+            @keyup.enter="refreshIssues"
+          ></b-form-input>
         </b-dropdown>
       </div>
 
+     
       <div class="page-search-box">
         Page
         <b-form-input
