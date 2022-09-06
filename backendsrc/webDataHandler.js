@@ -1508,7 +1508,7 @@ class WebDataHandler {
             },
             {
                 "$group": {
-                    _id: "$closed_by.in",
+                    _id: "$closed_by.login",
                     count: { "$count": {} },
                 }
             },

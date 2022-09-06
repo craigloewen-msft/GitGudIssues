@@ -212,6 +212,7 @@ const mentionQueryDetail = new Schema({
     siteLabels: String,
     commentedAliases: String,
     read: String,
+    milestones: String,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
@@ -227,6 +228,7 @@ const searchQueryDetail = new Schema({
     siteLabels: String,
     commentedAliases: String,
     read: String,
+    milestones: String,
     userRef: { type: Schema.Types.ObjectId, ref: 'userInfo' },
 });
 
