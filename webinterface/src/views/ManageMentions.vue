@@ -73,6 +73,7 @@ export default {
           labels: null,
           repos: null,
           page_num: 1,
+          milestones: null,
         },
       });
     },
