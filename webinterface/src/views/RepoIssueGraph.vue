@@ -157,6 +157,7 @@ export default {
         .nodeAutoColorBy("group")
         .d3AlphaDecay(0.05)
         .d3VelocityDecay(0.2)
+        // TODO: How to adjust the nodes to repel more if they are larger??
         .onNodeHover((node) => {
           this.highlightNodes.clear();
           this.highlightLinks.clear();

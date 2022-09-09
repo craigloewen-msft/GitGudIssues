@@ -1879,6 +1879,7 @@ class WebDataHandler {
             let issueVisitor = initialIssueList[i];
             if (nodesList[issueVisitor._id.toString()] == null) {
                 nodesList[issueVisitor._id.toString()] = issueVisitor;
+                nodesList[issueVisitor._id.toString()].totalVal = 1;
             }
         }
 
@@ -1905,11 +1906,11 @@ class WebDataHandler {
 
             if (nodesList[linkVisitor.fromIssue.toString()] == null) {
                 unknownNodesSearchList.push(linkVisitor.fromIssue);
-                nodesList[linkVisitor.fromIssue.toString()] = {};
+                nodesList[linkVisitor.fromIssue.toString()] = {totalVal: 1};
             }
             if (nodesList[linkVisitor.toIssue.toString()] == null) {
                 unknownNodesSearchList.push(linkVisitor.toIssue);
-                nodesList[linkVisitor.toIssue.toString()] = {};
+                nodesList[linkVisitor.toIssue.toString()] = {totalVal: 1};
             }
         }
 
@@ -1938,14 +1939,18 @@ class WebDataHandler {
         // Link each found comment to an issue and add it as a node
         for (let i = 0; i < commentsList.length; i++) {
             let commentVisitor = commentsList[i];
-            let commentNode = { "id": commentVisitor._id.toString(), name: null, val: 1, group: 0, url: commentVisitor.html_url };
+            let commentNode = { "id": commentVisitor._id.toString(), name: null, totalVal: 1 + commentVisitor.reactions.total_count, graphVal: 1, group: "comment", url: commentVisitor.html_url };
             nodeReturnDictionary[commentNode.id] = commentNode;
             linkReturnList.push({ source: commentVisitor._id.toString(), target: commentVisitor.issueRef.toString() });
 
             if (nodesList[commentVisitor.issueRef.toString()] == null) {
                 unknownNodesSearchList.push(commentVisitor.issueRef);
-                nodesList[commentVisitor.issueRef.toString()] = {};
+                nodesList[commentVisitor.issueRef.toString()] = { totalVal: 1 };
             }
+
+
+            // Increment the totalValue of the parent node by the sum of its child
+            nodesList[commentVisitor.issueRef.toString()].totalVal += commentNode.totalVal;
         }
 
         // Get issue info for all unknown issues
@@ -1997,7 +2002,14 @@ class WebDataHandler {
 
         for (let i = 0; i < unknownIssueList.length; i++) {
             let unknownIssueVisitor = unknownIssueList[i];
-            nodesList[unknownIssueVisitor._id.toString()] = unknownIssueVisitor;
+            if (nodesList[unknownIssueVisitor._id.toString()] != null) {
+                let totalVal = nodesList[unknownIssueVisitor._id.toString()].totalVal;
+                nodesList[unknownIssueVisitor._id.toString()] = unknownIssueVisitor;
+                nodesList[unknownIssueVisitor._id.toString()].totalVal = totalVal;
+            } else {
+                nodesList[unknownIssueVisitor._id.toString()] = unknownIssueVisitor;
+                nodesList[unknownIssueVisitor._id.toString()].totalVal = 1;
+            }
         }
 
         // Format nodes list for return
@@ -2007,7 +2019,7 @@ class WebDataHandler {
 
             let formattedURL = nodeVisitor.url.replace("https://api.github.com/repos/", "https://github.com/");
 
-            let issueNode = { "id": nodeVisitor._id.toString(), name: nodeVisitor.number, val: 1, group: 2, url: formattedURL };
+            let issueNode = { "id": nodeVisitor._id.toString(), name: nodeVisitor.number, totalVal: nodeVisitor.totalVal, graphVal: 1, group: "issue", url: formattedURL };
             nodeReturnDictionary[issueNode.id] = issueNode;
 
             // Add labels to node list
@@ -2017,33 +2029,36 @@ class WebDataHandler {
 
                 if (!addedLabelList.includes(labelVisitor.name)) {
                     addedLabelList.push(labelVisitor.name);
-                    let labelNode = { id: labelVisitor.name, name: labelVisitor.name, val: 1, group: 3};
+                    let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, group: "label" };
                     nodeReturnDictionary[labelVisitor.name] = labelNode;
                 }
+
+                // Add the total value of the issue to the label
+                nodeReturnDictionary[labelVisitor.name].totalVal += issueNode.totalVal;
             }
         }
 
         for (let i = 0; i < linkReturnList.length; i++) {
             let linkVisitor = linkReturnList[i];
             let target = linkVisitor.target;
-            let source = linkVisitor.source; 
+            let source = linkVisitor.source;
 
             let targetNode = nodeReturnDictionary[target];
             let sourceNode = nodeReturnDictionary[source];
-            
-            if (!targetNode || !sourceNode) {
-                console.log("Uh oh");
-            }
 
-            nodeReturnDictionary[target].val = nodeReturnDictionary[target].val + 1;
+            nodeReturnDictionary[target].graphVal = nodeReturnDictionary[target].graphVal + 1;
         }
 
         // Format nodes list for return
         nodeIDListArray = Object.keys(nodeReturnDictionary);
         for (let i = 0; i < nodeIDListArray.length; i++) {
             let nodeVisitor = nodeReturnDictionary[nodeIDListArray[i]];
-            if (!nodeVisitor) {
-                console.log("UHOH");
+        
+            // Adjust the size of the node to two functions, one for smaller node sizes and one for larger node sizes
+            if (nodeVisitor.totalVal < 50) {
+                nodeVisitor.val = (0.2717*nodeVisitor.totalVal+0.64).toFixed(1);
+            } else {
+                nodeVisitor.val = (0.07*nodeVisitor.totalVal+10).toFixed(1);
             }
             nodeReturnList.push(nodeVisitor);
         }
