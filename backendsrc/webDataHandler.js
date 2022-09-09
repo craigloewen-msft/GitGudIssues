@@ -1932,6 +1932,7 @@ class WebDataHandler {
                     "_id": 1,
                     "issueRef": 1,
                     "html_url": 1,
+                    "reactions.total_count": 1,
                 }
             },
         ]);
