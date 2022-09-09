@@ -1869,7 +1869,8 @@ class WebDataHandler {
                     "number": 1,
                     "comments": 1,
                     "labels": 1,
-                    "url": 1
+                    "url": 1,
+                    "created_at": 1,
                 }
             },
         ]);
@@ -1906,11 +1907,11 @@ class WebDataHandler {
 
             if (nodesList[linkVisitor.fromIssue.toString()] == null) {
                 unknownNodesSearchList.push(linkVisitor.fromIssue);
-                nodesList[linkVisitor.fromIssue.toString()] = {totalVal: 1};
+                nodesList[linkVisitor.fromIssue.toString()] = { totalVal: 1 };
             }
             if (nodesList[linkVisitor.toIssue.toString()] == null) {
                 unknownNodesSearchList.push(linkVisitor.toIssue);
-                nodesList[linkVisitor.toIssue.toString()] = {totalVal: 1};
+                nodesList[linkVisitor.toIssue.toString()] = { totalVal: 1 };
             }
         }
 
@@ -1933,6 +1934,7 @@ class WebDataHandler {
                     "issueRef": 1,
                     "html_url": 1,
                     "reactions.total_count": 1,
+                    "created_at": 1,
                 }
             },
         ]);
@@ -1940,7 +1942,7 @@ class WebDataHandler {
         // Link each found comment to an issue and add it as a node
         for (let i = 0; i < commentsList.length; i++) {
             let commentVisitor = commentsList[i];
-            let commentNode = { "id": commentVisitor._id.toString(), name: null, totalVal: 1 + commentVisitor.reactions.total_count, graphVal: 1, group: "comment", url: commentVisitor.html_url };
+            let commentNode = { "id": commentVisitor._id.toString(), name: null, totalVal: 1 + commentVisitor.reactions.total_count, graphVal: 1, group: "comment", url: commentVisitor.html_url, created_at: commentVisitor.created_at };
             nodeReturnDictionary[commentNode.id] = commentNode;
             linkReturnList.push({ source: commentVisitor._id.toString(), target: commentVisitor.issueRef.toString() });
 
@@ -1997,6 +1999,7 @@ class WebDataHandler {
                     "comments": 1,
                     "labels": 1,
                     "url": 1,
+                    "created_at": 1,
                 }
             },
         ]);
@@ -2020,7 +2023,7 @@ class WebDataHandler {
 
             let formattedURL = nodeVisitor.url.replace("https://api.github.com/repos/", "https://github.com/");
 
-            let issueNode = { "id": nodeVisitor._id.toString(), name: nodeVisitor.number, totalVal: nodeVisitor.totalVal, graphVal: 1, group: "issue", url: formattedURL };
+            let issueNode = { "id": nodeVisitor._id.toString(), name: nodeVisitor.number, totalVal: nodeVisitor.totalVal, graphVal: 1, group: "issue", url: formattedURL, created_at: nodeVisitor.created_at };
             nodeReturnDictionary[issueNode.id] = issueNode;
 
             // Add labels to node list
@@ -2054,13 +2057,26 @@ class WebDataHandler {
         nodeIDListArray = Object.keys(nodeReturnDictionary);
         for (let i = 0; i < nodeIDListArray.length; i++) {
             let nodeVisitor = nodeReturnDictionary[nodeIDListArray[i]];
-        
+
             // Adjust the size of the node to two functions, one for smaller node sizes and one for larger node sizes
             if (nodeVisitor.totalVal < 50) {
-                nodeVisitor.val = (0.2717*nodeVisitor.totalVal+0.64).toFixed(1);
+                nodeVisitor.val = (0.2717 * nodeVisitor.totalVal + 0.64).toFixed(1);
             } else {
-                nodeVisitor.val = (0.07*nodeVisitor.totalVal+10).toFixed(1);
+                nodeVisitor.val = (0.07 * nodeVisitor.totalVal + 10).toFixed(1);
             }
+
+            // Check if created at is between input dates, if it is add a partOfQuery attribute
+            if (nodeVisitor.created_at != null) {
+                let createdAtDate = new Date(nodeVisitor.created_at);
+                if (createdAtDate > startDate && createdAtDate < endDate) {
+                    nodeVisitor.partOfQuery = true;
+                } else {
+                    nodeVisitor.partOfQuery = false;
+                }
+            } else {
+                nodeVisitor.partOfQuery = false;
+            }
+
             nodeReturnList.push(nodeVisitor);
         }
 
