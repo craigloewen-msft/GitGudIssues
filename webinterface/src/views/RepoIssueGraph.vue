@@ -68,7 +68,7 @@ export default {
   name: "RepoIssueGraph",
   data() {
     return {
-      selected: [],
+      selected: ["labels"],
       options: [
         { text: "Labels", value: "labels" },
         // { text: "Comments", value: "comments" },
