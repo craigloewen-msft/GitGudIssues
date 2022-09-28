@@ -1,12 +1,11 @@
 <template>
   <div class="pageContent">
-    <b-container>
-      <div>This is an experimental feature</div>
-
-      <h1>{{ inputQuery.repos }}</h1>
+    <b-container fluid>
+      <p>This is an experimental feature</p>
+      <h1><span class="font-weight-lighter">repo: </span>{{ inputQuery.repos }}</h1>
       <h2>{{ inputQuery.milestones }}</h2>
-      <div class="graph-title-and-controls">
-        <div class="table-header-buttons">
+      <div>
+        <div>
           <b-dropdown
             id="dropdown-1"
             text="Repo"
@@ -23,38 +22,45 @@
             ></b-form-input>
           </b-dropdown>
         </div>
-        <div class="table-header-buttons">
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.startDate"
-            class="mb-2"
-            @input="refreshData"
-          />
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.endDate"
-            class="mb-2"
-            @input="refreshData"
-          />
-        </div>
       </div>
     </b-container>
-     <div>
-      <br>
-        <b-form-group
-        label="Settings"
-        v-slot="{ ariaDescribedby }"
-        role="switch"
-        >
-          <b-form-checkbox-group
+
+    <b-container>
+      <b-row>
+        <b-col>
+          <label for="graph-start-date" class="font-weight-bold">Start Date:</label>
+          <b-form-datepicker
+          id="graph-start-date"
+          v-model="inputQuery.startDate"
+          class="mb-2"
+          @input="refreshData"
+          >
+          </b-form-datepicker>
+        </b-col>
+        <b-col>
+          <label for="graph-end-date" class="font-weight-bold">End Date:</label>
+          <b-form-datepicker
+          id="graph-end-date"
+          v-model="inputQuery.endDate"
+          class="mb-2"
+          @input="refreshData"
+          >
+          </b-form-datepicker>
+        </b-col> 
+      </b-row>
+    </b-container>
+
+    <div>
+      <b-form-group label="Settings" v-slot="{ ariaDescribedby }" role="switch">
+        <b-form-checkbox-group
           v-model="selected"
           :options="options"
           :aria-describedby="ariaDescribedby"
           switches
-          >
-          </b-form-checkbox-group>
-        </b-form-group>
-      </div>
+        >
+        </b-form-checkbox-group>
+      </b-form-group>
+    </div>
     <div class="graphBox">
       <div id="graph"></div>
     </div>
@@ -71,9 +77,9 @@ export default {
       selected: ["labels"],
       options: [
         { text: "Labels", value: "labels" },
-        // { text: "Comments", value: "comments" },
-        // { text: "Reactions", value: "reactions" },
-        // { text: "Milestones", value: "milestones" }
+        { text: "Comments", value: "comments" },
+        { text: "Reactions", value: "reactions" },
+        { text: "Milestones", value: "milestones" },
       ],
       loading: false,
       inputQuery: {
@@ -115,7 +121,7 @@ export default {
   watch: {
     selected(value) {
       this.applyFilters();
-    }
+    },
   },
   methods: {
     getInputRepos: function () {
@@ -163,18 +169,21 @@ export default {
           this.nodeList[nodeVisitor.id] = nodeVisitor;
         }
       }
-      
+
       // Get neighbour data
       for (let i = this.filteredData.links.length - 1; i >= 0; i--) {
         let linkVisitor = this.filteredData.links[i];
         let source = this.nodeList[linkVisitor.source];
         let target = this.nodeList[linkVisitor.target];
 
-        if (!isLabelsSelected && (source === undefined || target === undefined)) {
+        if (
+          !isLabelsSelected &&
+          (source === undefined || target === undefined)
+        ) {
           this.filteredData.links.splice(i, 1);
           continue;
         }
-        
+
         if (!source.neighbors) {
           source.neighbors = [];
         }
