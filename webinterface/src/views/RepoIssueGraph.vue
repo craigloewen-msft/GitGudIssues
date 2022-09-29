@@ -2,7 +2,9 @@
   <div class="pageContent">
     <b-container fluid>
       <p>This is an experimental feature</p>
-      <h1><span class="font-weight-lighter">repo: </span>{{ inputQuery.repos }}</h1>
+      <h1>
+        <span class="font-weight-lighter">repo: </span>{{ inputQuery.repos }}
+      </h1>
       <h2>{{ inputQuery.milestones }}</h2>
       <div>
         <div>
@@ -21,6 +23,20 @@
               @keyup.enter="refreshData"
             ></b-form-input>
           </b-dropdown>
+          <b-button v-b-toggle.collapse-1 variant="outline-secondary" size="sm" class="font-weight-bold">
+            <b-icon icon="gear-fill" aria-hidden="true"></b-icon> Settings
+          </b-button>
+          <b-collapse id="collapse-1" class="mt-2">
+            <b-form-group v-slot="{ ariaDescribedby }" role="switch">
+              <b-form-checkbox-group
+                v-model="selected"
+                :options="options"
+                :aria-describedby="ariaDescribedby"
+                switches
+              >
+              </b-form-checkbox-group>
+            </b-form-group>
+          </b-collapse>
         </div>
       </div>
     </b-container>
@@ -28,39 +44,31 @@
     <b-container>
       <b-row>
         <b-col>
-          <label for="graph-start-date" class="font-weight-bold">Start Date:</label>
+          <label for="graph-start-date" class="font-weight-bold"
+            >Start Date:</label
+          >
           <b-form-datepicker
-          id="graph-start-date"
-          v-model="inputQuery.startDate"
-          class="mb-2"
-          @input="refreshData"
+            id="graph-start-date"
+            v-model="inputQuery.startDate"
+            class="mb-2"
+            @input="refreshData"
           >
           </b-form-datepicker>
         </b-col>
         <b-col>
           <label for="graph-end-date" class="font-weight-bold">End Date:</label>
           <b-form-datepicker
-          id="graph-end-date"
-          v-model="inputQuery.endDate"
-          class="mb-2"
-          @input="refreshData"
+            id="graph-end-date"
+            v-model="inputQuery.endDate"
+            class="mb-2"
+            @input="refreshData"
           >
           </b-form-datepicker>
-        </b-col> 
+        </b-col>
       </b-row>
     </b-container>
 
-    <div>
-      <b-form-group label="Settings" v-slot="{ ariaDescribedby }" role="switch">
-        <b-form-checkbox-group
-          v-model="selected"
-          :options="options"
-          :aria-describedby="ariaDescribedby"
-          switches
-        >
-        </b-form-checkbox-group>
-      </b-form-group>
-    </div>
+    <div></div>
     <div class="graphBox">
       <div id="graph"></div>
     </div>
