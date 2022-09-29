@@ -39,22 +39,25 @@
         </div>
       </div>
     </b-container>
-     <div>
+    <div>
       <br>
-        <b-form-group
-        label="Settings"
-        v-slot="{ ariaDescribedby }"
-        role="switch"
-        >
-          <b-form-checkbox-group
+      <b-form-group label="Settings" v-slot="{ ariaDescribedby }" role="switch">
+        <b-form-checkbox-group
           v-model="selected"
           :options="options"
           :aria-describedby="ariaDescribedby"
           switches
-          >
-          </b-form-checkbox-group>
-        </b-form-group>
-      </div>
+        >
+        </b-form-checkbox-group>
+        <b-form-input
+          placeholder="bug,feature"
+          size="sm"
+          v-model="inputQuery.graphLabels"
+          v-debounce:1s="refreshData"
+          @keyup.enter="refreshIssues"
+        ></b-form-input>
+      </b-form-group>
+    </div>
     <div class="graphBox">
       <div id="graph"></div>
     </div>
@@ -81,6 +84,7 @@ export default {
         // startDate: new Date(new Date().setDate(new Date().getDate() - 1)),
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 3)),
         endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
+        graphLabels: "",
         inputPeriod: 0,
         milestones: "",
       },
