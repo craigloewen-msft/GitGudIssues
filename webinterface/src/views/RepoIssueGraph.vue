@@ -40,7 +40,7 @@
       </div>
     </b-container>
     <div>
-      <br>
+      <br />
       <b-form-group label="Settings" v-slot="{ ariaDescribedby }" role="switch">
         <b-form-checkbox-group
           v-model="selected"
@@ -57,6 +57,60 @@
           @keyup.enter="refreshIssues"
         ></b-form-input>
       </b-form-group>
+    </div>
+    <div class="node-info-display-bar">
+      <div class="node-info-total-interactions">
+        Total interactions: {{ totalInteractions }}
+      </div>
+      <div v-if="hoverNode">
+        <div v-if="hoverNode.group == 'issue'">
+          Issue Node val: {{ hoverNode.totalVal }} total interactions, which is
+          <b
+            >{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+            }}%</b
+          >
+          of all during this time. Including directly linked issues that gives:
+          {{ getNodeWithLinkedIssuesSize(hoverNode) }} which is:
+          <b
+            >{{
+              (
+                (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                totalInteractions
+              ).toFixed(2)
+            }}%</b
+          >
+        </div>
+        <div v-else-if="hoverNode.group == 'label'">
+          This label had <b>{{ hoverNode.totalVal }}</b> total interactions,
+          which is
+          <b
+            >{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+            }}%</b
+          >
+          of all during this time. Including directly linked issues that gives:
+          {{ getLabelNodeWithLinkedIssuesSize(hoverNode) }} which is:
+          <b
+            >{{
+              (
+                (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                totalInteractions
+              ).toFixed(2)
+            }}%</b
+          >
+        </div>
+        <div v-else-if="hoverNode.group == 'comment'">
+          Comment node val: {{ hoverNode.totalVal }} total interactions, which
+          is
+          <b
+            >{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+            }}%</b
+          >
+          of all during this time
+        </div>
+      </div>
     </div>
     <div class="graphBox">
       <div id="graph"></div>
@@ -113,13 +167,14 @@ export default {
       highlightNodes: new Set(),
       highlightLinks: new Set(),
       hoverNode: null,
+      totalInteractions: 0,
       repoList: [],
     };
   },
   watch: {
     selected(value) {
       this.applyFilters();
-    }
+    },
   },
   methods: {
     getInputRepos: function () {
@@ -137,6 +192,7 @@ export default {
     },
     refreshData: function () {
       this.loading = true;
+      this.totalInteractions = 0;
       this.$http
         .post("/api/getrepoissuegraph", this.inputQuery)
         .then((response) => {
@@ -166,19 +222,27 @@ export default {
         } else {
           this.nodeList[nodeVisitor.id] = nodeVisitor;
         }
+
+        // If it's an issue count the total interactions
+        if (nodeVisitor.group === "issue") {
+          this.totalInteractions += nodeVisitor.totalVal;
+        }
       }
-      
+
       // Get neighbour data
       for (let i = this.filteredData.links.length - 1; i >= 0; i--) {
         let linkVisitor = this.filteredData.links[i];
         let source = this.nodeList[linkVisitor.source];
         let target = this.nodeList[linkVisitor.target];
 
-        if (!isLabelsSelected && (source === undefined || target === undefined)) {
+        if (
+          !isLabelsSelected &&
+          (source === undefined || target === undefined)
+        ) {
           this.filteredData.links.splice(i, 1);
           continue;
         }
-        
+
         if (!source.neighbors) {
           source.neighbors = [];
         }
@@ -198,6 +262,11 @@ export default {
           target.links = [];
         }
         target.links.push(linkVisitor);
+
+        if (!target.linkFromList) {
+          target.linkFromList = [];
+        }
+        target.linkFromList.push(source);
       }
     },
     renderGraph: function () {
@@ -263,6 +332,29 @@ export default {
         })
         .linkColor(linkColorFunction);
     },
+    getNodeWithLinkedIssuesSize(inNode) {
+      let totalSize = 0;
+      totalSize += inNode.totalVal;
+      if (inNode.linkFromList) {
+        inNode.linkFromList.forEach((neighbor) => {
+          if (neighbor.group === "issue") {
+            totalSize += neighbor.totalVal;
+          }
+        });
+      }
+      return totalSize;
+    },
+    getLabelNodeWithLinkedIssuesSize(inNode) {
+      let totalSize = 0;
+      if (inNode.linkFromList) {
+        inNode.linkFromList.forEach((neighbor) => {
+          if (neighbor.group === "issue") {
+            totalSize += this.getNodeWithLinkedIssuesSize(neighbor);
+          }
+        });
+      }
+      return totalSize;
+    }
   },
   mounted: function () {
     this.$gtag.pageview(this.$route);
@@ -275,5 +367,13 @@ export default {
 <style>
 .graphBox {
   display: flex;
+}
+
+.node-info-display-bar {
+  display: flex;
+}
+
+.node-info-total-interactions {
+  margin-right: 10px;
 }
 </style>
