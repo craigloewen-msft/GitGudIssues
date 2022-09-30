@@ -39,6 +39,79 @@
         </div>
       </div>
     </b-container>
+    <div>
+      <br />
+      <b-form-group label="Settings" v-slot="{ ariaDescribedby }" role="switch">
+        <b-form-checkbox-group
+          v-model="selected"
+          :options="options"
+          :aria-describedby="ariaDescribedby"
+          switches
+        >
+        </b-form-checkbox-group>
+        <b-form-input
+          placeholder="bug,feature"
+          size="sm"
+          v-model="inputQuery.graphLabels"
+          v-debounce:1s="refreshData"
+          @keyup.enter="refreshIssues"
+        ></b-form-input>
+      </b-form-group>
+    </div>
+    <div class="node-info-display-bar">
+      <div class="node-info-total-interactions">
+        Total interactions: {{ totalInteractions }}
+      </div>
+      <div v-if="hoverNode">
+        <div v-if="hoverNode.group == 'issue'">
+          Issue Node val: {{ hoverNode.totalVal }} total interactions, which is
+          <b
+            >{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+            }}%</b
+          >
+          of all during this time. Including directly linked issues that gives:
+          {{ getNodeWithLinkedIssuesSize(hoverNode) }} which is:
+          <b
+            >{{
+              (
+                (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                totalInteractions
+              ).toFixed(2)
+            }}%</b
+          >
+        </div>
+        <div v-else-if="hoverNode.group == 'label'">
+          This label had <b>{{ hoverNode.totalVal }}</b> total interactions,
+          which is
+          <b
+            >{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+            }}%</b
+          >
+          of all during this time. Including directly linked issues that gives:
+          {{ getLabelNodeWithLinkedIssuesSize(hoverNode) }} which is:
+          <b
+            >{{
+              (
+                (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                totalInteractions
+              ).toFixed(2)
+            }}%</b
+          >
+        </div>
+        <div v-else-if="hoverNode.group == 'comment'">
+          Comment node val: {{ hoverNode.totalVal }} total interactions, which
+          is
+          <b
+            >{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+            }}%</b
+          >
+          of all during this time
+        </div>
+      </div>
+    </div>
     <div class="graphBox">
       <div id="graph"></div>
     </div>
@@ -52,12 +125,20 @@ export default {
   name: "RepoIssueGraph",
   data() {
     return {
+      selected: [],
+      options: [
+        { text: "Labels", value: "labels" },
+        // { text: "Comments", value: "comments" },
+        // { text: "Reactions", value: "reactions" },
+        // { text: "Milestones", value: "milestones" }
+      ],
       loading: false,
       inputQuery: {
         repos: "",
         // startDate: new Date(new Date().setDate(new Date().getDate() - 1)),
         startDate: new Date(new Date().setMonth(new Date().getMonth() - 3)),
         endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
+        graphLabels: "",
         inputPeriod: 0,
         milestones: "",
       },
@@ -81,12 +162,19 @@ export default {
           },
         ],
       },
+      filteredData: {},
       nodeList: {},
       highlightNodes: new Set(),
       highlightLinks: new Set(),
       hoverNode: null,
+      totalInteractions: 0,
       repoList: [],
     };
+  },
+  watch: {
+    selected(value) {
+      this.applyFilters();
+    },
   },
   methods: {
     getInputRepos: function () {
@@ -104,42 +192,82 @@ export default {
     },
     refreshData: function () {
       this.loading = true;
+      this.totalInteractions = 0;
       this.$http
         .post("/api/getrepoissuegraph", this.inputQuery)
         .then((response) => {
           if (response.data.success) {
             this.myData = response.data.graphData;
-
-            // Get searchable node list
-            for (let i = 0; i < this.myData.nodes.length; i++) {
-              let nodeVisitor = this.myData.nodes[i];
-              this.nodeList[nodeVisitor.id] = nodeVisitor;
-            }
-
-            // Get neighbour data
-            for (let i = 0; i < this.myData.links.length; i++) {
-              let linkVisitor = this.myData.links[i];
-              let source = this.nodeList[linkVisitor.source];
-              let target = this.nodeList[linkVisitor.target];
-
-              !source.neighbors && (source.neighbors = []);
-              source.neighbors.push(target);
-
-              !target.neighbors && (target.neighbors = []);
-              target.neighbors.push(source);
-
-              !source.links && (source.links = []);
-              source.links.push(linkVisitor);
-
-              !target.links && (target.links = []);
-              target.links.push(linkVisitor);
-            }
-
+            this.prepareDataForGraph();
             this.renderGraph();
           } else {
             console.log(response);
           }
         });
+    },
+    applyFilters: function () {
+      this.prepareDataForGraph();
+      this.renderGraph();
+    },
+    prepareDataForGraph: function () {
+      this.filteredData = JSON.parse(JSON.stringify(this.myData));
+      this.nodeList = {};
+      const isLabelsSelected = this.selected.includes("labels");
+
+      // Get searchable node list
+      for (let i = this.filteredData.nodes.length - 1; i >= 0; i--) {
+        let nodeVisitor = this.filteredData.nodes[i];
+        if (!isLabelsSelected && nodeVisitor.group === "label") {
+          this.filteredData.nodes.splice(i, 1);
+        } else {
+          this.nodeList[nodeVisitor.id] = nodeVisitor;
+        }
+
+        // If it's an issue count the total interactions
+        if (nodeVisitor.group === "issue") {
+          this.totalInteractions += nodeVisitor.totalVal;
+        }
+      }
+
+      // Get neighbour data
+      for (let i = this.filteredData.links.length - 1; i >= 0; i--) {
+        let linkVisitor = this.filteredData.links[i];
+        let source = this.nodeList[linkVisitor.source];
+        let target = this.nodeList[linkVisitor.target];
+
+        if (
+          !isLabelsSelected &&
+          (source === undefined || target === undefined)
+        ) {
+          this.filteredData.links.splice(i, 1);
+          continue;
+        }
+
+        if (!source.neighbors) {
+          source.neighbors = [];
+        }
+        source.neighbors.push(target);
+
+        if (!target.neighbors) {
+          target.neighbors = [];
+        }
+        target.neighbors.push(source);
+
+        if (!source.links) {
+          source.links = [];
+        }
+        source.links.push(linkVisitor);
+
+        if (!target.links) {
+          target.links = [];
+        }
+        target.links.push(linkVisitor);
+
+        if (!target.linkFromList) {
+          target.linkFromList = [];
+        }
+        target.linkFromList.push(source);
+      }
     },
     renderGraph: function () {
       let linkColorFunction = function (link) {
@@ -153,7 +281,7 @@ export default {
       }.bind(this);
 
       const Graph = ForceGraph()(document.getElementById("graph"))
-        .graphData(this.myData)
+        .graphData(this.filteredData)
         .nodeAutoColorBy("group")
         .d3AlphaDecay(0.05)
         .d3VelocityDecay(0.2)
@@ -163,10 +291,14 @@ export default {
           this.highlightLinks.clear();
           if (node) {
             this.highlightNodes.add(node);
-            node.neighbors.forEach((neighbor) =>
-              this.highlightNodes.add(neighbor)
-            );
-            node.links.forEach((link) => this.highlightLinks.add(link));
+            if (node.neighbors) {
+              node.neighbors.forEach((neighbor) =>
+                this.highlightNodes.add(neighbor)
+              );
+            }
+            if (node.links) {
+              node.links.forEach((link) => this.highlightLinks.add(link));
+            }
           }
 
           this.hoverNode = node || null;
@@ -200,6 +332,29 @@ export default {
         })
         .linkColor(linkColorFunction);
     },
+    getNodeWithLinkedIssuesSize(inNode) {
+      let totalSize = 0;
+      totalSize += inNode.totalVal;
+      if (inNode.linkFromList) {
+        inNode.linkFromList.forEach((neighbor) => {
+          if (neighbor.group === "issue") {
+            totalSize += neighbor.totalVal;
+          }
+        });
+      }
+      return totalSize;
+    },
+    getLabelNodeWithLinkedIssuesSize(inNode) {
+      let totalSize = 0;
+      if (inNode.linkFromList) {
+        inNode.linkFromList.forEach((neighbor) => {
+          if (neighbor.group === "issue") {
+            totalSize += this.getNodeWithLinkedIssuesSize(neighbor);
+          }
+        });
+      }
+      return totalSize;
+    }
   },
   mounted: function () {
     this.$gtag.pageview(this.$route);
@@ -212,5 +367,13 @@ export default {
 <style>
 .graphBox {
   display: flex;
+}
+
+.node-info-display-bar {
+  display: flex;
+}
+
+.node-info-total-interactions {
+  margin-right: 10px;
 }
 </style>
