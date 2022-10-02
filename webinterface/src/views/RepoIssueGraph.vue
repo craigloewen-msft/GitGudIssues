@@ -36,6 +36,26 @@
               >
               </b-form-checkbox-group>
             </b-form-group>
+              <b-row class="pb-2 mx-auto" style="width: 475px">
+                <b-col class="mx-auto">
+                  <b-input-group>
+                    <b-form-input type="search" placeholder="Search labels"></b-form-input>
+                    <b-input-group-append>
+                      <b-button size="sm" type="submit" variant="outline-secondary"><b-icon-search /></b-button>
+                    </b-input-group-append>
+                  </b-input-group>
+                </b-col>
+              </b-row>
+              <b-row class="pb-2 mx-auto" style="width: 475px">
+                <b-col class="mx-auto">
+                  <b-input-group>
+                      <b-form-input type="search" placeholder="Search milestones"></b-form-input>
+                      <b-input-group-append>
+                        <b-button size="sm" type="submit" variant="outline-secondary"><b-icon-search /></b-button>
+                      </b-input-group-append>
+                    </b-input-group>
+                </b-col>
+              </b-row>
           </b-collapse>
         </div>
       </div>
@@ -52,6 +72,8 @@
             v-model="inputQuery.startDate"
             class="mb-2"
             @input="refreshData"
+            menu-class="w-100"
+            calendar-width="100%"
           >
           </b-form-datepicker>
         </b-col>
@@ -62,13 +84,14 @@
             v-model="inputQuery.endDate"
             class="mb-2"
             @input="refreshData"
+            menu-class="w-100"
+            calendar-width="100%"
           >
           </b-form-datepicker>
         </b-col>
       </b-row>
     </b-container>
 
-    <div></div>
     <div class="graphBox">
       <div id="graph"></div>
     </div>
