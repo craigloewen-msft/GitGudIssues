@@ -380,6 +380,14 @@ class WebDataHandler {
         return [findQuery, sortQuery, limitNum, skipNum, commentsNeeded, readNeeded];
     }
 
+    getIssueGraphLabelsToIncludeList(queryData) {
+        let labelList = [];
+        if (queryData.graphLabels) {
+            labelList = queryData.graphLabels.split(',');
+        }
+        return labelList;
+    }
+
     setIssueLabelsForUser(inputIssueArray, inUser) {
         inputIssueArray.map((issueItem) => {
             var siteLabelsToReturn = [];
@@ -1817,7 +1825,7 @@ class WebDataHandler {
         return queryResult;
     }
 
-    async getRepoConnectedGraphData(startDate, endDate, firstFindQuery) {
+    async getRepoConnectedGraphData(startDate, endDate, firstFindQuery, issueGraphLabelsToIncludeList) {
         let nodesList = {};
         let linkReturnList = [];
         let nodeReturnList = [];
@@ -2029,16 +2037,35 @@ class WebDataHandler {
             // Add labels to node list
             for (let j = 0; j < nodeVisitor.labels.length; j++) {
                 let labelVisitor = nodeVisitor.labels[j];
-                linkReturnList.push({ "source": nodeVisitor._id.toString(), "target": labelVisitor.name });
 
-                if (!addedLabelList.includes(labelVisitor.name)) {
-                    addedLabelList.push(labelVisitor.name);
-                    let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, group: "label" };
-                    nodeReturnDictionary[labelVisitor.name] = labelNode;
+                let shouldProcessLabel = false;
+
+                // Check if we should process label by checking if it is in issueGraphLabelsToIncludeList
+                if (issueGraphLabelsToIncludeList.length != 0) {
+                    for (let k = 0; k < issueGraphLabelsToIncludeList.length; k++) {
+                        if (labelVisitor.name == issueGraphLabelsToIncludeList[k]) {
+                            shouldProcessLabel = true;
+                            break;
+                        }
+                    }
+                } else {
+                    // If no labels are specified then process all labels
+                    shouldProcessLabel = true;
                 }
 
-                // Add the total value of the issue to the label
-                nodeReturnDictionary[labelVisitor.name].totalVal += issueNode.totalVal;
+                if (shouldProcessLabel) {
+
+                    linkReturnList.push({ "source": nodeVisitor._id.toString(), "target": labelVisitor.name });
+
+                    if (!addedLabelList.includes(labelVisitor.name)) {
+                        addedLabelList.push(labelVisitor.name);
+                        let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, group: "label" };
+                        nodeReturnDictionary[labelVisitor.name] = labelNode;
+                    }
+
+                    // Add the total value of the issue to the label
+                    nodeReturnDictionary[labelVisitor.name].totalVal += issueNode.totalVal;
+                }
             }
         }
 
@@ -2096,8 +2123,9 @@ class WebDataHandler {
 
         // Get issue query data
         let [firstFindQuery, firstSortQuery, limitNum, skipNum, commentsNeeded] = this.getQueryInputs(queryData, inUser);
+        let issueGraphLabelsToIncludeList = this.getIssueGraphLabelsToIncludeList(queryData, inUser);
 
-        let queryResult = await this.getRepoConnectedGraphData(startDate, endDate, firstFindQuery);
+        let queryResult = await this.getRepoConnectedGraphData(startDate, endDate, firstFindQuery, issueGraphLabelsToIncludeList);
 
         return queryResult;
     }
