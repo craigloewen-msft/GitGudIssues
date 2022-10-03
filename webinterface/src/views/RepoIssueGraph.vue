@@ -1,29 +1,66 @@
 <template>
   <div class="pageContent">
     <b-container fluid>
-      <p>This is an experimental feature</p>
-      <h1>
-        <span class="font-weight-lighter">repo: </span>{{ inputQuery.repos }}
+      <h1 class="pb-2">
+        <b-form-select
+          size="lg"
+          class="font-weight-bold display-1 w-50 text-center"
+          variant="outline-secondary"
+          v-model="inputQuery.repos"
+          v-debounce:1s="refreshData"
+          @change="refreshData"
+          v-b-tooltip.hover.rightbottom.v-primary="'Change repo'"
+        >
+          <b-form-select-option :value="null"
+            >Select a repo:</b-form-select-option
+          >
+          <b-form-select-option
+            v-for="repo in this.repoList"
+            :key="repo.id"
+            :value="repo.title"
+            >{{ repo.title }}</b-form-select-option
+          >
+        </b-form-select>
+        <!-- {{ inputQuery.repos }} -->
       </h1>
       <h2>{{ inputQuery.milestones }}</h2>
       <div>
         <div>
-          <b-dropdown
+          <!-- <b-dropdown id="dropdown-1" text="Repo" class="m-md-2" size="sm" variant="outline-secondary" v-model="inputQuery.repos" v-on:click="refreshData">
+            <b-dropdown-item v-for="repo in this.repoList" :key="repo.id" :value="repo.title" @click="inputQuery.repos = repo.title">
+              {{ repo.title }}
+            </b-dropdown-item>
+          </b-dropdown> -->
+          <!-- <b-dropdown
             id="dropdown-1"
             text="Repo"
             class="m-md-2"
             size="sm"
             variant="outline-secondary"
-          >
-            <b-form-input
+          > -->
+          <!-- <b-form-input
               placeholder="microsoft/wsl,microsoft/vscode"
               size="sm"
               v-model="inputQuery.repos"
               v-debounce:1s="refreshData"
               @keyup.enter="refreshData"
             ></b-form-input>
-          </b-dropdown>
-          <b-button v-b-toggle.collapse-1 variant="outline-secondary" size="sm" class="font-weight-bold">
+            -->
+          <!-- </b-dropdown> -->
+          <!-- <b-row class="justify-content-md-center">
+            <b-col>
+              <b-form-select size="sm" class="font-weight-bold" variant="outline-secondary" v-model="inputQuery.repos" v-debounce:1s="refreshData" @change="refreshData">
+                <b-form-select-option :value="null">Select a repo:</b-form-select-option>
+                <b-form-select-option v-for="repo in this.repoList" :key="repo.id" :value="repo.title">{{ repo.title }}</b-form-select-option>
+              </b-form-select>
+            </b-col>
+          </b-row> -->
+          <b-button
+            v-b-toggle.collapse-1
+            variant="outline-secondary"
+            size="sm"
+            class="font-weight-bold"
+          >
             <b-icon icon="gear-fill" aria-hidden="true"></b-icon> Settings
           </b-button>
           <b-collapse id="collapse-1" class="mt-2">
@@ -36,26 +73,42 @@
               >
               </b-form-checkbox-group>
             </b-form-group>
-              <b-row class="pb-2 mx-auto" style="width: 475px">
-                <b-col class="mx-auto">
-                  <b-input-group>
-                    <b-form-input type="search" placeholder="Search labels"></b-form-input>
-                    <b-input-group-append>
-                      <b-button size="sm" type="submit" variant="outline-secondary"><b-icon-search /></b-button>
-                    </b-input-group-append>
-                  </b-input-group>
-                </b-col>
-              </b-row>
-              <b-row class="pb-2 mx-auto" style="width: 475px">
-                <b-col class="mx-auto">
-                  <b-input-group>
-                      <b-form-input type="search" placeholder="Search milestones"></b-form-input>
-                      <b-input-group-append>
-                        <b-button size="sm" type="submit" variant="outline-secondary"><b-icon-search /></b-button>
-                      </b-input-group-append>
-                    </b-input-group>
-                </b-col>
-              </b-row>
+            <b-row class="pb-2 mx-auto" style="width: 475px">
+              <b-col class="mx-auto">
+                <b-input-group>
+                  <b-form-input
+                    type="search"
+                    placeholder="Search labels"
+                  ></b-form-input>
+                  <b-input-group-append>
+                    <b-button
+                      size="sm"
+                      type="submit"
+                      variant="outline-secondary"
+                      ><b-icon-search
+                    /></b-button>
+                  </b-input-group-append>
+                </b-input-group>
+              </b-col>
+            </b-row>
+            <b-row class="pb-2 mx-auto" style="width: 475px">
+              <b-col class="mx-auto">
+                <b-input-group>
+                  <b-form-input
+                    type="search"
+                    placeholder="Search milestones"
+                  ></b-form-input>
+                  <b-input-group-append>
+                    <b-button
+                      size="sm"
+                      type="submit"
+                      variant="outline-secondary"
+                      ><b-icon-search
+                    /></b-button>
+                  </b-input-group-append>
+                </b-input-group>
+              </b-col>
+            </b-row>
           </b-collapse>
         </div>
       </div>
@@ -234,6 +287,8 @@ export default {
             this.myData = response.data.graphData;
             this.prepareDataForGraph();
             this.renderGraph();
+            console.log(this.repoList, "this.repoList");
+            console.log(this.inputQuery, "this.inputQuery");
           } else {
             console.log(response);
           }
@@ -388,7 +443,7 @@ export default {
         });
       }
       return totalSize;
-    }
+    },
   },
   mounted: function () {
     this.$gtag.pageview(this.$route);
