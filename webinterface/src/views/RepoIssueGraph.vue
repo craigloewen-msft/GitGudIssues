@@ -123,6 +123,8 @@
           </b-form-datepicker>
         </b-col>
       </b-row>
+      <b-row>
+      </b-row>
     </b-container>
 
     <b-container class="fixed-bottom">
