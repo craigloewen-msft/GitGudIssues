@@ -253,7 +253,6 @@ export default {
     },
     refreshData: function () {
       this.loading = true;
-      this.totalInteractions = 0;
       this.$http
         .post("/api/getrepoissuegraph", this.inputQuery)
         .then((response) => {
@@ -271,6 +270,7 @@ export default {
       this.renderGraph();
     },
     prepareDataForGraph: function () {
+      this.totalInteractions = 0;
       this.filteredData = JSON.parse(JSON.stringify(this.myData));
       this.nodeList = {};
       const isLabelsSelected = this.selected.includes("labels");
