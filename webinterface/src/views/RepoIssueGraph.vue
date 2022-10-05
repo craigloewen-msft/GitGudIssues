@@ -1,12 +1,13 @@
 <template>
   <div class="pageContent">
-    <b-container>
-      <div>This is an experimental feature</div>
-
-      <h1>{{ inputQuery.repos }}</h1>
+    <b-container fluid>
+      <p>This is an experimental feature</p>
+      <h1>
+        <span class="font-weight-lighter">repo: </span>{{ inputQuery.repos }}
+      </h1>
       <h2>{{ inputQuery.milestones }}</h2>
-      <div class="graph-title-and-controls">
-        <div class="table-header-buttons">
+      <div>
+        <div>
           <b-dropdown
             id="dropdown-1"
             text="Repo"
@@ -22,23 +23,75 @@
               @keyup.enter="refreshData"
             ></b-form-input>
           </b-dropdown>
-        </div>
-        <div class="table-header-buttons">
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.startDate"
-            class="mb-2"
-            @input="refreshData"
-          />
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.endDate"
-            class="mb-2"
-            @input="refreshData"
-          />
+          <b-button v-b-toggle.collapse-1 variant="outline-secondary" size="sm" class="font-weight-bold">
+            <b-icon icon="gear-fill" aria-hidden="true"></b-icon> Settings
+          </b-button>
+          <b-collapse id="collapse-1" class="mt-2">
+            <b-form-group v-slot="{ ariaDescribedby }" role="switch">
+              <b-form-checkbox-group
+                v-model="selected"
+                :options="options"
+                :aria-describedby="ariaDescribedby"
+                switches
+              >
+              </b-form-checkbox-group>
+            </b-form-group>
+              <b-row class="pb-2 mx-auto" style="width: 475px">
+                <b-col class="mx-auto">
+                  <b-input-group>
+                    <b-form-input type="search" placeholder="Search labels"></b-form-input>
+                    <b-input-group-append>
+                      <b-button size="sm" type="submit" variant="outline-secondary"><b-icon-search /></b-button>
+                    </b-input-group-append>
+                  </b-input-group>
+                </b-col>
+              </b-row>
+              <b-row class="pb-2 mx-auto" style="width: 475px">
+                <b-col class="mx-auto">
+                  <b-input-group>
+                      <b-form-input type="search" placeholder="Search milestones"></b-form-input>
+                      <b-input-group-append>
+                        <b-button size="sm" type="submit" variant="outline-secondary"><b-icon-search /></b-button>
+                      </b-input-group-append>
+                    </b-input-group>
+                </b-col>
+              </b-row>
+          </b-collapse>
         </div>
       </div>
     </b-container>
+
+    <b-container>
+      <b-row>
+        <b-col>
+          <label for="graph-start-date" class="font-weight-bold"
+            >Start Date:</label
+          >
+          <b-form-datepicker
+            id="graph-start-date"
+            v-model="inputQuery.startDate"
+            class="mb-2"
+            @input="refreshData"
+            menu-class="w-100"
+            calendar-width="100%"
+          >
+          </b-form-datepicker>
+        </b-col>
+        <b-col>
+          <label for="graph-end-date" class="font-weight-bold">End Date:</label>
+          <b-form-datepicker
+            id="graph-end-date"
+            v-model="inputQuery.endDate"
+            class="mb-2"
+            @input="refreshData"
+            menu-class="w-100"
+            calendar-width="100%"
+          >
+          </b-form-datepicker>
+        </b-col>
+      </b-row>
+    </b-container>
+
     <div class="graphBox">
       <div id="graph"></div>
     </div>
@@ -52,6 +105,13 @@ export default {
   name: "RepoIssueGraph",
   data() {
     return {
+      selected: ["labels"],
+      options: [
+        { text: "Labels", value: "labels" },
+        { text: "Comments", value: "comments" },
+        { text: "Reactions", value: "reactions" },
+        { text: "Milestones", value: "milestones" },
+      ],
       loading: false,
       inputQuery: {
         repos: "",
@@ -81,12 +141,18 @@ export default {
           },
         ],
       },
+      filteredData: {},
       nodeList: {},
       highlightNodes: new Set(),
       highlightLinks: new Set(),
       hoverNode: null,
       repoList: [],
     };
+  },
+  watch: {
+    selected(value) {
+      this.applyFilters();
+    },
   },
   methods: {
     getInputRepos: function () {
@@ -109,37 +175,66 @@ export default {
         .then((response) => {
           if (response.data.success) {
             this.myData = response.data.graphData;
-
-            // Get searchable node list
-            for (let i = 0; i < this.myData.nodes.length; i++) {
-              let nodeVisitor = this.myData.nodes[i];
-              this.nodeList[nodeVisitor.id] = nodeVisitor;
-            }
-
-            // Get neighbour data
-            for (let i = 0; i < this.myData.links.length; i++) {
-              let linkVisitor = this.myData.links[i];
-              let source = this.nodeList[linkVisitor.source];
-              let target = this.nodeList[linkVisitor.target];
-
-              !source.neighbors && (source.neighbors = []);
-              source.neighbors.push(target);
-
-              !target.neighbors && (target.neighbors = []);
-              target.neighbors.push(source);
-
-              !source.links && (source.links = []);
-              source.links.push(linkVisitor);
-
-              !target.links && (target.links = []);
-              target.links.push(linkVisitor);
-            }
-
+            this.prepareDataForGraph();
             this.renderGraph();
           } else {
             console.log(response);
           }
         });
+    },
+    applyFilters: function () {
+      this.prepareDataForGraph();
+      this.renderGraph();
+    },
+    prepareDataForGraph: function () {
+      this.filteredData = JSON.parse(JSON.stringify(this.myData));
+      this.nodeList = {};
+      const isLabelsSelected = this.selected.includes("labels");
+
+      // Get searchable node list
+      for (let i = this.filteredData.nodes.length - 1; i >= 0; i--) {
+        let nodeVisitor = this.filteredData.nodes[i];
+        if (!isLabelsSelected && nodeVisitor.group === "label") {
+          this.filteredData.nodes.splice(i, 1);
+        } else {
+          this.nodeList[nodeVisitor.id] = nodeVisitor;
+        }
+      }
+
+      // Get neighbour data
+      for (let i = this.filteredData.links.length - 1; i >= 0; i--) {
+        let linkVisitor = this.filteredData.links[i];
+        let source = this.nodeList[linkVisitor.source];
+        let target = this.nodeList[linkVisitor.target];
+
+        if (
+          !isLabelsSelected &&
+          (source === undefined || target === undefined)
+        ) {
+          this.filteredData.links.splice(i, 1);
+          continue;
+        }
+
+        if (!source.neighbors) {
+          source.neighbors = [];
+        }
+        source.neighbors.push(target);
+
+        if (!target.neighbors) {
+          target.neighbors = [];
+        }
+        target.neighbors.push(source);
+
+        if (!source.links) {
+          source.links = [];
+        }
+        source.links.push(linkVisitor);
+
+        if (!target.links) {
+          target.links = [];
+        }
+        target.links.push(linkVisitor);
+      }
     },
     renderGraph: function () {
       let linkColorFunction = function (link) {
@@ -153,7 +248,7 @@ export default {
       }.bind(this);
 
       const Graph = ForceGraph()(document.getElementById("graph"))
-        .graphData(this.myData)
+        .graphData(this.filteredData)
         .nodeAutoColorBy("group")
         .d3AlphaDecay(0.05)
         .d3VelocityDecay(0.2)
@@ -163,10 +258,14 @@ export default {
           this.highlightLinks.clear();
           if (node) {
             this.highlightNodes.add(node);
-            node.neighbors.forEach((neighbor) =>
-              this.highlightNodes.add(neighbor)
-            );
-            node.links.forEach((link) => this.highlightLinks.add(link));
+            if (node.neighbors) {
+              node.neighbors.forEach((neighbor) =>
+                this.highlightNodes.add(neighbor)
+              );
+            }
+            if (node.links) {
+              node.links.forEach((link) => this.highlightLinks.add(link));
+            }
           }
 
           this.hoverNode = node || null;
