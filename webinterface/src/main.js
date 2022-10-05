@@ -8,8 +8,9 @@ import vueDebounce from 'vue-debounce'
 import VueGtag from "vue-gtag"
 import VueMeta from 'vue-meta'
 
-// import 'bootstrap/dist/css/bootstrap.css'
-// import 'bootstrap-vue/dist/bootstrap-vue.css'
+// was commented out, why? 
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
 
 import './style/darkStyle.scss'
 

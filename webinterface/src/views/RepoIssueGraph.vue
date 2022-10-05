@@ -1,12 +1,13 @@
 <template>
   <div class="pageContent">
-    <b-container>
-      <div>This is an experimental feature</div>
-
-      <h1>{{ inputQuery.repos }}</h1>
+    <b-container fluid>
+      <p>This is an experimental feature</p>
+      <h1>
+        <span class="font-weight-lighter">repo: </span>{{ inputQuery.repos }}
+      </h1>
       <h2>{{ inputQuery.milestones }}</h2>
-      <div class="graph-title-and-controls">
-        <div class="table-header-buttons">
+      <div>
+        <div>
           <b-dropdown
             id="dropdown-1"
             text="Repo"
@@ -22,96 +23,155 @@
               @keyup.enter="refreshData"
             ></b-form-input>
           </b-dropdown>
-        </div>
-        <div class="table-header-buttons">
-          <b-form-datepicker
+          <b-button
+            v-b-toggle.collapse-1
+            variant="outline-secondary"
             size="sm"
-            v-model="inputQuery.startDate"
-            class="mb-2"
-            @input="refreshData"
-          />
-          <b-form-datepicker
-            size="sm"
-            v-model="inputQuery.endDate"
-            class="mb-2"
-            @input="refreshData"
-          />
+            class="font-weight-bold"
+          >
+            <b-icon icon="gear-fill" aria-hidden="true"></b-icon> Settings
+          </b-button>
+          <b-collapse id="collapse-1" class="mt-2">
+            <b-form-group v-slot="{ ariaDescribedby }" role="switch">
+              <b-form-checkbox-group
+                v-model="selected"
+                :options="options"
+                :aria-describedby="ariaDescribedby"
+                switches
+              >
+              </b-form-checkbox-group>
+            </b-form-group>
+            <b-row class="pb-2 mx-auto" style="width: 475px">
+              <b-col class="mx-auto">
+                <b-input-group>
+                  <b-form-input
+                    type="search"
+                    placeholder="Search labels"
+                  ></b-form-input>
+                  <b-input-group-append>
+                    <b-button
+                      size="sm"
+                      type="submit"
+                      variant="outline-secondary"
+                      ><b-icon-search
+                    /></b-button>
+                  </b-input-group-append>
+                </b-input-group>
+              </b-col>
+            </b-row>
+            <b-row class="pb-2 mx-auto" style="width: 475px">
+              <b-col class="mx-auto">
+                <b-input-group>
+                  <b-form-input
+                    type="search"
+                    placeholder="Search milestones"
+                  ></b-form-input>
+                  <b-input-group-append>
+                    <b-button
+                      size="sm"
+                      type="submit"
+                      variant="outline-secondary"
+                      ><b-icon-search
+                    /></b-button>
+                  </b-input-group-append>
+                </b-input-group>
+              </b-col>
+            </b-row>
+          </b-collapse>
         </div>
       </div>
     </b-container>
-    <div>
-      <br />
-      <b-form-group label="Settings" v-slot="{ ariaDescribedby }" role="switch">
-        <b-form-checkbox-group
-          v-model="selected"
-          :options="options"
-          :aria-describedby="ariaDescribedby"
-          switches
-        >
-        </b-form-checkbox-group>
-        <b-form-input
-          placeholder="bug,feature"
-          size="sm"
-          v-model="inputQuery.graphLabels"
-          v-debounce:1s="refreshData"
-          @keyup.enter="refreshIssues"
-        ></b-form-input>
-      </b-form-group>
-    </div>
-    <div class="node-info-display-bar">
-      <div class="node-info-total-interactions">
-        Total interactions: {{ totalInteractions }}
-      </div>
-      <div v-if="hoverNode">
-        <div v-if="hoverNode.group == 'issue'">
-          Issue Node val: {{ hoverNode.totalVal }} total interactions, which is
-          <b
-            >{{
-              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-            }}%</b
+
+    <b-container>
+      <b-row>
+        <b-col>
+          <label for="graph-start-date" class="font-weight-bold"
+            >Start Date:</label
           >
-          of all during this time. Including directly linked issues that gives:
-          {{ getNodeWithLinkedIssuesSize(hoverNode) }} which is:
-          <b
-            >{{
-              (
-                (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
-                totalInteractions
-              ).toFixed(2)
-            }}%</b
+          <b-form-datepicker
+            id="graph-start-date"
+            v-model="inputQuery.startDate"
+            class="mb-2"
+            @input="refreshData"
+            menu-class="w-100"
+            calendar-width="100%"
           >
+          </b-form-datepicker>
+        </b-col>
+        <b-col>
+          <label for="graph-end-date" class="font-weight-bold">End Date:</label>
+          <b-form-datepicker
+            id="graph-end-date"
+            v-model="inputQuery.endDate"
+            class="mb-2"
+            @input="refreshData"
+            menu-class="w-100"
+            calendar-width="100%"
+          >
+          </b-form-datepicker>
+        </b-col>
+      </b-row>
+      <b-row>
+        <div class="node-info-display-bar">
+          <div class="node-info-total-interactions">
+            Total interactions: {{ totalInteractions }}
+          </div>
+          <div v-if="hoverNode">
+            <div v-if="hoverNode.group == 'issue'">
+              Issue Node val: {{ hoverNode.totalVal }} total interactions, which
+              is
+              <b
+                >{{
+                  ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+                }}%</b
+              >
+              of all during this time. Including directly linked issues that
+              gives:
+              {{ getNodeWithLinkedIssuesSize(hoverNode) }} which is:
+              <b
+                >{{
+                  (
+                    (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                    totalInteractions
+                  ).toFixed(2)
+                }}%</b
+              >
+            </div>
+            <div v-else-if="hoverNode.group == 'label'">
+              This label had <b>{{ hoverNode.totalVal }}</b> total interactions,
+              which is
+              <b
+                >{{
+                  ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+                }}%</b
+              >
+              of all during this time. Including directly linked issues that
+              gives:
+              {{ getLabelNodeWithLinkedIssuesSize(hoverNode) }} which is:
+              <b
+                >{{
+                  (
+                    (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                    totalInteractions
+                  ).toFixed(2)
+                }}%</b
+              >
+            </div>
+            <div v-else-if="hoverNode.group == 'comment'">
+              Comment node val: {{ hoverNode.totalVal }} total interactions,
+              which is
+              <b
+                >{{
+                  ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+                }}%</b
+              >
+              of all during this time
+            </div>
+          </div>
         </div>
-        <div v-else-if="hoverNode.group == 'label'">
-          This label had <b>{{ hoverNode.totalVal }}</b> total interactions,
-          which is
-          <b
-            >{{
-              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-            }}%</b
-          >
-          of all during this time. Including directly linked issues that gives:
-          {{ getLabelNodeWithLinkedIssuesSize(hoverNode) }} which is:
-          <b
-            >{{
-              (
-                (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
-                totalInteractions
-              ).toFixed(2)
-            }}%</b
-          >
-        </div>
-        <div v-else-if="hoverNode.group == 'comment'">
-          Comment node val: {{ hoverNode.totalVal }} total interactions, which
-          is
-          <b
-            >{{
-              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-            }}%</b
-          >
-          of all during this time
-        </div>
-      </div>
-    </div>
+      </b-row>
+    </b-container>
+
     <div class="graphBox">
       <div id="graph"></div>
     </div>
@@ -125,12 +185,12 @@ export default {
   name: "RepoIssueGraph",
   data() {
     return {
-      selected: [],
+      selected: ["labels"],
       options: [
         { text: "Labels", value: "labels" },
-        // { text: "Comments", value: "comments" },
-        // { text: "Reactions", value: "reactions" },
-        // { text: "Milestones", value: "milestones" }
+        { text: "Comments", value: "comments" },
+        { text: "Reactions", value: "reactions" },
+        { text: "Milestones", value: "milestones" },
       ],
       loading: false,
       inputQuery: {
@@ -354,7 +414,7 @@ export default {
         });
       }
       return totalSize;
-    }
+    },
   },
   mounted: function () {
     this.$gtag.pageview(this.$route);
