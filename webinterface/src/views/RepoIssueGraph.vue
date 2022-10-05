@@ -1,28 +1,13 @@
 <template>
   <div class="pageContent">
     <b-container fluid>
-      <p>This is an experimental feature</p>
-      <h1>
-        <span class="font-weight-lighter">repo: </span>{{ inputQuery.repos }}
+      <h1 class="pb-2">
+        <span class="font-weight-lighter">repo:</span>
+        {{ inputQuery.repos }}
       </h1>
       <h2>{{ inputQuery.milestones }}</h2>
       <div>
         <div>
-          <b-dropdown
-            id="dropdown-1"
-            text="Repo"
-            class="m-md-2"
-            size="sm"
-            variant="outline-secondary"
-          >
-            <b-form-input
-              placeholder="microsoft/wsl,microsoft/vscode"
-              size="sm"
-              v-model="inputQuery.repos"
-              v-debounce:1s="refreshData"
-              @keyup.enter="refreshData"
-            ></b-form-input>
-          </b-dropdown>
           <b-button
             v-b-toggle.collapse-1
             variant="outline-secondary"
@@ -32,7 +17,34 @@
             <b-icon icon="gear-fill" aria-hidden="true"></b-icon> Settings
           </b-button>
           <b-collapse id="collapse-1" class="mt-2">
-            <b-form-group v-slot="{ ariaDescribedby }" role="switch">
+            <b-form-select
+              size="md"
+              class="text-center w-50"
+              variant="outline-secondary"
+              v-model="inputQuery.repos"
+              v-debounce:1s="refreshData"
+              @change="refreshData"
+              v-b-tooltip.hover.rightbottom.v-primary="'Change repo'"
+            >
+              <b-form-select-option
+              :value="null"
+              disabled
+              >
+              Select a repo:
+              </b-form-select-option>
+              <b-form-select-option
+                v-for="repo in this.repoList"
+                :key="repo.id"
+                :value="repo.title"
+              >
+              {{ repo.title }}
+              </b-form-select-option>
+            </b-form-select>
+            <b-form-group
+              v-slot="{ ariaDescribedby }"
+              role="switch"
+              class="pt-2"
+            >
               <b-form-checkbox-group
                 v-model="selected"
                 :options="options"
@@ -112,64 +124,46 @@
         </b-col>
       </b-row>
       <b-row>
-        <div class="node-info-display-bar">
-          <div class="node-info-total-interactions">
-            Total interactions: {{ totalInteractions }}
-          </div>
-          <div v-if="hoverNode">
-            <div v-if="hoverNode.group == 'issue'">
-              Issue Node val: {{ hoverNode.totalVal }} total interactions, which
-              is
-              <b
-                >{{
-                  ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-                }}%</b
-              >
-              of all during this time. Including directly linked issues that
-              gives:
-              {{ getNodeWithLinkedIssuesSize(hoverNode) }} which is:
-              <b
-                >{{
-                  (
-                    (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
-                    totalInteractions
-                  ).toFixed(2)
-                }}%</b
-              >
-            </div>
-            <div v-else-if="hoverNode.group == 'label'">
-              This label had <b>{{ hoverNode.totalVal }}</b> total interactions,
-              which is
-              <b
-                >{{
-                  ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-                }}%</b
-              >
-              of all during this time. Including directly linked issues that
-              gives:
-              {{ getLabelNodeWithLinkedIssuesSize(hoverNode) }} which is:
-              <b
-                >{{
-                  (
-                    (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
-                    totalInteractions
-                  ).toFixed(2)
-                }}%</b
-              >
-            </div>
-            <div v-else-if="hoverNode.group == 'comment'">
-              Comment node val: {{ hoverNode.totalVal }} total interactions,
-              which is
-              <b
-                >{{
-                  ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-                }}%</b
-              >
-              of all during this time
-            </div>
-          </div>
-        </div>
       </b-row>
+    </b-container>
+
+    <b-container class="fixed-bottom">
+      <div v-if="hoverNode">
+        <div v-if="hoverNode.group == 'issue'">
+          <p>Node Type: Issue<br>
+            <span class="font-weight-bold text-info">{{ hoverNode.totalVal }}</span>
+            total interactions or
+            <span class="font-weight-bold text-info">{{ ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2) }}%</span>
+            of all during this time.<br>
+            <span class="font-weight-bold text-info">{{ getNodeWithLinkedIssuesSize(hoverNode) }}</span>
+            total including directly linked issues or
+            <span class="font-weight-bold text-info">{{ ((getNodeWithLinkedIssuesSize(hoverNode) * 100.0) / totalInteractions).toFixed(2) }}%.</span>
+          </p>
+        </div>
+        <div v-else-if="hoverNode.group == 'label'">
+          <p>Node Type: Label<br>
+            <span class="font-weight-bold text-info">{{ hoverNode.totalVal }}</span>
+            total interactions or
+            <span class="font-weight-bold text-info">{{ ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2) }}%</span>
+            of all during this time.<br>
+            <span class="font-weight-bold text-info">{{ getLabelNodeWithLinkedIssuesSize(hoverNode) }}</span>
+            total including directly linked issues or
+            <span class="font-weight-bold text-info">{{ ((getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) / totalInteractions).toFixed(2) }}%.</span>
+          </p>
+        </div>
+        <div v-else-if="hoverNode.group == 'comment'">
+          <p>Node Type: Comment<br>
+            <span class="font-weight-bold text-info">{{ hoverNode.totalVal }}</span>
+            total interactions or
+            <span class="font-weight-bold text-info">{{ ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2) }}%</span>
+            of all during this time.
+          </p>
+        </div>
+      </div>
+      <p class="h5 pb-3 font-weight-light">
+        Total Interactions:
+        <span class="font-weight-bold text-info">{{ totalInteractions }}</span>
+      </p>
     </b-container>
 
     <div class="graphBox">
@@ -429,13 +423,5 @@ export default {
 <style>
 .graphBox {
   display: flex;
-}
-
-.node-info-display-bar {
-  display: flex;
-}
-
-.node-info-total-interactions {
-  margin-right: 10px;
 }
 </style>
