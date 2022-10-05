@@ -229,6 +229,7 @@ export default {
       hoverNode: null,
       totalInteractions: 0,
       repoList: [],
+      graphElement: null,
     };
   },
   watch: {
@@ -340,7 +341,7 @@ export default {
         }
       }.bind(this);
 
-      const Graph = ForceGraph()(document.getElementById("graph"))
+      this.graphElement
         .graphData(this.filteredData)
         .nodeAutoColorBy("group")
         .d3AlphaDecay(0.05)
@@ -417,6 +418,7 @@ export default {
     },
   },
   mounted: function () {
+    this.graphElement = ForceGraph()(document.getElementById("graph"));
     this.$gtag.pageview(this.$route);
     this.getInputRepos();
   },
