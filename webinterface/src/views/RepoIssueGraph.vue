@@ -26,18 +26,15 @@
               @change="refreshData"
               v-b-tooltip.hover.rightbottom.v-primary="'Change repo'"
             >
-              <b-form-select-option
-              :value="null"
-              disabled
-              >
-              Select a repo:
+              <b-form-select-option :value="null" disabled>
+                Select a repo:
               </b-form-select-option>
               <b-form-select-option
                 v-for="repo in this.repoList"
                 :key="repo.id"
                 :value="repo.title"
               >
-              {{ repo.title }}
+                {{ repo.title }}
               </b-form-select-option>
             </b-form-select>
             <b-form-group
@@ -123,39 +120,77 @@
           </b-form-datepicker>
         </b-col>
       </b-row>
-      <b-row>
-      </b-row>
+      <b-row> </b-row>
     </b-container>
 
     <b-container class="fixed-bottom">
       <div v-if="hoverNode">
         <div v-if="hoverNode.group == 'issue'">
-          <p>Node Type: Issue<br>
-            <span class="font-weight-bold text-info">{{ hoverNode.totalVal }}</span>
+          <p>
+            Node Type: Issue<br />
+            <span class="font-weight-bold text-info">{{
+              hoverNode.totalVal
+            }}</span>
             total interactions or
-            <span class="font-weight-bold text-info">{{ ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2) }}%</span>
-            of all during this time.<br>
-            <span class="font-weight-bold text-info">{{ getNodeWithLinkedIssuesSize(hoverNode) }}</span>
+            <span class="font-weight-bold text-info"
+              >{{
+                ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+              }}%</span
+            >
+            of all during this time.<br />
+            <span class="font-weight-bold text-info">{{
+              getNodeWithLinkedIssuesSize(hoverNode)
+            }}</span>
             total including directly linked issues or
-            <span class="font-weight-bold text-info">{{ ((getNodeWithLinkedIssuesSize(hoverNode) * 100.0) / totalInteractions).toFixed(2) }}%.</span>
+            <span class="font-weight-bold text-info"
+              >{{
+                (
+                  (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                  totalInteractions
+                ).toFixed(2)
+              }}%.</span
+            >
           </p>
         </div>
         <div v-else-if="hoverNode.group == 'label'">
-          <p>Node Type: Label<br>
-            <span class="font-weight-bold text-info">{{ hoverNode.totalVal }}</span>
+          <p>
+            Node Type: Label<br />
+            <span class="font-weight-bold text-info">{{
+              hoverNode.totalVal
+            }}</span>
             total interactions or
-            <span class="font-weight-bold text-info">{{ ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2) }}%</span>
-            of all during this time.<br>
-            <span class="font-weight-bold text-info">{{ getLabelNodeWithLinkedIssuesSize(hoverNode) }}</span>
+            <span class="font-weight-bold text-info"
+              >{{
+                ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+              }}%</span
+            >
+            of all during this time.<br />
+            <span class="font-weight-bold text-info">{{
+              getLabelNodeWithLinkedIssuesSize(hoverNode)
+            }}</span>
             total including directly linked issues or
-            <span class="font-weight-bold text-info">{{ ((getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) / totalInteractions).toFixed(2) }}%.</span>
+            <span class="font-weight-bold text-info"
+              >{{
+                (
+                  (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                  totalInteractions
+                ).toFixed(2)
+              }}%.</span
+            >
           </p>
         </div>
         <div v-else-if="hoverNode.group == 'comment'">
-          <p>Node Type: Comment<br>
-            <span class="font-weight-bold text-info">{{ hoverNode.totalVal }}</span>
+          <p>
+            Node Type: Comment<br />
+            <span class="font-weight-bold text-info">{{
+              hoverNode.totalVal
+            }}</span>
             total interactions or
-            <span class="font-weight-bold text-info">{{ ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2) }}%</span>
+            <span class="font-weight-bold text-info"
+              >{{
+                ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+              }}%</span
+            >
             of all during this time.
           </p>
         </div>
@@ -169,6 +204,21 @@
     <div class="graphBox">
       <div id="graph"></div>
     </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Interactions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="item in issueTableData" :key="item.name">
+          <td>{{ item.name }}</td>
+          <td>{{ item.totalVal }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
@@ -224,6 +274,7 @@ export default {
       totalInteractions: 0,
       repoList: [],
       graphElement: null,
+      issueTableData: null,
     };
   },
   watch: {
@@ -323,6 +374,18 @@ export default {
         }
         target.linkFromList.push(source);
       }
+
+      // Set the table data
+
+      let issueTableNodeGroups = ["issue"];
+      if (this.selected.includes("labels")) {
+        issueTableNodeGroups.push("label");
+      }
+
+      this.issueTableData = this.filteredData.nodes
+        .filter((node) => issueTableNodeGroups.includes(node.group))
+        .sort((a, b) => b.totalVal - a.totalVal)
+        .slice(0, 25);
     },
     renderGraph: function () {
       let linkColorFunction = function (link) {
