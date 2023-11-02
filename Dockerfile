@@ -14,24 +14,24 @@ RUN apt-get update && apt-get install nodejs -y
 
 #=== Not friendly code===
 
-# # Install Python dependencies
-# # RUN mkdir -p ./pythonWorker/
-# COPY ./pythonWorker/requirements.txt ./pythonWorker/requirements.txt
-# RUN pip install -r ./pythonWorker/requirements.txt
+# Install Python dependencies
+# RUN mkdir -p ./pythonWorker/
+COPY ./pythonWorker/requirements.txt ./pythonWorker/requirements.txt
+RUN pip install -r ./pythonWorker/requirements.txt
 
-# WORKDIR /usr/src/app
+WORKDIR /usr/src/app
 
-# # Install Node packages
-# COPY ./package*.json ./app.js ./
-# RUN npm install
+# Install Node packages
+COPY ./package*.json ./app.js ./
+RUN npm install
 
-# COPY ./webinterface/package*.json ./webinterface/
-# RUN cd webinterface && npm install && cd ..
+COPY ./webinterface/package*.json ./webinterface/
+RUN cd webinterface && npm install && cd ..
 
-# # Build the project and install dependencies
-# #RUN npm run build
+# Build the project and install dependencies
+#RUN npm run build
 
-# # Bring files over
-# COPY . . 
+# Bring files over
+COPY . . 
 
-# CMD ["node", "app.js"]
+CMD ["node", "app.js"]

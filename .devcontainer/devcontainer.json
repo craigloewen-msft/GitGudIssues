@@ -7,9 +7,6 @@
 	"service": "app",
 	"workspaceFolder": "/workspace",
 
-	// Set *default* container specific settings.json values on container create.
-	"settings": {},
-
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"dbaeumer.vscode-eslint",
@@ -17,16 +14,5 @@
 		"octref.vetur"
 	],
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [3000, 27017],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "yarn install",
-
-	"onCreateCommand": "npm install && cd webinterface && npm install",
-
-	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "node",
-
-	"forwardPorts": [8080,27017]
+	"postCreateCommand": "pip install -r ./pythonWorker/requirements.txt && npm install && cd webinterface && npm install && cd ..",
 }

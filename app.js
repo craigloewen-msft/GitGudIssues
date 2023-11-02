@@ -7,15 +7,21 @@ const MongoStore = require('connect-mongo')
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const connectEnsureLogin = require('connect-ensure-login');
+const zmq = require('zeromq');
 // Custom requires
 const WebDataHandler = require('./backendsrc/webDataHandler')
 const TeamsDataHandler = require('./backendsrc/teamsDataHandler')
+const pythonWorkerHandler = require('./backendsrc/pythonWorkerHandler');
 // Get config
 const config = fs.existsSync('./config.js') ? require('./config') : require('./defaultconfig');
 
 // Configure Vue Specific set up
 const app = express();
 app.use(express.static(__dirname + "/dist"));
+
+// Set up Python Worker 
+const sock = new zmq.Request;
+const pythonWorker = new pythonWorkerHandler(sock);
 
 // Set up Dev or Production
 let mongooseConnectionString = '';
