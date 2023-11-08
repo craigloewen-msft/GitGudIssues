@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@zilliz/milvus2-sdk-node": "^2.3.3",
+    "async-mutex": "^0.4.0",
     "axios": "^0.21.4",
     "connect-ensure-login": "^0.1.1",
     "connect-mongo": "^4.6.0",

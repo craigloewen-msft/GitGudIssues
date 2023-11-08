@@ -6,13 +6,12 @@
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspace",
-
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"dbaeumer.vscode-eslint",
 		"mongodb.mongodb-vscode",
-		"octref.vetur"
+		"octref.vetur",
+		"ms-python.python"
 	],
-
 	"postCreateCommand": "pip install -r ./pythonWorker/requirements.txt && npm install && cd webinterface && npm install && cd ..",
 }

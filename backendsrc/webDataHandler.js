@@ -1,8 +1,10 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 const RepoScanner = require('./repoScanner')
+const embeddingsHandler = require('./embeddingsHandler')
 const axios = require('axios');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
+const oneOffScriptHelpers = require('./oneOffScriptHelpers');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
@@ -19,7 +21,10 @@ class WebDataHandler {
         this.ghToken = inGHToken;
         this.IssueLinkDetails = inIssueLinkDetails;
 
-        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken, this.IssueLinkDetails);
+        this.embeddingsHandler = new embeddingsHandler();
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails,
+            this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails,
+            this.ghToken, this.IssueLinkDetails, this.embeddingsHandler);
         this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
     }
 
@@ -53,6 +58,7 @@ class WebDataHandler {
         var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
         // Check if the thing is not updating
         for (let i = 0; i < inUser.repos.length; i++) {
+            await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo( this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
         try {
@@ -691,12 +697,13 @@ class WebDataHandler {
 
                 this.refreshRepoHandler.reset();
 
-                await this.issueLinkDetails.deleteMany({ repoRef: inputRepo._id })
+                await this.IssueLinkDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueCommentMentionDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueReadDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.RepoDetails.deleteOne({ '_id': inputRepo._id })
+                await this.embeddingsHandler.deleteEmbeddingsForRepo(inputRepo._id);
             }
         } else {
             return false;
@@ -2130,6 +2137,24 @@ class WebDataHandler {
         return queryResult;
     }
 
+    async getSimilarIssues(queryData) {
+        const { organizationName, repoName, issueNumber }  = queryData;
+
+        let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
+
+        let repo = await this.RepoDetails.findOne({ shortURL: dbRepoName });
+        let issue = await this.IssueDetails.findOne({ repoRef: repo._id, number: issueNumber });
+
+        if (issue == null) {
+            throw "Issue not found";
+        }
+
+        if (repo == null) {
+            throw "Repo not found";
+        }
+
+        return this.embeddingsHandler.getSimilarIssueIDs(issue);
+    }
 }
 
 module.exports = WebDataHandler;

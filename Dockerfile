@@ -29,7 +29,7 @@ COPY ./webinterface/package*.json ./webinterface/
 RUN cd webinterface && npm install && cd ..
 
 # Build the project and install dependencies
-#RUN npm run build
+RUN npm run build
 
 # Bring files over
 COPY . . 

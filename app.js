@@ -7,21 +7,15 @@ const MongoStore = require('connect-mongo')
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const connectEnsureLogin = require('connect-ensure-login');
-const zmq = require('zeromq');
 // Custom requires
 const WebDataHandler = require('./backendsrc/webDataHandler')
 const TeamsDataHandler = require('./backendsrc/teamsDataHandler')
-const pythonWorkerHandler = require('./backendsrc/pythonWorkerHandler');
 // Get config
 const config = fs.existsSync('./config.js') ? require('./config') : require('./defaultconfig');
 
 // Configure Vue Specific set up
 const app = express();
 app.use(express.static(__dirname + "/dist"));
-
-// Set up Python Worker 
-const sock = new zmq.Request;
-const pythonWorker = new pythonWorkerHandler(sock);
 
 // Set up Dev or Production
 let mongooseConnectionString = '';
@@ -1031,6 +1025,31 @@ app.post('/api/getrepoissuegraph', authenticateToken, async function (req, res) 
         var returnData = await dataHandler.getRepoIssueGraphData(req.body);
 
         return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+// Similar Issue functions
+
+app.post('/api/getsimilarissues', async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getSimilarIssues(req.body);
+
+        return res.json({ success: true, similarIssues: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+// app.get with /api//getsimilarissues/:repoName/:issueNumber
+app.get('/api/getsimilarissues/:organizationName/:repoName/:issueNumber', async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getSimilarIssues(req.params);
+
+        return res.json({ success: true, similarIssues: returnData });
     } catch (error) {
         return res.json(returnFailure(error));
     }

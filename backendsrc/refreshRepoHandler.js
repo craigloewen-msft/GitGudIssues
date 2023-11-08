@@ -2,7 +2,8 @@ const axios = require('axios');
 const helperFunctions = require('./helpers');
 
 class RefreshRepoTask {
-    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails) {
+    constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails,
+        inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails, inEmbeddingsHandler) {
         this.pageNum = 1;
         this.repoUrl = inRepo.url;
         this.repoIssuesUrl = inRepo.url;
@@ -16,6 +17,7 @@ class RefreshRepoTask {
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.IssueReadDetails = inIssueReadDetails;
         this.IssueLinkDetails = inIssueLinkDetails;
+        this.embeddingsHandler = inEmbeddingsHandler;
 
         this.maxUpdatedTime = new Date('1/1/1900');
         this.minUpdatedTime = new Date();
@@ -283,6 +285,17 @@ class RefreshRepoTask {
                     let updateResult = updateResultRaw.value;
                     let authorName = updateResult.user.login;
                     let closerUserPromise = null;
+
+                    let finalAwaitPromiseArray = [];
+
+                    // Add in await to the promise array for adding embedding title
+                    // Check if an issue was inserted 
+                    if (!updateResultRaw.lastErrorObject.updatedExisting) {
+                        // Log to console starting adding embedding for issue
+                        console.log("Adding embedding for issue: ", updateResult.number);
+                        this.embeddingsHandler.addEmbedding(updateResult);
+                    }
+
                     if (updateResult.closed_by) {
                         if (updateResult.closed_by.login) {
                             closerUserPromise = this.UserDetails.findOne({ "githubUsername": updateResult.closed_by.login });
@@ -291,8 +304,10 @@ class RefreshRepoTask {
                     let authorUser = await this.UserDetails.findOne({ "githubUsername": authorName });
 
                     if (authorUser != null) {
-                        await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at);
+                        finalAwaitPromiseArray.push(helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at));
                     }
+
+
 
                     // If closer user exists and issue is closed
                     if (updateResult.state == "closed") {
@@ -304,14 +319,16 @@ class RefreshRepoTask {
                             // Add 10 seconds to the closed date to account for 1 off second differences
                             let inputReadDate = new Date(updateResult.closed_at);
                             inputReadDate.setSeconds(inputReadDate.getSeconds() + 10);
-                            await helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, closerUser, inputReadDate);
+                            finalAwaitPromiseArray.push(helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, closerUser, inputReadDate));
                         }
                     }
 
                     // For each name in the mention array, attempt to create a mention
                     if (!updateResultRaw.lastErrorObject.updatedExisting) {
-                        await helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult);
+                        finalAwaitPromiseArray.push(helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult));
                     }
+
+                    await Promise.all(finalAwaitPromiseArray);
 
                 } else {
                     // Check if we're done
@@ -557,7 +574,8 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 }
 
 class RefreshRepoHandler {
-    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails) {
+    constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails,
+        inIssueReadDetails, inGHToken, inIssueLinkDetails, inEmbeddingsHandler) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
@@ -566,6 +584,7 @@ class RefreshRepoHandler {
         this.IssueReadDetails = inIssueReadDetails;
         this.ghToken = inGHToken;
         this.IssueLinkDetails = inIssueLinkDetails;
+        this.embeddingsHandler = inEmbeddingsHandler;
 
         this.maxBulkWriteCount = 100; // This is trigger limit, absolute limit is maxBulkWriteCount + perPageResults
         this.bulkWriteDelayTimeout = 5000;
@@ -599,7 +618,9 @@ class RefreshRepoHandler {
         let lastCommentProcessedTime = Math.ceil((Math.abs(new Date() - inRepo.lastCommentsCompleteUpdate)) / (1000 * 60));
 
         if (inputIndex == -1 && refreshRepoIndex == -1 && lastProcessedTime > 5) {
-            let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails, this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken, this.IssueLinkDetails);
+            let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails,
+                this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken,
+                this.IssueLinkDetails, this.embeddingsHandler);
             this.inputRefreshRepoList.push(newRefreshRepoTask);
         }
 

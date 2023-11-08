@@ -1,4 +1,5 @@
 const { spawn } = require('child_process');
+const { Mutex } = require('async-mutex');
 
 class pythonWorkerHandler {
 
@@ -13,13 +14,19 @@ class pythonWorkerHandler {
         this.sock = inSocket;
         this.sock.connect('tcp://127.0.0.1:4242');
 
+        this.processMutex = new Mutex();
+
     }
 
     async getEmbedding(inText) {
-        await this.sock.send(inText);
-        const [result] = await this.sock.receive();
-        console.log('Python socket received reply: ', result.toString());
-        return result.toString();
+        let result = null;
+        await this.processMutex.runExclusive(async () => {
+            await this.sock.send(inText);
+            [result] = await this.sock.receive();
+        });
+        let stringResult = result.toString();
+        let JSONObjectResult = JSON.parse(stringResult);
+        return JSONObjectResult;
     }
 
 }
