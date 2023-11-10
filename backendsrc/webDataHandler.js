@@ -59,7 +59,7 @@ class WebDataHandler {
         var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
         // Check if the thing is not updating
         for (let i = 0; i < inUser.repos.length; i++) {
-            await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
+            // await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
         try {
@@ -2140,22 +2140,18 @@ class WebDataHandler {
     }
 
     async getSimilarIssues(queryData) {
-        const { organizationName, repoName, issueNumber } = queryData;
+        const { organizationName, repoName, issueTitle } = queryData;
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
         let repo = await this.RepoDetails.findOne({ shortURL: dbRepoName });
-        let issue = await this.IssueDetails.findOne({ repoRef: repo._id, number: issueNumber });
-
-        if (issue == null) {
-            throw "Issue not found";
-        }
+        let issue = await this.IssueDetails.findOne({ title: issueTitle, repoRef: repo._id });
 
         if (repo == null) {
             throw "Repo not found";
         }
 
-        let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(issue);
+        let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueTitle, issue);
 
         // Make a new array that finds each issue with the id specified in the array above
         let similarIssuesArray = await Promise.all(similarIssueIDArray.map(similarIssueIDObject => this.IssueDetails.findOne({ _id: similarIssueIDObject.id })));
@@ -2165,6 +2161,9 @@ class WebDataHandler {
             return {
                 score: similarIssueIDObject.score,
                 title: similarIssuesArray[index].title,
+                number: similarIssuesArray[index].number,
+                html_url:  "https://github.com/" +
+          similarIssuesArray[index].url.split("https://api.github.com/repos/").pop()
             }
             // return {
             //     score: similarIssueIDObject.score,

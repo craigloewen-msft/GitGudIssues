@@ -11,7 +11,8 @@ class embeddingsHandler {
 
     static embeddingDimensions = 384;
 
-    static indexName = "gitgudissues";
+    // static indexName = "gitgudissues";
+    static indexName = "gitgudissuesdev";
 
     constructor(inConfigObject) {
         // Set up Python Worker 
@@ -145,16 +146,22 @@ class embeddingsHandler {
         return true;
     }
 
-    async getSimilarIssueIDs(inputIssue) {
+    async getSimilarIssueIDs(repo, issueTitle, issue) {
         const collectionName = embeddingsHandler.indexName;
 
-        const inputVector = await this.pythonWorker.getEmbedding(inputIssue.title);
+        const inputVector = await this.pythonWorker.getEmbedding(issueTitle);
 
         const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
 
+        let searchFilter  = `repo_id eq '${repo._id.toString()}'`;
+
+        if (issue) {
+            searchFilter += ` and issue_id ne '${issue._id.toString()}'`;
+        }
+
         const searchResults = await searchClient.search("*", {
             // Filter to not infclude input issue
-            filter: `issue_id ne '${inputIssue._id.toString()}'`,
+            filter: searchFilter,
             vectorQueries: [
                 {
                     kind: "vector",
@@ -173,7 +180,6 @@ class embeddingsHandler {
                 id: result.document.issue_id
             });
         }
-        console.log(formattedResults);
 
         return formattedResults;
     }
