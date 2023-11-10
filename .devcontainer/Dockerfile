@@ -1,28 +1,45 @@
 # [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
-ARG VARIANT=16-bullseye
-FROM mcr.microsoft.com/vscode/devcontainers/javascript-node:0-${VARIANT}
+FROM python:3.10
 
-# Install MongoDB command line tools if on buster and x86_64 (arm64 not supported)
-ARG MONGO_TOOLS_VERSION=5.0
-RUN . /etc/os-release \
-    && if [ "${VERSION_CODENAME}" = "buster" ] && [ "$(dpkg --print-architecture)" = "amd64" ]; then \
-        curl -sSL "https://www.mongodb.org/static/pgp/server-${MONGO_TOOLS_VERSION}.asc" | gpg --dearmor > /usr/share/keyrings/mongodb-archive-keyring.gpg \
-        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] http://repo.mongodb.org/apt/debian $(lsb_release -cs)/mongodb-org/${MONGO_TOOLS_VERSION} main" | tee /etc/apt/sources.list.d/mongodb-org-${MONGO_TOOLS_VERSION}.list \
-        && apt-get update && export DEBIAN_FRONTEND=noninteractive \
-        && apt-get install -y mongodb-database-tools mongodb-mongosh \
-        && apt-get clean -y && rm -rf /var/lib/apt/lists/*; \
-    fi
+#=== Devcontainer friendly code ===
 
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    # && apt-get -y install --no-install-recommends <your-package-list-here>
+# Install Node
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg
+RUN mkdir -p /etc/apt/keyrings
+RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
 
-# [Optional] Uncomment if you want to install an additional version of node using nvm
-# ARG EXTRA_NODE_VERSION=10
-# RUN su node -c "source /usr/local/share/nvm/nvm.sh && nvm install ${EXTRA_NODE_VERSION}"
+ENV NODE_MAJOR=18
+RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+RUN apt-get update && apt-get install nodejs -y
 
-# [Optional] Uncomment if you want to install more global node modules
-# RUN su node -c "npm install -g <your-package-list-here>"
+#=== Devcontainer ONLY code ====
 
+# Add a new user 'devContainer'
+RUN adduser --disabled-password --gecos '' dev
 
+# Switch to 'devContainer' user
+USER dev
 
+#=== Not friendly code===
+
+# # Install Python dependencies
+# # RUN mkdir -p ./pythonWorker/
+# COPY ./pythonWorker/requirements.txt ./pythonWorker/requirements.txt
+# RUN pip install -r ./pythonWorker/requirements.txt
+
+# WORKDIR /usr/src/app
+
+# # Install Node packages
+# COPY ./package*.json ./app.js ./
+# RUN npm install
+
+# COPY ./webinterface/package*.json ./webinterface/
+# RUN cd webinterface && npm install && cd ..
+
+# # Build the project and install dependencies
+# #RUN npm run build
+
+# # Bring files over
+# COPY . . 
+
+# CMD ["node", "app.js"]

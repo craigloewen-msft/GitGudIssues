@@ -1,12 +1,14 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 const RepoScanner = require('./repoScanner')
+const embeddingsHandler = require('./embeddingsHandler')
 const axios = require('axios');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
+const oneOffScriptHelpers = require('./oneOffScriptHelpers');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
-        inIssueReadDetails, inSearhQueryDetails, inMentionQueryDetails, inGHToken, inIssueLinkDetails) {
+        inIssueReadDetails, inSearhQueryDetails, inMentionQueryDetails, inConfigObject, inIssueLinkDetails) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.UserDetails = inUserDetails;
@@ -16,10 +18,14 @@ class WebDataHandler {
         this.IssueReadDetails = inIssueReadDetails;
         this.SearchQueryDetails = inSearhQueryDetails;
         this.MentionQueryDetails = inMentionQueryDetails;
-        this.ghToken = inGHToken;
+        this.ghToken = inConfigObject.ghToken;
         this.IssueLinkDetails = inIssueLinkDetails;
+        this.configObject = inConfigObject;
 
-        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken, this.IssueLinkDetails);
+        this.embeddingsHandler = new embeddingsHandler(this.configObject);
+        this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails,
+            this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails,
+            this.ghToken, this.IssueLinkDetails, this.embeddingsHandler);
         this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
     }
 
@@ -53,6 +59,7 @@ class WebDataHandler {
         var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
         // Check if the thing is not updating
         for (let i = 0; i < inUser.repos.length; i++) {
+            await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
         try {
@@ -691,12 +698,14 @@ class WebDataHandler {
 
                 this.refreshRepoHandler.reset();
 
-                await this.issueLinkDetails.deleteMany({ repoRef: inputRepo._id })
+                await this.IssueLinkDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueCommentMentionDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueReadDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.RepoDetails.deleteOne({ '_id': inputRepo._id })
+
+                await this.embeddingsHandler.removeRepo(inputRepo._id);
             }
         } else {
             return false;
@@ -2130,6 +2139,41 @@ class WebDataHandler {
         return queryResult;
     }
 
+    async getSimilarIssues(queryData) {
+        const { organizationName, repoName, issueNumber } = queryData;
+
+        let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
+
+        let repo = await this.RepoDetails.findOne({ shortURL: dbRepoName });
+        let issue = await this.IssueDetails.findOne({ repoRef: repo._id, number: issueNumber });
+
+        if (issue == null) {
+            throw "Issue not found";
+        }
+
+        if (repo == null) {
+            throw "Repo not found";
+        }
+
+        let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(issue);
+
+        // Make a new array that finds each issue with the id specified in the array above
+        let similarIssuesArray = await Promise.all(similarIssueIDArray.map(similarIssueIDObject => this.IssueDetails.findOne({ _id: similarIssueIDObject.id })));
+
+        let returnArray = similarIssueIDArray.map((similarIssueIDObject, index) => {
+            similarIssuesArray[index].body = "";
+            return {
+                score: similarIssueIDObject.score,
+                title: similarIssuesArray[index].title,
+            }
+            // return {
+            //     score: similarIssueIDObject.score,
+            //     issue: similarIssuesArray[index]
+            // }
+        });
+
+        return returnArray;
+    }
 }
 
 module.exports = WebDataHandler;

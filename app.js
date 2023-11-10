@@ -26,6 +26,8 @@ if (process.env.NODE_ENV == 'production') {
     config.secret = process.env.secret;
     config.sessionSecret = process.env.sessionSecret;
     config.ghToken = process.env.ghToken;
+    config.azureSearchAPIKey = process.env.azureSearchAPIKey;
+    config.azureSearchURL = process.env.azureSearchURL;
     hostPort = process.env.PORT? process.env.PORT : 8080;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;
@@ -330,7 +332,7 @@ const IssueLinkDetails = mongoose.model('issueLinkInfo', IssueLinkDetail, 'issue
 const JWTTimeout = 4 * 604800; // 28 Days
 
 const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
-    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, IssueLinkDetails);
+    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config, IssueLinkDetails);
 
 const teamDataHandler = new TeamsDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails, TeamTriageDetails, dataHandler);
@@ -1025,6 +1027,30 @@ app.post('/api/getrepoissuegraph', authenticateToken, async function (req, res) 
         var returnData = await dataHandler.getRepoIssueGraphData(req.body);
 
         return res.json({ success: true, graphData: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+// Similar Issue functions
+
+app.post('/api/getsimilarissues', async function (req, res) {
+    try {
+        req.body.username = req.user.id;
+        var returnData = await dataHandler.getSimilarIssues(req.body);
+
+        return res.json({ success: true, similarIssues: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+// app.get with /api//getsimilarissues/:repoName/:issueNumber
+app.get('/api/getsimilarissues/:organizationName/:repoName/:issueNumber', async function (req, res) {
+    try {
+        var returnData = await dataHandler.getSimilarIssues(req.params);
+
+        return res.json({ success: true, similarIssues: returnData });
     } catch (error) {
         return res.json(returnFailure(error));
     }
