@@ -1046,7 +1046,6 @@ app.post('/api/getsimilarissues', async function (req, res) {
 // app.get with /api//getsimilarissues/:repoName/:issueNumber
 app.get('/api/getsimilarissues/:organizationName/:repoName/:issueNumber', async function (req, res) {
     try {
-        req.body.username = req.user.id;
         var returnData = await dataHandler.getSimilarIssues(req.params);
 
         return res.json({ success: true, similarIssues: returnData });

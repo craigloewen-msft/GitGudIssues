@@ -5,6 +5,15 @@ class pythonWorkerHandler {
 
     constructor(inSocket) {
         const pythonServer = spawn('python3', ['./pythonWorker/server.py']);
+
+        pythonServer.stdout.on('data', (data) => {
+            console.log(`Python server stdout: ${data}`);
+        });
+
+        pythonServer.stderr.on('data', (data) => {
+            console.error(`Python server stderr: ${data}`);
+        });
+
         pythonServer.on('exit', (code, signal) => {
             if (code !== 0) {
                 console.error(`Python server exited with code: ${code}, signal: ${signal}`);

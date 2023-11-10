@@ -292,7 +292,6 @@ class RefreshRepoTask {
                     // Check if an issue was inserted 
                     if (!updateResultRaw.lastErrorObject.updatedExisting) {
                         // Log to console starting adding embedding for issue
-                        console.log("Adding embedding for issue: ", updateResult.number);
                         this.embeddingsHandler.addEmbedding(updateResult);
                     }
 
@@ -338,6 +337,9 @@ class RefreshRepoTask {
                 }
             }
         }));
+
+        // Flush embeddings data
+        let flushResult = await this.embeddingsHandler.flush(this.repoDocument._id);
 
         return response;
     }

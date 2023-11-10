@@ -20,9 +20,7 @@ def main():
 
     while True:
         # Wait for next request from client
-        print("Waiting on request")
         message = socket.recv_string()
-        print("Received request: %s" % message)
 
         # Call the RPC method and get the result
         result = rpc.getEmbedding(message)

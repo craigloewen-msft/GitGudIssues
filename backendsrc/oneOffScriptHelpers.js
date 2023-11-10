@@ -5,9 +5,9 @@ module.exports = {
 
             let issueList = await inIssueDetails.find({ repoRef: inRepo._id });
             for (let i = 0; i < issueList.length; i++) {
+                console.log("Adding embedding for issue: " + issueList[i].number.toString());
                 let issue = issueList[i];
                 await inEmbeddingsHandler.addEmbedding(issue);
-                let findSimilarResults = await inEmbeddingsHandler.getSimilarIssueIDs(issue);
             }
 
         }

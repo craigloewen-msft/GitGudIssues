@@ -77,7 +77,7 @@ class embeddingsHandler {
             });
         }
 
-        let insertResult = await this.milvusClient.insert({
+        let insertResult = await this.milvusClient.upsert({
             collection_name: collectionName,
             fields_data: [
                 {
@@ -85,10 +85,6 @@ class embeddingsHandler {
                     issue_title_embedding: embedding,
                 },
             ],
-        });
-
-        let connectionStats = await this.milvusClient.getCollectionStatistics({
-            collection_name: collectionName,
         });
 
         return true;
@@ -128,6 +124,13 @@ class embeddingsHandler {
     async loadCollection(collectionName) {
         // Does release collection happen automatically? Will need to test...
         if (this.loadedCollection != collectionName) {
+
+            if (this.loadedCollection != null) {
+                let releaseResults = await this.milvusClient.releaseCollection({
+                    collection_name: this.loadedCollection,
+                });
+            }
+
             let loadCollectionResults = await this.milvusClient.loadCollection({
                 collection_name: collectionName,
             });
@@ -136,8 +139,27 @@ class embeddingsHandler {
 
     }
 
+    async removeRepo(inputRepoRef) {
+        const collectionName = this.getCollectionName(inputRepoRef);
+
+        let deleteResult = await this.milvusClient.dropCollection({
+            collection_name: collectionName,
+        });
+
+        return true;
+    }
+
+    async flush(inputRepoRef) {
+        const collectionName = this.getCollectionName(inputRepoRef);
+        return await this.milvusClient.flushSync({
+            collection_names: [collectionName],
+        });
+    }
+
     async getSimilarIssueIDs(inputIssue) {
         const collectionName = this.getCollectionName(inputIssue.repoRef);
+
+        console.log("Start embedding search for issue: " + inputIssue._id.toString());
 
         const inputVector = await this.pythonWorker.getEmbedding(inputIssue.title);
 
@@ -145,18 +167,30 @@ class embeddingsHandler {
             params: { nprobe: 1024 }
         };
 
+        console.log("Loading collection");
+
         await this.loadCollection(collectionName);
 
-        const results = await this.milvusClient.search({
+        console.log("Executing search");
+        const queryResult = await this.milvusClient.search({
             collection_name: collectionName,
             vector: inputVector,
             limit: 10,
             metric_type: MetricType.L2,
             param: searchParams,
             consistency_level: ConsistencyLevelEnum.Strong,
+            expr: 'issue_db_id != "' + inputIssue._id.toString() + '"'
         });
 
-        return results;
+        if (queryResult.status.error_code != "Success") {
+            throw "Error came back from milvus client"
+        }
+
+        let connectionStats = await this.milvusClient.getCollectionStatistics({
+            collection_name: collectionName,
+        });
+
+        return queryResult.results;
     }
 
 }

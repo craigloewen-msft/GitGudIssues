@@ -58,7 +58,7 @@ class WebDataHandler {
         var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
         // Check if the thing is not updating
         for (let i = 0; i < inUser.repos.length; i++) {
-            await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo( this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
+            await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
         try {
@@ -703,7 +703,8 @@ class WebDataHandler {
                 await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.RepoDetails.deleteOne({ '_id': inputRepo._id })
-                await this.embeddingsHandler.deleteEmbeddingsForRepo(inputRepo._id);
+
+                await this.embeddingsHandler.removeRepo(inputRepo._id);
             }
         } else {
             return false;
@@ -2138,7 +2139,7 @@ class WebDataHandler {
     }
 
     async getSimilarIssues(queryData) {
-        const { organizationName, repoName, issueNumber }  = queryData;
+        const { organizationName, repoName, issueNumber } = queryData;
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
@@ -2153,7 +2154,24 @@ class WebDataHandler {
             throw "Repo not found";
         }
 
-        return this.embeddingsHandler.getSimilarIssueIDs(issue);
+        let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(issue);
+
+        // Make a new array that finds each issue with the id specified in the array above
+        let similarIssuesArray = await Promise.all(similarIssueIDArray.map(similarIssueIDObject => this.IssueDetails.findOne({ _id: similarIssueIDObject.id })));
+
+        let returnArray = similarIssueIDArray.map((similarIssueIDObject, index) => {
+            similarIssuesArray[index].body = "";
+            return {
+                score: similarIssueIDObject.score,
+                title: similarIssuesArray[index].title,
+            }
+            // return {
+            //     score: similarIssueIDObject.score,
+            //     issue: similarIssuesArray[index]
+            // }
+        });
+
+        return returnArray;
     }
 }
 
