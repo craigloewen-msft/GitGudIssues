@@ -30,7 +30,20 @@ class pythonWorkerHandler {
     async getEmbedding(inText) {
         let result = null;
         await this.processMutex.runExclusive(async () => {
-            await this.sock.send(inText);
+            let request = JSON.stringify({ method: 'getEmbedding', args: [inText] });
+            await this.sock.send(request);
+            [result] = await this.sock.receive();
+        });
+        let stringResult = result.toString();
+        let JSONObjectResult = JSON.parse(stringResult);
+        return JSONObjectResult;
+    }
+
+    async getMultipleEmbeddings(inTextArray) {
+        let result = null;
+        await this.processMutex.runExclusive(async () => {
+            let request = JSON.stringify({ method: 'getMultipleEmbeddings', args: [inTextArray] });
+            await this.sock.send(request);
             [result] = await this.sock.receive();
         });
         let stringResult = result.toString();

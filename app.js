@@ -330,7 +330,7 @@ const IssueLinkDetails = mongoose.model('issueLinkInfo', IssueLinkDetail, 'issue
 const JWTTimeout = 4 * 604800; // 28 Days
 
 const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
-    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, IssueLinkDetails);
+    IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config, IssueLinkDetails);
 
 const teamDataHandler = new TeamsDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails, TeamTriageDetails, dataHandler);

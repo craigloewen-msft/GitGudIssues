@@ -338,9 +338,6 @@ class RefreshRepoTask {
             }
         }));
 
-        // Flush embeddings data
-        let flushResult = await this.embeddingsHandler.flush(this.repoDocument._id);
-
         return response;
     }
 

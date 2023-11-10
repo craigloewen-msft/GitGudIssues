@@ -8,7 +8,7 @@ const oneOffScriptHelpers = require('./oneOffScriptHelpers');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
-        inIssueReadDetails, inSearhQueryDetails, inMentionQueryDetails, inGHToken, inIssueLinkDetails) {
+        inIssueReadDetails, inSearhQueryDetails, inMentionQueryDetails, inConfigObject, inIssueLinkDetails) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.UserDetails = inUserDetails;
@@ -18,10 +18,11 @@ class WebDataHandler {
         this.IssueReadDetails = inIssueReadDetails;
         this.SearchQueryDetails = inSearhQueryDetails;
         this.MentionQueryDetails = inMentionQueryDetails;
-        this.ghToken = inGHToken;
+        this.ghToken = inConfigObject.ghToken;
         this.IssueLinkDetails = inIssueLinkDetails;
+        this.configObject = inConfigObject;
 
-        this.embeddingsHandler = new embeddingsHandler();
+        this.embeddingsHandler = new embeddingsHandler(this.configObject);
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails,
             this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails,
             this.ghToken, this.IssueLinkDetails, this.embeddingsHandler);

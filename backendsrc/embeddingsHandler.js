@@ -1,196 +1,181 @@
 const pythonWorkerHandler = require('./pythonWorkerHandler');
-const { MilvusClient, DataType, ConsistencyLevelEnum, MetricType } = require("@zilliz/milvus2-sdk-node");
 const zmq = require('zeromq');
+const {
+    SearchClient,
+    SearchIndexClient,
+    SearchIndexerClient,
+    AzureKeyCredential,
+} = require("@azure/search-documents");
 
 class embeddingsHandler {
 
     static embeddingDimensions = 384;
 
-    static milvusFields = [
-        {
-            name: "issue_db_id",
-            data_type: DataType.VarChar,
-            max_length: 256,
-            is_primary_key: true,
-            description: "",
-        },
-        {
-            name: "issue_title_embedding",
-            data_type: DataType.FloatVector,
-            description: "",
-            dim: embeddingsHandler.embeddingDimensions,
-        },
-    ];
+    static indexName = "gitgudissues";
 
-    static milvusIndexFields = {
-        metric_type: "L2",
-        index_type: "IVF_FLAT",
-        params: JSON.stringify({ nlist: 1024 }),
-    };
-
-    constructor() {
+    constructor(inConfigObject) {
         // Set up Python Worker 
         this.sock = new zmq.Request;
         this.pythonWorker = new pythonWorkerHandler(this.sock);
 
-        // Set up Milvus Client
-        const address = "standalone:19530";
-        const username = "root";
-        const password = "password";
+        this.azureSearchURL = inConfigObject.azureSearchURL;
+        this.azureSearchAPIKey = inConfigObject.azureSearchAPIKey;
 
-        this.loadedCollection = null;
-
-        this.milvusClient = new MilvusClient({ address });
+        this.azureSearchIndexClient = new SearchIndexClient(inConfigObject.azureSearchURL, new AzureKeyCredential(inConfigObject.azureSearchAPIKey));
     }
 
-    getCollectionName(repoRef) {
-        return "r" + repoRef.toString();
+    async createIndexIfNeeded() {
+        // TODO Need some kind of error check to not do this every time....
+        // Create index 
+        const result = await this.azureSearchIndexClient.createOrUpdateIndex({
+            name: embeddingsHandler.indexName,
+            fields: [
+                {
+                    type: "Edm.String",
+                    name: "issue_id",
+                    key: true,
+                    filterable: true,
+                    sortable: true,
+                },
+                {
+                    type: "Edm.String",
+                    name: "repo_id",
+                    filterable: true,
+                    sortable: true,
+                },
+                {
+                    type: "Collection(Edm.Single)",
+                    name: "title_vector",
+                    searchable: true,
+                    vectorSearchDimensions: embeddingsHandler.embeddingDimensions,
+                    vectorSearchProfile: "vector-search-profile",
+                },
+            ],
+            vectorSearch: {
+                algorithms: [{ name: "vector-search-algorithm", kind: "hnsw" }],
+                profiles: [
+                    {
+                        name: "vector-search-profile",
+                        algorithm: "vector-search-algorithm",
+                    },
+                ],
+            },
+        });
+
+        return true;
     }
 
     async addEmbedding(inputIssue) {
         // Get embedding from Python Worker
         const embedding = await this.pythonWorker.getEmbedding(inputIssue.title);
 
-        const collectionName = this.getCollectionName(inputIssue.repoRef);
+        const collectionName = embeddingsHandler.indexName;
 
-        // Check if collection exists
-        let collectionExists = await this.milvusClient.hasCollection({
-            collection_name: collectionName,
-        });
+        const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
 
-        // let dropResult = await this.milvusClient.dropCollection({
-        //     collection_name: collectionName,
-        // });
+        // Set up index 
+        await this.createIndexIfNeeded(inputIssue.repoRef);
 
-        // Create collection if it doesn't exist
-        if (!collectionExists.value) {
-            await this.milvusClient.createCollection({
-                collection_name: collectionName,
-                description: "GitHub Issue title embeddings",
-                fields: embeddingsHandler.milvusFields,
-            });
+        // Add to Azure Search
+        let uploadResult = await searchClient.uploadDocuments([
+            {
+                issue_id: inputIssue._id.toString(),
+                repo_id: inputIssue.repoRef.toString(),
+                title_vector: embedding,
+            },
+        ]);
 
-            await this.milvusClient.createIndex({
-                collection_name: collectionName,
-                field_name: "issue_title_embedding",
-                extra_params: embeddingsHandler.milvusIndexFields,
-            });
-        }
-
-        let insertResult = await this.milvusClient.upsert({
-            collection_name: collectionName,
-            fields_data: [
-                {
-                    issue_db_id: inputIssue._id.toString(),
-                    issue_title_embedding: embedding,
-                },
-            ],
-        });
+        const uploadsSucceeded = uploadResult.results.every((result) => result.succeeded);
 
         return true;
+    }
+
+    async addMultipleEmbeddings(inputIssues) {
+        // Get embeddings from Python Worker
+        const titles = inputIssues.map(issue => issue.title);
+        const embeddings = await this.pythonWorker.getMultipleEmbeddings(titles);
+
+        const collectionName = embeddingsHandler.indexName;
+
+        const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
+
+        // Set up index 
+        await this.createIndexIfNeeded(inputIssues[0].repoRef);
+
+        // Prepare documents for upload
+        const documents = inputIssues.map((issue, index) => ({
+            issue_id: issue._id.toString(),
+            repo_id: issue.repoRef.toString(),
+            title_vector: embeddings[index],
+        }));
+
+        // Add to Azure Search
+        let uploadResult = await searchClient.uploadDocuments(documents);
+
+        const uploadsSucceeded = uploadResult.results.every((result) => result.succeeded);
+
+        return uploadsSucceeded;
     }
 
     async removeEmbedding(inputIssue) {
         const collectionName = this.getCollectionName(inputIssue.repoRef);
+        const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
 
-        let deleteResult = await this.milvusClient.delete({
-            collection_name: collectionName,
-            expr: "issue_db_id in " + inputIssue._id.toString(),
-        });
+        let deleteResult = await searchClient.deleteDocuments([
+            {
+                issue_id: inputIssue._id.toString(),
+            },
+        ]);
 
-        let connectionStats = await this.milvusClient.getCollectionStatistics({
-            collection_name: collectionName,
-        });
-
-        if (connectionStats.row_count == 0) {
-            await milvusClient.dropCollection({
-                collection_name: collectionName,
-            });
+        // Check if index is empty, if yes delete it
+        const searchResults = await searchClient.count("*");
+        if (searchResults.count == 0) {
+            await this.azureSearchIndexClient.deleteIndex(collectionName);
         }
 
         return true;
-    }
-
-    async removeRepoEmbeddings(inputRepoRef) {
-        const collectionName = this.getCollectionName(inputRepoRef);
-
-        let deleteResult = await this.milvusClient.dropCollection({
-            collection_name: collectionName,
-        });
-
-        return true;
-    }
-
-    async loadCollection(collectionName) {
-        // Does release collection happen automatically? Will need to test...
-        if (this.loadedCollection != collectionName) {
-
-            if (this.loadedCollection != null) {
-                let releaseResults = await this.milvusClient.releaseCollection({
-                    collection_name: this.loadedCollection,
-                });
-            }
-
-            let loadCollectionResults = await this.milvusClient.loadCollection({
-                collection_name: collectionName,
-            });
-            this.loadedCollection = collectionName;
-        }
-
     }
 
     async removeRepo(inputRepoRef) {
         const collectionName = this.getCollectionName(inputRepoRef);
+        const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
 
-        let deleteResult = await this.milvusClient.dropCollection({
-            collection_name: collectionName,
-        });
+        let deleteResult = await searchClient.deleteIndex(collectionName);
 
         return true;
     }
 
-    async flush(inputRepoRef) {
-        const collectionName = this.getCollectionName(inputRepoRef);
-        return await this.milvusClient.flushSync({
-            collection_names: [collectionName],
-        });
-    }
-
     async getSimilarIssueIDs(inputIssue) {
-        const collectionName = this.getCollectionName(inputIssue.repoRef);
-
-        console.log("Start embedding search for issue: " + inputIssue._id.toString());
+        const collectionName = embeddingsHandler.indexName;
 
         const inputVector = await this.pythonWorker.getEmbedding(inputIssue.title);
 
-        const searchParams = {
-            params: { nprobe: 1024 }
-        };
+        const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
 
-        console.log("Loading collection");
-
-        await this.loadCollection(collectionName);
-
-        console.log("Executing search");
-        const queryResult = await this.milvusClient.search({
-            collection_name: collectionName,
-            vector: inputVector,
-            limit: 10,
-            metric_type: MetricType.L2,
-            param: searchParams,
-            consistency_level: ConsistencyLevelEnum.Strong,
-            expr: 'issue_db_id != "' + inputIssue._id.toString() + '"'
+        const searchResults = await searchClient.search("*", {
+            // Filter to not infclude input issue
+            filter: `issue_id ne '${inputIssue._id.toString()}'`,
+            vectorQueries: [
+                {
+                    kind: "vector",
+                    fields: ["title_vector"],
+                    kNearestNeighborsCount: 10,
+                    // An embedding of the query "What are the most luxurious hotels?"
+                    vector: inputVector,
+                },
+            ],
         });
 
-        if (queryResult.status.error_code != "Success") {
-            throw "Error came back from milvus client"
+        let formattedResults = [];
+        for await (const result of searchResults.results) {
+            formattedResults.push({
+                score: result.score,
+                id: result.document.issue_id
+            });
         }
+        console.log(formattedResults);
 
-        let connectionStats = await this.milvusClient.getCollectionStatistics({
-            collection_name: collectionName,
-        });
-
-        return queryResult.results;
+        return formattedResults;
     }
 
 }
