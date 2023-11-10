@@ -30,7 +30,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_be14b0d1f2034d489bd7fa18b3ff4250 }}/gitgudissues:${{ github.sha }}
+        tags: craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_be14b0d1f2034d489bd7fa18b3ff4250 }}/gitgudissues:latest
         file: ./Dockerfile
 
   deploy:
@@ -48,4 +48,4 @@ jobs:
         app-name: 'gitgudissues'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_3518f3c1cc4f45338ce722d932f1f946 }}
-        images: 'craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_be14b0d1f2034d489bd7fa18b3ff4250 }}/gitgudissues:${{ github.sha }}'
+        images: 'craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_be14b0d1f2034d489bd7fa18b3ff4250 }}/gitgudissues:latest'
