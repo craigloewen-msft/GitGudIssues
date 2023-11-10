@@ -1,0 +1,7 @@
+.devcontainer
+.github
+.vscode
+docs
+node_modules
+webinterface/dist
+webinterface/node_modules

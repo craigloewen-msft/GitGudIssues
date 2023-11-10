@@ -10,12 +10,12 @@ ENV NODE_MAJOR=18
 RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
 RUN apt-get update && apt-get install nodejs -y
 
+WORKDIR /usr/src/app
+
 # Install Python dependencies
 # RUN mkdir -p ./pythonWorker/
 COPY ./pythonWorker/requirements.txt ./pythonWorker/requirements.txt
 RUN pip install -r ./pythonWorker/requirements.txt
-
-WORKDIR /usr/src/app
 
 # Install Node packages
 COPY ./package*.json ./app.js ./
@@ -24,10 +24,10 @@ RUN npm install
 COPY ./webinterface/package*.json ./webinterface/
 RUN cd webinterface && npm install && cd ..
 
-# Build the project and install dependencies
-RUN npm run build
-
 # Bring files over
 COPY . . 
+
+# Build the project and install dependencies
+RUN npm run build
 
 CMD ["node", "app.js"]
