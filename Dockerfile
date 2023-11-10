@@ -30,4 +30,6 @@ COPY . .
 # Build the project and install dependencies
 RUN npm run build
 
+EXPOSE 80
+
 CMD ["node", "app.js"]
