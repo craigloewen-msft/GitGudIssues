@@ -11,8 +11,7 @@ class embeddingsHandler {
 
     static embeddingDimensions = 384;
 
-    // static indexName = "gitgudissues";
-    static indexName = "gitgudissuesdev";
+    static indexName = "gitgudissues";
 
     constructor(inConfigObject) {
         // Set up Python Worker 
