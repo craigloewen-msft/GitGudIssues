@@ -2162,13 +2162,9 @@ class WebDataHandler {
                 score: similarIssueIDObject.score,
                 title: similarIssuesArray[index].title,
                 number: similarIssuesArray[index].number,
-                html_url:  "https://github.com/" +
-          similarIssuesArray[index].url.split("https://api.github.com/repos/").pop()
+                html_url: "https://github.com/" +
+                    similarIssuesArray[index].url.split("https://api.github.com/repos/").pop()
             }
-            // return {
-            //     score: similarIssueIDObject.score,
-            //     issue: similarIssuesArray[index]
-            // }
         });
 
         return returnArray;
