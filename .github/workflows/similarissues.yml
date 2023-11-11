@@ -1,3 +1,5 @@
+name: GitGudSimilarIssues comments
+
 on:
   issues:
     types: [opened]
@@ -14,7 +16,7 @@ jobs:
         with:
           issuetitle: ${{ github.event.issue.title }}
           repo: ${{ github.repository }}
-          eucldistancetolerance: "1.5"
+          similaritytolerance: "0.7"
   add-comment:
     needs: greet
     runs-on: ubuntu-latest
