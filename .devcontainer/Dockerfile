@@ -1,8 +1,6 @@
 # [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
 FROM python:3.10
 
-#=== Devcontainer friendly code ===
-
 # Install Node
 RUN apt-get update && apt-get install -y ca-certificates curl gnupg
 RUN mkdir -p /etc/apt/keyrings
@@ -19,27 +17,3 @@ RUN adduser --disabled-password --gecos '' dev
 
 # Switch to 'devContainer' user
 USER dev
-
-#=== Not friendly code===
-
-# # Install Python dependencies
-# # RUN mkdir -p ./pythonWorker/
-# COPY ./pythonWorker/requirements.txt ./pythonWorker/requirements.txt
-# RUN pip install -r ./pythonWorker/requirements.txt
-
-# WORKDIR /usr/src/app
-
-# # Install Node packages
-# COPY ./package*.json ./app.js ./
-# RUN npm install
-
-# COPY ./webinterface/package*.json ./webinterface/
-# RUN cd webinterface && npm install && cd ..
-
-# # Build the project and install dependencies
-# #RUN npm run build
-
-# # Bring files over
-# COPY . . 
-
-# CMD ["node", "app.js"]

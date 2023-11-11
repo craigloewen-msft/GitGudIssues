@@ -2145,11 +2145,12 @@ class WebDataHandler {
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
         let repo = await this.RepoDetails.findOne({ shortURL: dbRepoName });
-        let issue = await this.IssueDetails.findOne({ title: issueTitle, repoRef: repo._id });
 
         if (repo == null) {
             throw "Repo not found";
         }
+
+        let issue = await this.IssueDetails.findOne({ title: issueTitle, repoRef: repo._id });
 
         let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueTitle, issue);
 
