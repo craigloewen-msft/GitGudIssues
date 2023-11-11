@@ -14,6 +14,9 @@ WORKDIR /usr/src/app
 
 # Install Python dependencies
 # RUN mkdir -p ./pythonWorker/
+# Install CPU only version of torch
+RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
 COPY ./pythonWorker/requirements.txt ./pythonWorker/requirements.txt
 RUN pip install -r ./pythonWorker/requirements.txt
 
