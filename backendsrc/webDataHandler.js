@@ -59,7 +59,7 @@ class WebDataHandler {
         var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
         // Check if the thing is not updating
         for (let i = 0; i < inUser.repos.length; i++) {
-            await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
+            // await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
         try {
