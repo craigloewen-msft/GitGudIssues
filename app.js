@@ -28,7 +28,7 @@ if (process.env.NODE_ENV == 'production') {
     config.ghToken = process.env.ghToken;
     config.azureSearchAPIKey = process.env.azureSearchAPIKey;
     config.azureSearchURL = process.env.azureSearchURL;
-    hostPort = process.env.PORT? process.env.PORT : 8080;
+    hostPort = process.env.PORT ? process.env.PORT : 8080;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;
     hostPort = 3000;
@@ -1046,8 +1046,11 @@ app.post('/api/getsimilarissues', async function (req, res) {
 });
 
 // app.get with /api//getsimilarissues/:repoName/:issueNumber
-app.get('/api/getsimilarissues/:organizationName/:repoName/:issueTitle', async function (req, res) {
+app.get('/api/getsimilarissues/:organizationName/:repoName/*', async function (req, res) {
     try {
+        let issueTitle = decodeURIComponent(req.params[0]);
+        req.params.issueTitle = issueTitle;
+
         var returnData = await dataHandler.getSimilarIssues(req.params);
 
         return res.json({ success: true, similarIssues: returnData });
