@@ -224,6 +224,7 @@ class RefreshRepoTask {
 
     async storeInDatabase(data) {
         var response = 'success';
+        var insertedIssueArray = [];
 
         await Promise.all(data.map(async (responseItem) => {
             // for (let i = 0; i < data.length; i++) {
@@ -291,8 +292,8 @@ class RefreshRepoTask {
                     // Add in await to the promise array for adding embedding title
                     // Check if an issue was inserted 
                     if (!updateResultRaw.lastErrorObject.updatedExisting) {
-                        // Log to console starting adding embedding for issue
-                        this.embeddingsHandler.addEmbedding(updateResult);
+                        // Add inserted issue to list
+                        insertedIssueArray.push(updateResult);
                     }
 
                     if (updateResult.closed_by) {
@@ -305,8 +306,6 @@ class RefreshRepoTask {
                     if (authorUser != null) {
                         finalAwaitPromiseArray.push(helperFunctions.UpdateIssueRead(this.IssueReadDetails, updateResult, authorUser, updateResult.created_at));
                     }
-
-
 
                     // If closer user exists and issue is closed
                     if (updateResult.state == "closed") {
@@ -337,6 +336,12 @@ class RefreshRepoTask {
                 }
             }
         }));
+
+        // Log to console how many issues we're adding embeddings for and the repo name
+        console.log("Adding embeddings for " + insertedIssueArray.length + " issues in " + this.shortRepoUrl);
+
+        // Add embeddings for all inserted issues
+        await this.embeddingsHandler.addMultipleEmbeddings(insertedIssueArray);
 
         return response;
     }
