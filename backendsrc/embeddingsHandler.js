@@ -92,29 +92,36 @@ class embeddingsHandler {
 
     async addMultipleEmbeddings(inputIssues) {
         // Get embeddings from Python Worker
-        const titles = inputIssues.map(issue => issue.title);
-        const embeddings = await this.pythonWorker.getMultipleEmbeddings(titles);
 
-        const collectionName = embeddingsHandler.indexName;
-
-        const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
-
-        // Set up index 
-        await this.createIndexIfNeeded(inputIssues[0].repoRef);
-
-        // Prepare documents for upload
-        const documents = inputIssues.map((issue, index) => ({
-            issue_id: issue._id.toString(),
-            repo_id: issue.repoRef.toString(),
-            title_vector: embeddings[index],
-        }));
-
-        // Add to Azure Search
-        let uploadResult = await searchClient.uploadDocuments(documents);
-
-        const uploadsSucceeded = uploadResult.results.every((result) => result.succeeded);
-
-        return uploadsSucceeded;
+        if (inputIssues.length != 0) {
+            const titles = inputIssues.map(issue => issue.title);
+            const embeddings = await this.pythonWorker.getMultipleEmbeddings(titles);
+    
+            const collectionName = embeddingsHandler.indexName;
+    
+            const searchClient = new SearchClient(this.azureSearchURL, collectionName, new AzureKeyCredential(this.azureSearchAPIKey));
+    
+            // Set up index 
+            await this.createIndexIfNeeded(inputIssues[0].repoRef);
+    
+            // Prepare documents for upload
+            const documents = inputIssues.map((issue, index) => ({
+                issue_id: issue._id.toString(),
+                repo_id: issue.repoRef.toString(),
+                title_vector: embeddings[index],
+            }));
+    
+            // Add to Azure Search
+            let uploadResult = await searchClient.uploadDocuments(documents);
+    
+            const uploadsSucceeded = uploadResult.results.every((result) => result.succeeded);
+    
+            return uploadsSucceeded;
+        }
+        else {
+            return true;
+        }
+        
     }
 
     async removeEmbedding(inputIssue) {
