@@ -1,9 +1,16 @@
+<template>
+  <Doughnut v-if="!loading" :data="chartData" />
+</template>
+
 <script>
+import 'chart.js/auto';
 import { Doughnut } from "vue-chartjs";
 
 export default {
-  extends: Doughnut,
   name: "PieGraphBase",
+  components: {
+    Doughnut,
+  },
   props: {
     inputQuery: Object,
     chartEndPoint: String,
@@ -12,26 +19,10 @@ export default {
   data() {
     return {
       loading: true,
-      labels: ["January", "February", "March", "April", "May", "June", "July"],
-      datasets: [
-        {
-          label: "Data One",
-          backgroundColor: "#f87979",
-          data: [40, 39, 10, 40, 39, 80, 40],
-        },
-      ],
+      chartData: null,
     };
   },
   methods: {
-    startRender: function () {
-      this.renderChart(
-        {
-          labels: this.labels,
-          datasets: this.datasets,
-        },
-        { responsive: true, maintainAspectRatio: false }
-      );
-    },
     shadeColor: function (color, percent) {
       // Credit to this Stack overflow https://stackoverflow.com/questions/5560248/programmatically-lighten-or-darken-a-hex-color-or-rgb-and-blend-colors
       // Thank you Pablo! :)
@@ -64,8 +55,11 @@ export default {
       this.$http.post(this.chartEndPoint, this.inputQuery).then((response) => {
         if (response.data.success) {
           const graphData = response.data.graphData;
-          this.labels = graphData.labels;
-          this.datasets = graphData.datasets;
+
+          let newChartData = {};
+
+          newChartData.labels = graphData.labels;
+          newChartData.datasets = graphData.datasets;
 
           let shadeAmount = 50;
           let repoCount = this.datasets.length;
@@ -74,8 +68,8 @@ export default {
             shadeAmount = 90 / repoCount;
           }
 
-          for (let i = 0; i < this.datasets.length; i++) {
-            let datasetItem = this.datasets[i];
+          for (let i = 0; i < newChartData.datasets.length; i++) {
+            let datasetItem = newChartData.datasets[i];
             let repoNumber = i;
             let backgroundColorArray = [];
 
@@ -88,8 +82,9 @@ export default {
             datasetItem.backgroundColor = backgroundColorArray;
           }
 
+          this.chartData = newChartData;
+
           this.loading = false;
-          this.startRender();
         } else {
           // TODO Add in some error catching condition
           console.log(response);

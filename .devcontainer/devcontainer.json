@@ -10,8 +10,8 @@
 	"extensions": [
 		"dbaeumer.vscode-eslint",
 		"mongodb.mongodb-vscode",
-		"octref.vetur",
-		"ms-python.python"
+		"ms-python.python",
+		"Vue.volar",
 	],
 	"postCreateCommand": "pip install -r ./pythonWorker/requirements.txt && npm install && cd webinterface && npm install && cd ..",
 	"remoteUser": "dev"

@@ -11,7 +11,7 @@
     "axios": "^1.6.0",
     "bootstrap": "^5.3.2",
     "bootstrap-vue": "^2.23.1",
-    "chart.js": "*",
+    "chart.js": "^4.1.1",
     "core-js": "^3.33.2",
     "force-graph": "^1.43.4",
     "node-sass": "^9.0.0",

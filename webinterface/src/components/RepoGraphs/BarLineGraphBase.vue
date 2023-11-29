@@ -1,9 +1,16 @@
+<template>
+  <Bar v-if="!loading" :data="chartData" />
+</template>
+
 <script>
+import 'chart.js/auto';
 import { Bar } from "vue-chartjs";
 
 export default {
-  extends: Bar,
   name: "BarLineGraphBase",
+  components: {
+    Bar,
+  },
   props: {
     inputQuery: Object,
     chartEndPoint: String,
@@ -13,14 +20,7 @@ export default {
   data() {
     return {
       loading: true,
-      labels: ["January", "February", "March", "April", "May", "June", "July"],
-      datasets: [
-        {
-          label: "Data One",
-          backgroundColor: "#f87979",
-          data: [40, 39, 10, 40, 39, 80, 40],
-        },
-      ],
+      chartData: null,
     };
   },
   methods: {
@@ -84,8 +84,31 @@ export default {
       this.$http.post(this.chartEndPoint, this.inputQuery).then((response) => {
         if (response.data.success) {
           const graphData = response.data.graphData;
-          this.labels = graphData.labels;
-          this.datasets = graphData.datasets;
+
+          let newChartData = {};
+
+          newChartData.labels = graphData.labels;
+          newChartData.datasets = graphData.datasets;
+          newChartData.options = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              yAxes: [
+                {
+                  stacked: true,
+                },
+                {
+                  id: "line-y-axis",
+                  display: false,
+                },
+              ],
+              xAxes: [
+                {
+                  stacked: true,
+                },
+              ],
+            },
+          };
 
           let shadeAmount = 50;
           // let repoCount = (this.datasets.length - 3) / 2;
@@ -95,8 +118,8 @@ export default {
             shadeAmount = 90 / repoCount;
           }
 
-          for (let i = 0; i < this.datasets.length; i++) {
-            let datasetItem = this.datasets[i];
+          for (let i = 0; i < newChartData.datasets.length; i++) {
+            let datasetItem = newChartData.datasets[i];
             // Magic number here: 3 datasets are already processed (opened, closed, net) and we divide it by 2 to account for open and closed
             // let repoNumber = Math.floor((i - 3) / 2);
             let repoNumber = Math.floor(i / 2);
@@ -126,8 +149,9 @@ export default {
             }
           }
 
+          this.chartData = newChartData;
+
           this.loading = false;
-          this.startRender();
         } else {
           // TODO Add in some error catching condition
           console.log(response);
