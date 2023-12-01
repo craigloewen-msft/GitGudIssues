@@ -4,10 +4,10 @@ module.exports = {
 
         if (inRepo.shortURL == "microsoft/wsl") {
             try {
-                let fourWeeksAgo = new Date((new Date().getTime() - (4 * 7 * 24 * 60 * 60 * 1000)));
+                let startDate = new Date((new Date().getTime() - (4 * 7 * 24 * 60 * 60 * 1000))); // 4 weeks ago
                 let totalIssues = await inIssueDetails.countDocuments({
                     repoRef: inRepo._id,
-                    created_at: { $gte: fourWeeksAgo }
+                    created_at: { $gte: startDate }
                 });
                 let pageSize = 200;
                 let pages = Math.ceil(totalIssues / pageSize);
@@ -15,7 +15,7 @@ module.exports = {
                 for (let i = 0; i < pages; i++) {
                     let issueList = await inIssueDetails.find({
                         repoRef: inRepo._id,
-                        created_at: { $gte: fourWeeksAgo }
+                        created_at: { $gte: startDate }
                     }).sort({ number: 1 }).skip(i * pageSize).limit(pageSize);
                     await inEmbeddingsHandler.addMultipleEmbeddings(issueList);
                     let percentComplete = ((i + 1) / pages) * 100;

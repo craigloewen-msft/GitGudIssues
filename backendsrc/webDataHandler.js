@@ -59,7 +59,7 @@ class WebDataHandler {
         var inUser = (await this.UserDetails.find({ username: inUsername }).populate('repos'))[0];
         // Check if the thing is not updating
         for (let i = 0; i < inUser.repos.length; i++) {
-            // await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
+            await oneOffScriptHelpers.AddEmbeddingsToIssuesInRepo(this.IssueDetails, this.embeddingsHandler, inUser.repos[i]);
             this.refreshRepoHandler.addRepoForRefresh(inUser.repos[i]);
         }
         try {
@@ -2155,12 +2155,17 @@ class WebDataHandler {
         let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueTitle, issue);
 
         // Make a new array that finds each issue with the id specified in the array above
-        let similarIssuesArray = await Promise.all(similarIssueIDArray.map(similarIssueIDObject => this.IssueDetails.findOne({ _id: similarIssueIDObject.id })));
+        let similarIssuesArray = await Promise.all(similarIssueIDArray.map(similarIssueIDObject => this.IssueDetails.findOne({ _id: similarIssueIDObject.issue_id })));
 
         let returnArray = similarIssueIDArray.map((similarIssueIDObject, index) => {
             similarIssuesArray[index].body = "";
             return {
+                // From search 
                 score: similarIssueIDObject.score,
+                captions: similarIssueIDObject.captions,
+                higlights: similarIssueIDObject.highlights,
+                rerankerScore: similarIssueIDObject.rerankerScore,
+                // From issue database
                 title: similarIssuesArray[index].title,
                 number: similarIssuesArray[index].number,
                 html_url: "https://github.com/" +
