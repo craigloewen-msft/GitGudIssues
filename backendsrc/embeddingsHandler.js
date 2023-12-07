@@ -172,7 +172,7 @@ class embeddingsHandler {
                 {
                     kind: "vector",
                     fields: ["title_vector"],
-                    kNearestNeighborsCount: 10,
+                    kNearestNeighborsCount: 5,
                     // An embedding of the query "What are the most luxurious hotels?"
                     vector: inputVector,
                 },
