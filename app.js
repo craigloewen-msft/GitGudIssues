@@ -26,8 +26,7 @@ if (process.env.NODE_ENV == 'production') {
     config.secret = process.env.secret;
     config.sessionSecret = process.env.sessionSecret;
     config.ghToken = process.env.ghToken;
-    config.azureSearchAPIKey = process.env.azureSearchAPIKey;
-    config.azureSearchURL = process.env.azureSearchURL;
+    config.pineconeAPIKey = process.env.pineconeAPIKey;
     hostPort = process.env.PORT ? process.env.PORT : 8080;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;

@@ -1,9 +1,8 @@
 {
   "dependencies": {
-    "@azure/search-documents": "next",
-    "@zilliz/milvus2-sdk-node": "^2.3.3",
+    "@pinecone-database/pinecone": "^1.1.2",
     "async-mutex": "^0.4.0",
-    "axios": "^0.21.4",
+    "axios": "^1.6.4",
     "connect-ensure-login": "^0.1.1",
     "connect-mongo": "^4.6.0",
     "es6-promise": "^4.2.8",
