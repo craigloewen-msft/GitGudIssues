@@ -82,14 +82,14 @@ class embeddingsHandler {
             includeValues: false
         });
 
-        // If top result is the same issue, remove it
-        if (issue && searchResults && searchResults.matches[0] && searchResults.matches[0].id == issue._id.toString()) {
-            searchResults.matches.shift();
-        } else {
-            // If the searchResults are longe than 5 get rid of the last one
-            if (searchResults && searchResults.matches.length > numberOfReturnedIssues) {
-                searchResults.matches.pop();
-            }
+        // If any of the issue ids are the same as the input issue id, remove them
+        if (issue) {
+            searchResults.matches = searchResults.matches.filter(match => match.id != issue._id.toString());
+        }
+
+        // If the searchResults are longe than 5 get rid of the last one
+        if (searchResults && searchResults.matches.length > numberOfReturnedIssues) {
+            searchResults.matches.pop();
         }
 
         let formattedResults = [];
@@ -99,6 +99,8 @@ class embeddingsHandler {
                 id: result.id
             });
         }
+
+        // let describeIndex = await this.index.describeIndexStats();
 
         return formattedResults;
     }
