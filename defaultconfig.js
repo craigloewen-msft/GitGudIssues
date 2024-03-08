@@ -6,6 +6,6 @@ module.exports = {
     'sessionSecret': 'somesessionsecret',
     // https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
     'ghToken': null,
-    'azureSearchAPIKey': "key",
-    'azureSearchURL' : "url",
+    'azureOpenAIAPIKey': "key",
+    'azureEndpointURL' : "url",
 };
