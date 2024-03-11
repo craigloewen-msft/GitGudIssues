@@ -1,9 +1,10 @@
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
+const { getEncoding } = require("js-tiktoken")
 
 class embeddingsHandler {
 
-    static embeddingDimensions = 384;
+    static embeddingDimensions = 3072;
 
     static indexName = "gitgudissues";
 
@@ -18,10 +19,19 @@ class embeddingsHandler {
     }
 
     async addMultipleEmbeddings(inputIssues) {
-        // Get embeddings from Azure OpenAI Embeddings model
+        const enc = getEncoding("cl100k_base");
 
+        // Get embeddings from Azure OpenAI Embeddings model
         if (inputIssues.length != 0) {
             const descriptions = inputIssues.map(issue => '### Title\n\n' + issue.title + '\n\n' + issue.body);
+
+            // Check description and truncate if greater than 8192 tokens
+            for (let i = 0; i < descriptions.length; i++) {
+                const encoding = enc.encode(descriptions[i]);
+                if (encoding.length > 8192) {
+                    descriptions[i] = enc.decode(descriptions[i].slice(0, 8000));
+                }
+            }    
             const embeddings = await this.azureClient.getEmbeddings("issue-body-embeddings-model", descriptions);
 
             // Get list of issues grouped by repoRef with embeddings added
