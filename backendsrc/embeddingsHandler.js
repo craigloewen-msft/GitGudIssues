@@ -1,5 +1,3 @@
-const pythonWorkerHandler = require('./pythonWorkerHandler');
-const zmq = require('zeromq');
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 
@@ -10,9 +8,7 @@ class embeddingsHandler {
     static indexName = "gitgudissues";
 
     constructor(inConfigObject) {
-        // Set up Python Worker 
-        this.sock = new zmq.Request;
-        this.pythonWorker = new pythonWorkerHandler(this.sock);
+        // Set up azureClient and Pinecone 
         this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), {apiVersion: "2023-05-15"});
         this.pinecone = new Pinecone({
             environment: "gcp-starter",
@@ -22,11 +18,9 @@ class embeddingsHandler {
     }
 
     async addMultipleEmbeddings(inputIssues) {
-        // Get embeddings from Python Worker
+        // Get embeddings from Azure OpenAI Embeddings model
 
         if (inputIssues.length != 0) {
-            // const titles = inputIssues.map(issue => issue.title);
-            // const bodies = inputIssues.map(issue => issue.body);
             const descriptions = inputIssues.map(issue => '### Title\n\n' + issue.title + '\n\n' + issue.body);
             const embeddings = await this.azureClient.getEmbeddings("issue-body-embeddings-model", descriptions);
 
