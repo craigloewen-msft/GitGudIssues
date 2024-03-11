@@ -64,7 +64,10 @@ class embeddingsHandler {
     }
 
     async getSimilarIssueIDs(repo, issueTitle, issue) {
-        const inputVector = await this.pythonWorker.getEmbedding(issueTitle);
+        // Create title + body description
+        const description = ['### Title\n\n' + issueTitle + '\n\n' + issue.body];
+        // Query azure for embeddings
+        const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
 
         let searchFilter = `repo_id eq '${repo._id.toString()}'`;
 
@@ -76,7 +79,7 @@ class embeddingsHandler {
 
         let searchResults = await this.index.namespace(repo._id.toString()).query({
             topK: numberOfReturnedIssues + 1,
-            vector: inputVector,
+            vector: inputVector.data[0].embedding,
             includeValues: false
         });
 
