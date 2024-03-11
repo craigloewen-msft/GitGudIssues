@@ -13,13 +13,7 @@ class embeddingsHandler {
         // Set up Python Worker 
         this.sock = new zmq.Request;
         this.pythonWorker = new pythonWorkerHandler(this.sock);
-        this.azureClient = new OpenAIClient({
-            endpoint: inConfigObject.azureEndpointURL,
-            credential: new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey),
-            options: new OpenAIClientOptions({
-                apiVersion: "2023-05-15"
-            })
-        });
+        this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), {apiVersion: "2023-05-15"});
         this.pinecone = new Pinecone({
             environment: "gcp-starter",
             apiKey: inConfigObject.pineconeAPIKey,
@@ -31,16 +25,16 @@ class embeddingsHandler {
         // Get embeddings from Python Worker
 
         if (inputIssues.length != 0) {
-            const titles = inputIssues.map(issue => issue.title);
-            const bodies = inputIssues.map(issue => issue.body);
-            const description = inputIssues.map(issue => '### Title\n\n' + issue.title + '\n\n' + issue.body);
-            const embeddings = await this.pythonWorker.getMultipleEmbeddings(titles);
+            // const titles = inputIssues.map(issue => issue.title);
+            // const bodies = inputIssues.map(issue => issue.body);
+            const descriptions = inputIssues.map(issue => '### Title\n\n' + issue.title + '\n\n' + issue.body);
+            const embeddings = await this.azureClient.getEmbeddings("issue-body-embeddings-model", descriptions);
 
             // Get list of issues grouped by repoRef with embeddings added
             let issuesByRepo = {};
             for (let i = 0; i < inputIssues.length; i++) {
                 let issue = inputIssues[i];
-                let embedding = embeddings[i];
+                let embedding = embeddings.data[i].embedding;
                 if (!issuesByRepo[issue.repoRef.toString()]) {
                     issuesByRepo[issue.repoRef.toString()] = [];
                 }
