@@ -224,7 +224,6 @@ class RefreshRepoTask {
 
     async storeInDatabase(data) {
         var response = 'success';
-        var insertedIssueArray = [];
 
         await Promise.all(data.map(async (responseItem) => {
             // for (let i = 0; i < data.length; i++) {
@@ -293,7 +292,8 @@ class RefreshRepoTask {
                     // Check if an issue was inserted 
                     if (!updateResultRaw.lastErrorObject.updatedExisting) {
                         // Add inserted issue to list
-                        insertedIssueArray.push(updateResult);
+                        let embeddingsPromise = this.embeddingsHandler.addMultipleEmbeddings([updateResult]);
+                        finalAwaitPromiseArray.push(embeddingsPromise);
                     }
 
                     if (updateResult.closed_by) {
@@ -324,7 +324,7 @@ class RefreshRepoTask {
                     // For each name in the mention array, attempt to create a mention
                     if (!updateResultRaw.lastErrorObject.updatedExisting) {
                         finalAwaitPromiseArray.push(helperFunctions.CreateMentionsFromIssueList(mentionsArray, this.IssueCommentMentionDetails, this.UserDetails, this.IssueReadDetails, updateResult));
-                    }
+                    }                   
 
                     await Promise.all(finalAwaitPromiseArray);
 
@@ -336,12 +336,6 @@ class RefreshRepoTask {
                 }
             }
         }));
-
-        // Log to console how many issues we're adding embeddings for and the repo name
-        console.log("Adding embeddings for " + insertedIssueArray.length + " issues in " + this.shortRepoUrl);
-
-        // Add embeddings for all inserted issues
-        await this.embeddingsHandler.addMultipleEmbeddings(insertedIssueArray);
 
         return response;
     }

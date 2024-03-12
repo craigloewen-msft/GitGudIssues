@@ -1,6 +1,7 @@
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 const { getEncoding } = require("js-tiktoken")
+const { Semaphore } = require("async-mutex");
 
 class embeddingsHandler {
 
@@ -16,6 +17,9 @@ class embeddingsHandler {
             apiKey: inConfigObject.pineconeAPIKey,
         });
         this.index = this.pinecone.Index(embeddingsHandler.indexName);
+        this.maxConcurrentRequests = 1;
+        this.pineconeSemaphore = new Semaphore(this.maxConcurrentRequests);
+        this.azureSemaphore = new Semaphore(this.maxConcurrentRequests);
     }
 
     async addMultipleEmbeddings(inputIssues) {
@@ -23,17 +27,25 @@ class embeddingsHandler {
 
         // Get embeddings from Azure OpenAI Embeddings model
         if (inputIssues.length != 0) {
-            const descriptions = inputIssues.map(issue => '### Title\n\n' + issue.title + '\n\n' + issue.body);
+            const descriptions = inputIssues.map(issue => '# ' + issue.title + '\n\n' + issue.body);
 
             // Check description and truncate if greater than 8192 tokens
             for (let i = 0; i < descriptions.length; i++) {
                 const encoding = enc.encode(descriptions[i]);
                 if (encoding.length > 8192) {
-                    descriptions[i] = enc.decode(descriptions[i].slice(0, 8000));
+                    descriptions[i] = enc.decode(encoding.slice(0, 8000));
                 }
-            }    
-            const embeddings = await this.azureClient.getEmbeddings("issue-body-embeddings-model", descriptions);
-
+            }
+            
+            let embeddings = null ;
+            
+            try { 
+                await this.azureSemaphore.runExclusive(async () => {
+                    embeddings = await this.azureClient.getEmbeddings("issue-body-embeddings-model", descriptions);
+                });
+            } catch (error) {
+                console.log(error);
+            }
             // Get list of issues grouped by repoRef with embeddings added
             let issuesByRepo = {};
             for (let i = 0; i < inputIssues.length; i++) {
@@ -50,7 +62,11 @@ class embeddingsHandler {
 
             // Upsert embeddings into Pinecone
             for (const [repoRef, issues] of Object.entries(issuesByRepo)) {
-                await this.index.namespace(repoRef).upsert(issues);
+                console.log("Upserting embeddings for issue number: " + issues[0].number);
+                return await this.pineconeSemaphore.runExclusive(async () => {
+                    console.log("Semaphore acquired for issue number: " + issues[0].number);
+                    await this.index.namespace(repoRef).upsert(issues);
+                });
             }
 
             return true;
@@ -75,7 +91,7 @@ class embeddingsHandler {
 
     async getSimilarIssueIDs(repo, issueTitle, issue) {
         // Create title + body description
-        const description = ['### Title\n\n' + issueTitle + '\n\n' + issue.body];
+        const description = ['# ' + issueTitle + '\n\n' + issue.body];
         // Query azure for embeddings
         const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
 

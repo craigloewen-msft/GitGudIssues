@@ -27,8 +27,8 @@ if (process.env.NODE_ENV == 'production') {
     config.sessionSecret = process.env.sessionSecret;
     config.ghToken = process.env.ghToken;
     config.pineconeAPIKey = process.env.pineconeAPIKey;
-    config.azureSearchAPIKey = process.env.azureSearchAPIKey;
-    config.azureSearchURL = process.env.azureSearchURL;
+    config.azureOpenAIAPIKey = process.env.azureOpenAIAPIKey;
+    config.azureEndpointURL = process.env.azureEndpointURL;
     hostPort = process.env.PORT ? process.env.PORT : 8080;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;
@@ -1049,7 +1049,7 @@ app.post('/api/getsimilarissues', async function (req, res) {
 // app.get with /api//getsimilarissues/:repoName/:issueNumber
 app.get('/api/getsimilarissues/:organizationName/:repoName/*', async function (req, res) {
     try {
-        let issueTitle = decodeURIComponent(req.params[0]);
+        let issuetring = decodeURIComponent(req.params[0]);
         req.params.issueTitle = issueTitle;
 
         var returnData = await dataHandler.getSimilarIssues(req.params);
