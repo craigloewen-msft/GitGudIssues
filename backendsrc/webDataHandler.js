@@ -5,6 +5,7 @@ const axios = require('axios');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
 const oneOffScriptHelpers = require('./oneOffScriptHelpers');
+const { GetDesription } = require('./helpers');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
@@ -2140,7 +2141,9 @@ class WebDataHandler {
     }
 
     async getSimilarIssues(queryData) {
-        const { organizationName, repoName, issueString } = queryData;
+        const { organizationName, repoName, issueTitle, issueBody } = queryData;
+
+        let issueDescription = GetDesription(issueTitle, issueBody) // to do rewrite to take in issue title and body 
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
@@ -2152,7 +2155,7 @@ class WebDataHandler {
 
         let issue = await this.IssueDetails.findOne({ title: issueTitle, repoRef: repo._id });
 
-        let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueTitle, issue);
+        let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueDescription, issue);
 
         // Make a new array that finds each issue with the id specified in the array above
         let similarIssuesArray = await Promise.all(similarIssueIDArray.map(similarIssueIDObject => this.IssueDetails.findOne({ _id: similarIssueIDObject.id })));

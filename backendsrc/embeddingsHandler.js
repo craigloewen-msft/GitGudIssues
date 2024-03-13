@@ -73,9 +73,9 @@ class embeddingsHandler {
         return true;
     }
 
-    async getSimilarIssueIDs(repo, issueTitle, issue) {
+    async getSimilarIssueIDs(repo, issueDescription, issue) {
         // Create title + body description
-        const description = [GetDesription(issue)];
+        const description = [issueDescription];
         // Query azure for embeddings
         const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
 
