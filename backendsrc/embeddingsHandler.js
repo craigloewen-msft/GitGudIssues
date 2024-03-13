@@ -1,8 +1,6 @@
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
-const { getEncoding } = require("js-tiktoken")
 const { Semaphore } = require("async-mutex");
-const { GetDesription } = require("./helpers");
 
 class embeddingsHandler {
 
@@ -50,8 +48,6 @@ class embeddingsHandler {
             console.log("Semaphore acquired for issue number: " + inputIssue.number);
             await this.index.namespace(inputIssue.repoRef.toString()).upsert([payload]);
         });
-
-        return true;
     }
     
 
