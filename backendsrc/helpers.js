@@ -20,6 +20,9 @@ module.exports = {
             toObject[key] = fromObject[key];
         });
     },
+    GetDesription(issue) {
+        return '# ' + inputIssue.title + '\n\n' + inputIssue.body;
+    },
     async UpdateIssueRead(inIssueReadDetails, inIssue, inUser, inputDate) {
         let returnIssueReadList = await inIssueReadDetails.find({ issueRef: inIssue._id, userRef: inUser._id });
 

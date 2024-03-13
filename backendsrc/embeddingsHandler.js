@@ -2,6 +2,7 @@ const { Pinecone } = require("@pinecone-database/pinecone");
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 const { getEncoding } = require("js-tiktoken")
 const { Semaphore } = require("async-mutex");
+const { GetDesription } = require("./helpers");
 
 class embeddingsHandler {
 
@@ -26,7 +27,7 @@ class embeddingsHandler {
         const enc = getEncoding("cl100k_base");
 
         // Get embeddings from Azure OpenAI Embeddings model
-        const description = ['# ' + inputIssue.title + '\n\n' + inputIssue.body];
+        const description = [GetDescription(inputIssue)];
 
         const encoding = enc.encode(description[0]);
                 if (encoding.length > 8192) {
@@ -74,7 +75,7 @@ class embeddingsHandler {
 
     async getSimilarIssueIDs(repo, issueTitle, issue) {
         // Create title + body description
-        const description = ['# ' + issueTitle + '\n\n' + issue.body];
+        const description = [GetDesription(issue)];
         // Query azure for embeddings
         const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
 
