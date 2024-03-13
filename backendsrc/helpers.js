@@ -1,3 +1,5 @@
+const { getEncoding } = require("js-tiktoken")
+
 module.exports = {
     PromiseTimeout(delayms) {
         return new Promise(function (resolve, reject) {
@@ -21,7 +23,19 @@ module.exports = {
         });
     },
     GetDesription(issueTitle, issueBody) {
-        return '# ' + issueTitle + '\n\n' + issueBody;
+        // Generate description and check if token count is too high
+        const enc = getEncoding("cl100k_base");
+
+        let description = '# ' + issueTitle + '\n\n' + issueBody;
+
+        const encoding = enc.encode(description);
+
+        if (encoding.length > 8192) {
+            // Cut description to under 8192 tokens if too long
+            description = enc.decode(encoding.slice(0, 8100));
+        }
+
+        return description;
     },
     async UpdateIssueRead(inIssueReadDetails, inIssue, inUser, inputDate) {
         let returnIssueReadList = await inIssueReadDetails.find({ issueRef: inIssue._id, userRef: inUser._id });

@@ -24,16 +24,10 @@ class embeddingsHandler {
     }
 
     async addEmbedding(inputIssue) {
-        const enc = getEncoding("cl100k_base");
 
         // Get embeddings from Azure OpenAI Embeddings model
         const description = [GetDescription(inputIssue)];
 
-        const encoding = enc.encode(description[0]);
-                if (encoding.length > 8192) {
-                    description[0] = enc.decode(encoding.slice(0, 8000));
-                }
-            
         let embeddingObject = null ;
             
         try { 
@@ -76,6 +70,7 @@ class embeddingsHandler {
     async getSimilarIssueIDs(repo, issueDescription, issue) {
         // Create title + body description
         const description = [issueDescription];
+        
         // Query azure for embeddings
         const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
 

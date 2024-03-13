@@ -1037,7 +1037,6 @@ app.post('/api/getrepoissuegraph', authenticateToken, async function (req, res) 
 
 app.post('/api/getsimilarissues', async function (req, res) {
     try {
-        req.body.username = req.user.id;
         var returnData = await dataHandler.getSimilarIssues(req.body);
 
         return res.json({ success: true, similarIssues: returnData });
