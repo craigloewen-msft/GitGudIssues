@@ -1049,8 +1049,8 @@ app.post('/api/getsimilarissues', async function (req, res) {
 // app.get with /api//getsimilarissues/:repoName/:issueNumber
 app.get('/api/getsimilarissues/:organizationName/:repoName/*', async function (req, res) {
     try {
-        let issuetring = decodeURIComponent(req.params[0]);
-        req.params.issueTitle = issueTitle;
+        let issueString = decodeURIComponent(req.params[0]);
+        req.params.issueString = issueString;
 
         var returnData = await dataHandler.getSimilarIssues(req.params);
 

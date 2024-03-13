@@ -22,60 +22,84 @@ class embeddingsHandler {
         this.azureSemaphore = new Semaphore(this.maxConcurrentRequests);
     }
 
-    async addMultipleEmbeddings(inputIssues) {
+    async addEmbedding(inputIssue) {
         const enc = getEncoding("cl100k_base");
 
         // Get embeddings from Azure OpenAI Embeddings model
-        if (inputIssues.length != 0) {
-            const descriptions = inputIssues.map(issue => '# ' + issue.title + '\n\n' + issue.body);
+        const description = ['# ' + inputIssue.title + '\n\n' + inputIssue.body];
+
+        const encoding = enc.encode(description[0]);
+                if (encoding.length > 8192) {
+                    description[0] = enc.decode(encoding.slice(0, 8000));
+                }
+
+        // if (inputIssues.length != 0) {
+        //     const descriptions = inputIssues.map(issue => '# ' + issue.title + '\n\n' + issue.body);
 
             // Check description and truncate if greater than 8192 tokens
-            for (let i = 0; i < descriptions.length; i++) {
-                const encoding = enc.encode(descriptions[i]);
-                if (encoding.length > 8192) {
-                    descriptions[i] = enc.decode(encoding.slice(0, 8000));
-                }
-            }
+            // for (let i = 0; i < descriptions.length; i++) {
+            //     const encoding = enc.encode(descriptions[i]);
+            //     if (encoding.length > 8192) {
+            //         descriptions[i] = enc.decode(encoding.slice(0, 8000));
+            //     }
+            // }
             
-            let embeddings = null ;
+        let embeddingObject = null ;
             
-            try { 
-                await this.azureSemaphore.runExclusive(async () => {
-                    embeddings = await this.azureClient.getEmbeddings("issue-body-embeddings-model", descriptions);
-                });
-            } catch (error) {
-                console.log(error);
-            }
-            // Get list of issues grouped by repoRef with embeddings added
-            let issuesByRepo = {};
-            for (let i = 0; i < inputIssues.length; i++) {
-                let issue = inputIssues[i];
-                let embedding = embeddings.data[i].embedding;
-                if (!issuesByRepo[issue.repoRef.toString()]) {
-                    issuesByRepo[issue.repoRef.toString()] = [];
-                }
-                issuesByRepo[issue.repoRef.toString()].push({
-                    id: issue._id.toString(),
-                    values: embedding,
-                });
-            }
+        try { 
+            await this.azureSemaphore.runExclusive(async () => {
+                embeddingObject = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
+            });
+        } catch (error) {
+            console.log(error);
+        }
+
+        let embedding = embeddingObject.data[0].embedding;
+
+        // if (!issuesByRepo[inputIssue.repoRef.toString()]) {
+        //     issuesByRepo[inputIssue.repoRef.toString()] = [];
+        // }
+        // issuesByRepo[inputIssue.repoRef.toString()].push({
+        //     id: inputIssue._id.toString(),
+        //     values: embedding,
+        // });
+
+        let payload = {
+            id: inputIssue._id.toString(),
+            values: embedding,
+        }
+
+        console.log("Upserting embeddings for issue number: " + inputIssue.number);
+        return await this.pineconeSemaphore.runExclusive(async () => {
+            console.log("Semaphore acquired for issue number: " + inputIssue.number);
+            await this.index.namespace(inputIssue.repoRef.toString()).upsert([payload]);
+        });
+
+        // Get list of issues grouped by repoRef with embeddings added
+            // for (let i = 0; i < inputIssues.length; i++) {
+            //     let issue = inputIssues[i];
+            //     let embedding = embeddings.data[i].embedding;
+            //     if (!issuesByRepo[issue.repoRef.toString()]) {
+            //         issuesByRepo[issue.repoRef.toString()] = [];
+            //     }
+            //     issuesByRepo[issue.repoRef.toString()].push({
+            //         id: issue._id.toString(),
+            //         values: embedding,
+            //     });
+            // }
 
             // Upsert embeddings into Pinecone
-            for (const [repoRef, issues] of Object.entries(issuesByRepo)) {
-                console.log("Upserting embeddings for issue number: " + issues[0].number);
-                return await this.pineconeSemaphore.runExclusive(async () => {
-                    console.log("Semaphore acquired for issue number: " + issues[0].number);
-                    await this.index.namespace(repoRef).upsert(issues);
-                });
-            }
+        // for (const [repoRef, issues] of Object.entries(issuesByRepo)) {
+        //     console.log("Upserting embeddings for issue number: " + issues[0].number);
+        //     return await this.pineconeSemaphore.runExclusive(async () => {
+        //         console.log("Semaphore acquired for issue number: " + issues[0].number);
+        //         await this.index.namespace(repoRef).upsert(issues);
+        //     });
+        // }
 
-            return true;
-        }
-        else {
-            return true;
-        }
-
+        return true;
     }
+    
 
     async removeEmbedding(inputIssue) {
         await this.index.namespace(inputIssue.repoRef.toString()).deleteOne(inputIssue._id.toString());

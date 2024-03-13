@@ -2140,7 +2140,7 @@ class WebDataHandler {
     }
 
     async getSimilarIssues(queryData) {
-        const { organizationName, repoName, issueTitle } = queryData;
+        const { organizationName, repoName, issueString } = queryData;
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
