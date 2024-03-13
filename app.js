@@ -1045,20 +1045,6 @@ app.post('/api/getsimilarissues', async function (req, res) {
     }
 });
 
-// app.get with /api//getsimilarissues/:repoName/:issueNumber
-// app.get('/api/getsimilarissues/:organizationName/:repoName/*', async function (req, res) {
-//     try {
-//         let issueString = decodeURIComponent(req.params[0]);
-//         req.params.issueString = issueString;
-
-//         var returnData = await dataHandler.getSimilarIssues(req.params);
-
-//         return res.json({ success: true, similarIssues: returnData });
-//     } catch (error) {
-//         return res.json(returnFailure(error));
-//     }
-// });
-
 // Interval jobs
 
 // Refresh all user data every hour
