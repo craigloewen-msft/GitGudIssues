@@ -32,17 +32,6 @@ class embeddingsHandler {
                 if (encoding.length > 8192) {
                     description[0] = enc.decode(encoding.slice(0, 8000));
                 }
-
-        // if (inputIssues.length != 0) {
-        //     const descriptions = inputIssues.map(issue => '# ' + issue.title + '\n\n' + issue.body);
-
-            // Check description and truncate if greater than 8192 tokens
-            // for (let i = 0; i < descriptions.length; i++) {
-            //     const encoding = enc.encode(descriptions[i]);
-            //     if (encoding.length > 8192) {
-            //         descriptions[i] = enc.decode(encoding.slice(0, 8000));
-            //     }
-            // }
             
         let embeddingObject = null ;
             
@@ -56,14 +45,6 @@ class embeddingsHandler {
 
         let embedding = embeddingObject.data[0].embedding;
 
-        // if (!issuesByRepo[inputIssue.repoRef.toString()]) {
-        //     issuesByRepo[inputIssue.repoRef.toString()] = [];
-        // }
-        // issuesByRepo[inputIssue.repoRef.toString()].push({
-        //     id: inputIssue._id.toString(),
-        //     values: embedding,
-        // });
-
         let payload = {
             id: inputIssue._id.toString(),
             values: embedding,
@@ -74,28 +55,6 @@ class embeddingsHandler {
             console.log("Semaphore acquired for issue number: " + inputIssue.number);
             await this.index.namespace(inputIssue.repoRef.toString()).upsert([payload]);
         });
-
-        // Get list of issues grouped by repoRef with embeddings added
-            // for (let i = 0; i < inputIssues.length; i++) {
-            //     let issue = inputIssues[i];
-            //     let embedding = embeddings.data[i].embedding;
-            //     if (!issuesByRepo[issue.repoRef.toString()]) {
-            //         issuesByRepo[issue.repoRef.toString()] = [];
-            //     }
-            //     issuesByRepo[issue.repoRef.toString()].push({
-            //         id: issue._id.toString(),
-            //         values: embedding,
-            //     });
-            // }
-
-            // Upsert embeddings into Pinecone
-        // for (const [repoRef, issues] of Object.entries(issuesByRepo)) {
-        //     console.log("Upserting embeddings for issue number: " + issues[0].number);
-        //     return await this.pineconeSemaphore.runExclusive(async () => {
-        //         console.log("Semaphore acquired for issue number: " + issues[0].number);
-        //         await this.index.namespace(repoRef).upsert(issues);
-        //     });
-        // }
 
         return true;
     }
