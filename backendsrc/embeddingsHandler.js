@@ -1,6 +1,7 @@
 const { Pinecone } = require("@pinecone-database/pinecone");
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 const { Semaphore } = require("async-mutex");
+const { GetDescription } = require('./helpers');
 
 class embeddingsHandler {
 
@@ -28,7 +29,7 @@ class embeddingsHandler {
 
         let embeddingObject = null ;
             
-        try { 
+        try {
             await this.azureSemaphore.runExclusive(async () => {
                 embeddingObject = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
             });

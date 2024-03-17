@@ -5,7 +5,7 @@ const axios = require('axios');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
 const oneOffScriptHelpers = require('./oneOffScriptHelpers');
-const { GetDesription } = require('./helpers');
+const { GetDescription } = require('./helpers');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,

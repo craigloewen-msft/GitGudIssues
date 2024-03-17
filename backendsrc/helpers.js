@@ -22,7 +22,7 @@ module.exports = {
             toObject[key] = fromObject[key];
         });
     },
-    GetDesription(issueTitle, issueBody) {
+    GetDescription(issueTitle, issueBody) {
         // Generate description and check if token count is too high
         const enc = getEncoding("cl100k_base");
 
