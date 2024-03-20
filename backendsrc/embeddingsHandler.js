@@ -25,7 +25,7 @@ class embeddingsHandler {
     async addEmbedding(inputIssue) {
 
         // Get embeddings from Azure OpenAI Embeddings model
-        const description = [GetDescription(inputIssue)];
+        const description = [GetDescription(inputIssue.title, inputIssue.body)];
 
         let embeddingObject = null ;
             
