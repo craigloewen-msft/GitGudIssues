@@ -1,57 +1,56 @@
-const pythonWorkerHandler = require('./pythonWorkerHandler');
-const zmq = require('zeromq');
 const { Pinecone } = require("@pinecone-database/pinecone");
+const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
+const { Semaphore } = require("async-mutex");
+const { GetDescription } = require('./helpers');
 
 class embeddingsHandler {
 
-    static embeddingDimensions = 384;
+    static embeddingDimensions = 3072;
 
     static indexName = "gitgudissues";
 
     constructor(inConfigObject) {
-        // Set up Python Worker 
-        this.sock = new zmq.Request;
-        this.pythonWorker = new pythonWorkerHandler(this.sock);
+        // Set up azureClient and Pinecone 
+        this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), {apiVersion: "2023-05-15"});
         this.pinecone = new Pinecone({
             environment: "gcp-starter",
             apiKey: inConfigObject.pineconeAPIKey,
         });
         this.index = this.pinecone.Index(embeddingsHandler.indexName);
+        this.maxConcurrentRequests = 1;
+        this.pineconeSemaphore = new Semaphore(this.maxConcurrentRequests);
+        this.azureSemaphore = new Semaphore(this.maxConcurrentRequests);
     }
 
-    async addMultipleEmbeddings(inputIssues) {
-        // Get embeddings from Python Worker
+    async addEmbedding(inputIssue) {
 
-        if (inputIssues.length != 0) {
-            const titles = inputIssues.map(issue => issue.title);
-            const embeddings = await this.pythonWorker.getMultipleEmbeddings(titles);
+        // Get embeddings from Azure OpenAI Embeddings model
+        const description = [GetDescription(inputIssue)];
 
-            // Get list of issues grouped by repoRef with embeddings added
-            let issuesByRepo = {};
-            for (let i = 0; i < inputIssues.length; i++) {
-                let issue = inputIssues[i];
-                let embedding = embeddings[i];
-                if (!issuesByRepo[issue.repoRef.toString()]) {
-                    issuesByRepo[issue.repoRef.toString()] = [];
-                }
-                issuesByRepo[issue.repoRef.toString()].push({
-                    id: issue._id.toString(),
-                    values: embedding,
-                });
-            }
-
-            // Upsert embeddings into Pinecone
-            for (const [repoRef, issues] of Object.entries(issuesByRepo)) {
-                await this.index.namespace(repoRef).upsert(issues);
-            }
-
-            return true;
-        }
-        else {
-            return true;
+        let embeddingObject = null ;
+            
+        try {
+            await this.azureSemaphore.runExclusive(async () => {
+                embeddingObject = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
+            });
+        } catch (error) {
+            console.log(error);
         }
 
+        let embedding = embeddingObject.data[0].embedding;
+
+        let payload = {
+            id: inputIssue._id.toString(),
+            values: embedding,
+        }
+
+        console.log("Upserting embeddings for issue number: " + inputIssue.number);
+        return await this.pineconeSemaphore.runExclusive(async () => {
+            console.log("Semaphore acquired for issue number: " + inputIssue.number);
+            await this.index.namespace(inputIssue.repoRef.toString()).upsert([payload]);
+        });
     }
+    
 
     async removeEmbedding(inputIssue) {
         await this.index.namespace(inputIssue.repoRef.toString()).deleteOne(inputIssue._id.toString());
@@ -65,8 +64,12 @@ class embeddingsHandler {
         return true;
     }
 
-    async getSimilarIssueIDs(repo, issueTitle, issue) {
-        const inputVector = await this.pythonWorker.getEmbedding(issueTitle);
+    async getSimilarIssueIDs(repo, issueDescription, issue) {
+        // Create title + body description
+        const description = [issueDescription];
+        
+        // Query azure for embeddings
+        const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
 
         let searchFilter = `repo_id eq '${repo._id.toString()}'`;
 
@@ -78,7 +81,7 @@ class embeddingsHandler {
 
         let searchResults = await this.index.namespace(repo._id.toString()).query({
             topK: numberOfReturnedIssues + 1,
-            vector: inputVector,
+            vector: inputVector.data[0].embedding,
             includeValues: false
         });
 

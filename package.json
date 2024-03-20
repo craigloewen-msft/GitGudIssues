@@ -1,13 +1,15 @@
 {
   "dependencies": {
+    "@azure/openai": "^1.0.0-beta.11",
     "@pinecone-database/pinecone": "^1.1.2",
-    "async-mutex": "^0.4.0",
+    "async-mutex": "^0.4.1",
     "axios": "^1.6.4",
     "connect-ensure-login": "^0.1.1",
     "connect-mongo": "^4.6.0",
     "es6-promise": "^4.2.8",
     "express": "^4.17.1",
     "express-session": "^1.17.2",
+    "js-tiktoken": "^1.0.10",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^6.0.7",
     "nodemon": "^3.0.1",
