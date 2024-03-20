@@ -5,6 +5,7 @@ const axios = require('axios');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
 const oneOffScriptHelpers = require('./oneOffScriptHelpers');
+const aiCompletionsHandler = require('./aiCompletionsHandler');
 
 class WebDataHandler {
     constructor(inRepoDetails, inIssueDetails, inUserDetails, inSiteIssueLabelDetails, inIssueCommentDetails, inIssueCommentMentionDetails,
@@ -23,10 +24,16 @@ class WebDataHandler {
         this.configObject = inConfigObject;
 
         this.embeddingsHandler = new embeddingsHandler(this.configObject);
+        this.aiCompletionsHandler = new aiCompletionsHandler(this.configObject);
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails,
             this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails,
             this.ghToken, this.IssueLinkDetails, this.embeddingsHandler);
         this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
+
+    }
+
+    oneOffFunction() {
+        oneOffScriptHelpers.determineIssueLabels(this.aiCompletionsHandler, this.IssueDetails, this.RepoDetails);
     }
 
     async isValidGithubShortURL(inString) {

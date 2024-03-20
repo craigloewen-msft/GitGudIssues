@@ -28,6 +28,9 @@ if (process.env.NODE_ENV == 'production') {
     config.ghToken = process.env.ghToken;
     config.pineconeAPIKey = process.env.pineconeAPIKey;
     hostPort = process.env.PORT ? process.env.PORT : 8080;
+    config.aiCompletionsEndpoint = process.env.aiCompletionsEndpoint;
+    config.aiCompletionsKey = process.env.aiCompletionsKey;
+    config.aiCompletionsDeploymentID = process.env.aiCompletionsDeploymentID;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;
     hostPort = 3000;
@@ -1053,6 +1056,16 @@ app.get('/api/getsimilarissues/:organizationName/:repoName/*', async function (r
         var returnData = await dataHandler.getSimilarIssues(req.params);
 
         return res.json({ success: true, similarIssues: returnData });
+    } catch (error) {
+        return res.json(returnFailure(error));
+    }
+});
+
+app.get('/api/oneoffFunction', async function (req, res) {
+    try {
+        let returnData = await dataHandler.oneOffFunction();
+
+        return res.json({ success: true, data: returnData });
     } catch (error) {
         return res.json(returnFailure(error));
     }
