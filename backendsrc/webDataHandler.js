@@ -2143,7 +2143,7 @@ class WebDataHandler {
     async getSimilarIssues(queryData) {
         const { organizationName, repoName, issueTitle, issueBody } = queryData;
 
-        let issueDescription = GetDesription(issueTitle, issueBody) // to do rewrite to take in issue title and body 
+        let issueDescription = GetDescription(issueTitle, issueBody) // to do rewrite to take in issue title and body 
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
