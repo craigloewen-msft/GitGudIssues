@@ -292,8 +292,7 @@ class RefreshRepoTask {
                     // Check if an issue was inserted 
                     if (!updateResultRaw.lastErrorObject.updatedExisting) {
                         // Add inserted issue to list
-                        let embeddingsPromise = this.embeddingsHandler.addEmbedding(updateResult);
-                        finalAwaitPromiseArray.push(embeddingsPromise);
+                        await this.embeddingsHandler.addEmbedding(updateResult);
                     }
 
                     if (updateResult.closed_by) {

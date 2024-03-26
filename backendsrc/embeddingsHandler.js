@@ -11,46 +11,43 @@ class embeddingsHandler {
 
     constructor(inConfigObject) {
         // Set up azureClient and Pinecone 
-        this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), {apiVersion: "2023-05-15"});
+        this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), { apiVersion: "2023-05-15" });
         this.pinecone = new Pinecone({
             environment: "gcp-starter",
             apiKey: inConfigObject.pineconeAPIKey,
         });
         this.index = this.pinecone.Index(embeddingsHandler.indexName);
-        this.maxConcurrentRequests = 1;
+        this.maxConcurrentRequests = 3;
         this.pineconeSemaphore = new Semaphore(this.maxConcurrentRequests);
         this.azureSemaphore = new Semaphore(this.maxConcurrentRequests);
     }
 
     async addEmbedding(inputIssue) {
-
-        // Get embeddings from Azure OpenAI Embeddings model
-        const description = [GetDescription(inputIssue.title, inputIssue.body)];
-
-        let embeddingObject = null ;
-            
         try {
+            // Get embeddings from Azure OpenAI Embeddings model
+            const description = [GetDescription(inputIssue.title, inputIssue.body)];
+
+            let embeddingObject = null;
+
             await this.azureSemaphore.runExclusive(async () => {
                 embeddingObject = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
             });
+
+            let embedding = embeddingObject.data[0].embedding;
+
+            let payload = {
+                id: inputIssue._id.toString(),
+                values: embedding,
+            }
+
+            return await this.pineconeSemaphore.runExclusive(async () => {
+                await this.index.namespace(inputIssue.repoRef.toString()).upsert([payload]);
+            });
         } catch (error) {
-            console.log(error);
+            console.error(error);
+            throw "Can't do embedding"
         }
-
-        let embedding = embeddingObject.data[0].embedding;
-
-        let payload = {
-            id: inputIssue._id.toString(),
-            values: embedding,
-        }
-
-        console.log("Upserting embeddings for issue number: " + inputIssue.number);
-        return await this.pineconeSemaphore.runExclusive(async () => {
-            console.log("Semaphore acquired for issue number: " + inputIssue.number);
-            await this.index.namespace(inputIssue.repoRef.toString()).upsert([payload]);
-        });
     }
-    
 
     async removeEmbedding(inputIssue) {
         await this.index.namespace(inputIssue.repoRef.toString()).deleteOne(inputIssue._id.toString());
@@ -67,7 +64,7 @@ class embeddingsHandler {
     async getSimilarIssueIDs(repo, issueDescription, issue) {
         // Create title + body description
         const description = [issueDescription];
-        
+
         // Query azure for embeddings
         const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
 
