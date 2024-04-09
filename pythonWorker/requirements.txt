@@ -1,4 +1,0 @@
-setuptools
-sentence-transformers
-pyzmq
-pymilvus
