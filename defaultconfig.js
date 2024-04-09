@@ -8,4 +8,6 @@ module.exports = {
     'ghToken': null,
     'azureOpenAIAPIKey': "key",
     'azureEndpointURL' : "url",
+    'pineconeAPIKey' : 'key',
+    'debugDisableEmbeddings': true,
 };

@@ -20,6 +20,8 @@ class embeddingsHandler {
         this.maxConcurrentRequests = 3;
         this.pineconeSemaphore = new Semaphore(this.maxConcurrentRequests);
         this.azureSemaphore = new Semaphore(this.maxConcurrentRequests);
+
+        this.debugDisableEmbeddings = inConfigObject.debugDisableEmbeddings;
     }
 
     async addEmbedding(inputIssue) {
@@ -28,6 +30,10 @@ class embeddingsHandler {
             const description = [GetDescription(inputIssue.title, inputIssue.body)];
 
             let embeddingObject = null;
+
+            if (this.debugDisableEmbeddings) {
+                return;
+            }
 
             await this.azureSemaphore.runExclusive(async () => {
                 embeddingObject = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
@@ -64,6 +70,10 @@ class embeddingsHandler {
     async getSimilarIssueIDs(repo, issueDescription, issue) {
         // Create title + body description
         const description = [issueDescription];
+
+        if (this.debugDisableEmbeddings) {
+            return [];
+        }
 
         // Query azure for embeddings
         const inputVector = await this.azureClient.getEmbeddings("issue-body-embeddings-model", description);
