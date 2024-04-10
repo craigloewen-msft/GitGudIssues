@@ -958,6 +958,31 @@ class WebDataHandler {
         return returnID;
     }
 
+    async generateAILabelsForIssue(inputData) {
+        if (!inputData.issueID) {
+            throw "No issue ID provided";
+        }
+
+        // Find the issue and check whether aiLabels is already populated
+        let issue = await this.IssueDetails.findById(inputData.issueID);
+
+        if (!issue) {
+            throw "Issue not found";
+        }
+
+        if (issue.aiLabels && issue.aiLabels.length > 0) {
+            return issue.aiLabels;
+        } else {
+            // Generate labels TODO fix this
+            // PLACEHOLDER for now randomly wait between 3-10 seconds to simulate AI processing and then set to ["Test"]
+            await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 20000)));
+            issue.aiLabels = ["Test"];
+            await issue.save();
+            console.log("Saved AI issue");
+            return issue.aiLabels;
+        }
+    }
+
     // Chart data functions
 
     // Create an array of Date values between `startDate` and `endDate`, separated

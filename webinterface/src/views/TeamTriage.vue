@@ -7,27 +7,15 @@
       </div>
       <div v-else-if="team.triageList[0]">
         <h1>{{ team.name }} Triage</h1>
-        <div
-          class="container user-issue-triage-box"
-          v-for="(participant, participantIndex) in team.triageList[0]
-            .participants"
-          :key="participantIndex"
-        >
+        <div class="container user-issue-triage-box" v-for="(participant, participantIndex) in team.triageList[0]
+      .participants" :key="participantIndex">
           <h2>{{ participant.user.githubUsername }}</h2>
-          <div
-            v-for="(triageIssue, triageIssueIndex) in participant.issueList"
-            :key="triageIssueIndex"
-          >
-            <IssueInfoBox
-              v-bind:issue="triageIssue"
-              v-bind:isMention="false"
-            ></IssueInfoBox>
+          <div v-for="(triageIssue, triageIssueIndex) in participant.issueList" :key="triageIssueIndex">
+            <IssueInfoBox v-bind:issue="triageIssue" v-bind:isMention="false"></IssueInfoBox>
+            AI Labels: {{ triageIssue.aiLabels }}
           </div>
           <div class="triage-bottom-buttons">
-            <b-button
-              v-on:click="addMoreIssues(team.triageList[0], participant.user)"
-              >Add more issues</b-button
-            >
+            <b-button v-on:click="addMoreIssues(team.triageList[0], participant.user)">Add more issues</b-button>
           </div>
         </div>
         <div>
@@ -49,7 +37,8 @@ export default {
       userID: this.$store.state.user.id,
       team: null,
       loading: true,
-      dataRefreshTime: 10*1000,
+      dataRefreshTime: 10 * 1000,
+      componentKey: 0,
     };
   },
   components: {
@@ -77,6 +66,28 @@ export default {
               this.$http.post("/api/refreshrepolist", {
                 repoList: refreshRepoList,
               });
+            }
+
+            // For each issue in the issue list put in a request to get AI endpoints
+            if (this.team.triageList && this.team.triageList[0]) {
+              for (let i = 0; i < this.team.triageList[0].participants.length; i++) {
+                let participant = this.team.triageList[0].participants[i];
+                for (let j = 0; j < participant.issueList.length; j++) {
+                  let issue = participant.issueList[j];
+                  if (issue.aiLabels == null) {
+                    console.log("Getting AI labels for issue " + issue._id)
+                    this.$http.post("/api/generateailabelsforissue/", { issueID: issue._id }).then((response) => {
+                      if (response.data.success) {
+                        // Update issue with aiLabels using set so it will re-render
+                        issue.aiLabels = response.data.aiLabels;
+                        this.forceRerender();
+                      } else {
+                        console.error(response);
+                      }
+                    });
+                  }
+                }
+              }
             }
 
             // Execute callback
@@ -199,6 +210,9 @@ export default {
         }
         this.team = inTeamInfo;
       }
+    },
+    forceRerender() {
+      this.componentKey += 1;
     },
   },
   mounted() {

@@ -157,6 +157,7 @@ const IssueInfo = new Schema({
     body: String,
     userMentionsList: [String],
     userCommentsList: [String],
+    aiLabels: [String],
 }, { toJSON: { virtuals: true }, collation: { locale: "en_US", strength: 2 } });
 
 IssueInfo.index({ 'repository_url': 1 });
@@ -630,7 +631,16 @@ app.post('/api/getmentions', authenticateToken, async function (req, res) {
         var issueResponse = await dataHandler.getMentions(req.body);
         return res.json({ success: true, queryData: issueResponse });
     } catch (error) {
-        let errorToString = error.toString();
+        return res.json(returnFailure(error));
+    }
+});
+
+app.post('/api/generateailabelsforissue/', authenticateToken, async function (req, res) {
+    try {
+        const inputData = { issueID: req.body.issueID, username: req.user.id };
+        var generatedAILabels = await dataHandler.generateAILabelsForIssue(inputData);
+        return res.json({ success: true, returnedLabels: generatedAILabels });
+    } catch (error) {
         return res.json(returnFailure(error));
     }
 });
