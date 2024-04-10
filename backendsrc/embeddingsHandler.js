@@ -11,17 +11,19 @@ class embeddingsHandler {
 
     constructor(inConfigObject) {
         // Set up azureClient and Pinecone 
-        this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), { apiVersion: "2023-05-15" });
-        this.pinecone = new Pinecone({
-            environment: "gcp-starter",
-            apiKey: inConfigObject.pineconeAPIKey,
-        });
-        this.index = this.pinecone.Index(embeddingsHandler.indexName);
-        this.maxConcurrentRequests = 3;
+        this.maxConcurrentRequests = 1;
         this.pineconeSemaphore = new Semaphore(this.maxConcurrentRequests);
         this.azureSemaphore = new Semaphore(this.maxConcurrentRequests);
 
         this.debugDisableEmbeddings = inConfigObject.debugDisableEmbeddings;
+        if (!this.debugDisableEmbeddings) {
+            this.pinecone = new Pinecone({
+                environment: "gcp-starter",
+                apiKey: inConfigObject.pineconeAPIKey,
+            });
+            this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), { apiVersion: "2023-05-15" });
+            this.index = this.pinecone.Index(embeddingsHandler.indexName);
+        }
     }
 
     async addEmbedding(inputIssue) {
