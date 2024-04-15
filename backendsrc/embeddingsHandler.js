@@ -74,6 +74,7 @@ class embeddingsHandler {
         const description = [issueDescription];
 
         if (this.debugDisableEmbeddings) {
+            console.log("Embeddings are disabled")
             return [];
         }
 

@@ -2143,13 +2143,15 @@ class WebDataHandler {
     async getSimilarIssues(queryData) {
         const { organizationName, repoName, issueTitle, issueBody } = queryData;
 
+        console.log("In data: ", queryData);
+
         let issueDescription = GetDescription(issueTitle, issueBody) // to do rewrite to take in issue title and body 
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
         let repo = await this.RepoDetails.findOne({ shortURL: dbRepoName });
 
-        console.log("Started getsimilarissues request");
+        console.log("Repo short URL: ", repo.shortURL);
 
         if (repo == null) {
             throw "Repo not found";
@@ -2157,7 +2159,7 @@ class WebDataHandler {
 
         let issue = await this.IssueDetails.findOne({ title: issueTitle, repoRef: repo._id });
 
-        console.log("Got issue");
+        console.log("Issue title if it exists: ", issue?.title);
 
         let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueDescription, issue);
 
@@ -2176,7 +2178,7 @@ class WebDataHandler {
             }
         });
 
-        console.log("Returning return array");
+        console.log("Return array: ", returnArray);
 
         return returnArray;
     }
