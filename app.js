@@ -29,6 +29,7 @@ if (process.env.NODE_ENV == 'production') {
     config.pineconeAPIKey = process.env.pineconeAPIKey;
     config.azureOpenAIAPIKey = process.env.azureOpenAIAPIKey;
     config.azureEndpointURL = process.env.azureEndpointURL;
+    config.debugDisableEmbeddings = false;
     hostPort = process.env.PORT ? process.env.PORT : 8080;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;
