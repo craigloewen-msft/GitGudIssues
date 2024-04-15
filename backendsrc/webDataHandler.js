@@ -2149,11 +2149,15 @@ class WebDataHandler {
 
         let repo = await this.RepoDetails.findOne({ shortURL: dbRepoName });
 
+        console.log("Started getsimilarissues request");
+
         if (repo == null) {
             throw "Repo not found";
         }
 
         let issue = await this.IssueDetails.findOne({ title: issueTitle, repoRef: repo._id });
+
+        console.log("Got issue");
 
         let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueDescription, issue);
 
@@ -2171,6 +2175,8 @@ class WebDataHandler {
                 state: similarIssuesArray[index].state,
             }
         });
+
+        console.log("Returning return array");
 
         return returnArray;
     }
