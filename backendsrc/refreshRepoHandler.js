@@ -190,7 +190,11 @@ class RefreshRepoTask {
             }
             return response;
         } catch (error) {
-            if (error.response.status == 403) {
+            if (!error.response) {
+                console.log("Hit something other than an error when getting closed user");
+                console.log(error);
+                return null;
+            } else if (error.response.status == 403) {
                 await this.waitOnResponseRateLimited(error.response);
                 return this.makeIssueEventRequest(responseItem);
             } else if (error.response.status == 502) {
