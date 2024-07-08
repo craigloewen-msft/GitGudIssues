@@ -12,6 +12,6 @@
 		"mongodb.mongodb-vscode",
 		"Vue.volar",
 	],
-	"postCreateCommand": "npm install && cd webinterface && npm install && cd ..",
+	"postCreateCommand": "pip install -r ./pythonWorker/requirements.txt && npm install && cd webinterface && npm install && cd ..",
 	"remoteUser": "node"
 }

@@ -1,7 +1,22 @@
-# [Choice] Node.js version (use -bullseye variants on local arm64/Apple Silicon): 18, 16, 14, 18-bullseye, 16-bullseye, 14-bullseye, 18-buster, 16-buster, 14-buster
-FROM node:18
+FROM python:3.10
+# Install Node
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg
+RUN mkdir -p /etc/apt/keyrings
+RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+ENV NODE_MAJOR=18
+RUN curl -fsSL https://deb.nodesource.com/setup_$NODE_MAJOR.x | bash -
+RUN apt-get update && apt-get install nodejs -y
+RUN echo "Node: " && node -v
+RUN echo "NPM: " && npm -v
 
 WORKDIR /usr/src/app
+
+# Install Python dependencies
+# RUN mkdir -p ./pythonWorker/
+# Install CPU only version of torch
+RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+COPY ./pythonWorker/requirements.txt ./pythonWorker/requirements.txt
+RUN pip install -r ./pythonWorker/requirements.txt
 
 # Install Node packages
 COPY ./package*.json ./app.js ./
