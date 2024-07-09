@@ -14,7 +14,8 @@
     "mongoose": "^6.0.7",
     "nodemon": "^3.0.1",
     "passport": "^0.6.0",
-    "passport-local-mongoose": "^6.1.0"
+    "passport-local-mongoose": "^6.1.0",
+    "zeromq": "^6.0.0-beta.20"
   },
   "scripts": {
     "build": "cd webinterface && npm install && npm run build && cd .. &&  rm -rf ./dist && mv ./webinterface/dist .",

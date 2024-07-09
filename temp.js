@@ -13,6 +13,9 @@ const TeamsDataHandler = require('./backendsrc/teamsDataHandler')
 // Get config
 const config = fs.existsSync('./config.js') ? require('./config') : require('./defaultconfig');
 
+const pythonWorkerHandler = require('./backendsrc/pythonWorkerHandler');
+const { Console } = require('console');
+
 // Configure Vue Specific set up
 const app = express();
 app.use(express.static(__dirname + "/dist"));
@@ -340,11 +343,9 @@ const teamDataHandler = new TeamsDataHandler(RepoDetails, IssueDetails, UserDeta
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails, TeamTriageDetails, dataHandler);
 
 async function main() {
-    let inputDate = new Date('2024-05-01');
-    let response = await RepoDetails.updateMany({}, { lastIssuesCompleteUpdate: inputDate });
-    let response2 = await RepoDetails.updateMany({}, { lastCommentsCompleteUpdate: inputDate });
-
-    console.log(response);
+    myPythonHandler = new pythonWorkerHandler();
+    returnString = await myPythonHandler.getPrediction("Hello");
+    console.log(returnString)
 }
 
 main()

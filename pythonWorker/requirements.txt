@@ -1,4 +1,4 @@
 setuptools
-sentence-transformers
 pyzmq
 pymilvus
+onnxruntime_genai

@@ -4,3 +4,4 @@ node_modules/
 dist/
 nohup.out
 .devcontainer/volumes
+onnxModel
