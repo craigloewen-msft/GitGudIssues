@@ -124,6 +124,14 @@ const routes = [
       requiresAuth: true
     }
   },
+  {
+    path: '/ailabelview/',
+    name: 'AI Label View',
+    component: () => import(/* webpackChunkName: "about" */ '../views/AILabelView.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  },
 ]
 
 const router = new VueRouter({

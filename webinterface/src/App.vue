@@ -27,6 +27,9 @@
             <Bootstrapnavlinkcustom to="/repoissuegraph"
               >Repo Issue Graph</Bootstrapnavlinkcustom
             >
+            <Bootstrapnavlinkcustom to="/ailabelview"
+              >AI Label View</Bootstrapnavlinkcustom
+            >
           </b-navbar-nav>
           <b-navbar-nav>
             <Bootstrapnavlinkcustom to="/about">About</Bootstrapnavlinkcustom>

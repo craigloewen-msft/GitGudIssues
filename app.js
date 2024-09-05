@@ -636,6 +636,19 @@ app.post('/api/getmentions', authenticateToken, async function (req, res) {
     }
 });
 
+app.post('/api/getailabels', authenticateToken, async function (req, res) {
+    try {
+        // DO some AI magic here
+
+        let returnData = [{ name: "AI label 1", color: "000000" }, { name: "AI label 2", color: "AA0000" }, { name: "AI label 3", color: "00AA00" }];
+
+        return res.json({ success: true, aiLabels: returnData });
+    } catch (error) {
+        let errorToString = error.toString();
+        return res.json(returnFailure(error));
+    }
+});
+
 // User data APIs
 
 app.post('/api/setuserrepo', authenticateToken, async function (req, res) {

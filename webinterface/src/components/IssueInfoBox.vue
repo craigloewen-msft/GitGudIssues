@@ -23,6 +23,16 @@
             >
               {{ ghIssueLabel.name }}
             </span>
+            <span
+              class="gh-issue-label"
+              v-for="(ghIssueLabel, ghIssueLabelIndex) in issue.aiLabels"
+              :key="ghIssueLabelIndex"
+              v-bind:style="{
+                backgroundColor: shadeColor('#' + ghIssueLabel.color, -75),
+              }"
+            >
+              ✨{{ ghIssueLabel.name }}
+            </span>
           </div>
           <div class="issue-sub-info-box">
             <p v-if="!isMention">
