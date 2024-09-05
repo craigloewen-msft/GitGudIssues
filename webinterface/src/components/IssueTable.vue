@@ -165,7 +165,6 @@ export default {
           }
         }
 
-        console.log(response.data.queryData.issueData);
         const returnedIssueList = response.data.queryData.issueData;
         const returnedCount = response.data.queryData.count;
         this.newestOpenIssues = returnedIssueList;
