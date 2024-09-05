@@ -2069,7 +2069,8 @@ class WebDataHandler {
 
                     if (!addedLabelList.includes(labelVisitor.name)) {
                         addedLabelList.push(labelVisitor.name);
-                        let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, group: "label" };
+                        let labelURL = labelVisitor.url.replace("https://api.github.com/repos/", "https://github.com/").replace("labels/","issues/?q=label%3A");
+                        let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, url: labelURL, group: "label" };
                         nodeReturnDictionary[labelVisitor.name] = labelNode;
                     }
 
