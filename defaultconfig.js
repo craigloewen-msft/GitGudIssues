@@ -10,4 +10,5 @@ module.exports = {
     'azureEndpointURL' : "url",
     'pineconeAPIKey' : 'key',
     'debugDisableEmbeddings': true,
+    'debugDisableAILabels': true,
 };

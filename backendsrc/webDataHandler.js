@@ -24,6 +24,7 @@ class WebDataHandler {
         this.configObject = inConfigObject;
 
         this.embeddingsHandler = new embeddingsHandler(this.configObject);
+        this.aiLabelHandler = new aiLabelHandler(this.configObject);
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails,
             this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails,
             this.ghToken, this.IssueLinkDetails, this.embeddingsHandler);
@@ -2144,7 +2145,7 @@ class WebDataHandler {
     async getSimilarIssues(queryData) {
         const { organizationName, repoName, issueTitle, issueBody } = queryData;
 
-        let issueDescription = GetDescription(issueTitle, issueBody) // to do rewrite to take in issue title and body 
+        let issueDescription = GetDescription(issueTitle, issueBody) 
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
@@ -2174,6 +2175,16 @@ class WebDataHandler {
         });
 
         return returnArray;
+    }
+
+    async getAILabels(queryData) {
+        const { organizationName, repoName, issueTitle, issueBody } = queryData;
+
+        const aiLabelsString = await this.aiLabelHandler.generateAILabels(repoName, issueTitle, issueBody);
+
+        const aiLabelsData = aiLabelsString.replace("Output Labels: ", "").split(", ");
+
+        return aiLabelsData;
     }
 }
 
