@@ -1,19 +1,21 @@
-const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
+const { AzureOpenAI } = require('openai');
 const { GetRepoLabels } = require('./helpers');
 const { Semaphore } = require("async-mutex");
 
 class aiLabelHandler {
 
     static deploymentId = "auto-label-test";
+    static apiVersion = "2024-04-01-preview";
 
     constructor(inConfigObject) {
+        
         // Set up azureClient and Pinecone 
         this.maxConcurrentRequests = 1;
         this.azureSemaphore = new Semaphore(this.maxConcurrentRequests);
 
         this.debugDisableAILabels = inConfigObject.debugDisableAILabels;
         if (!this.debugDisableAILabels) {
-            this.azureClient = new OpenAIClient(inConfigObject.azureEndpointURL, new AzureKeyCredential(inConfigObject.azureOpenAIAPIKey), { apiVersion: "2024-04-01-preview" });
+            this.azureClient = new AzureOpenAI({endpoint: inConfigObject.azureEndpointURL, apiKey: inConfigObject.azureOpenAIAPIKey, apiVersion: aiLabelHandler.apiVersion, deployment: aiLabelHandler.deploymentId});
         }
     }
 
@@ -54,7 +56,6 @@ Now please give your output below.` }
         ];
         try {
             const result = await this.azureClient.chat.completions.create({
-                deploymentId: deploymentId,
                 messages: messages,
                 temperature: 0.001,
                 model: "",
