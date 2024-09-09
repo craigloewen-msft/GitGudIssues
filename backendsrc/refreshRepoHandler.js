@@ -653,6 +653,7 @@ class RefreshRepoHandler {
 
     }
 
+    // TO DO: Refresh repo labels once new schema is set up. 
     async startRefreshingRepos() {
         if (!this.refreshingRepos) {
             this.refreshingRepos = true;

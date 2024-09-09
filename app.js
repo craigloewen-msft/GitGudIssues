@@ -637,7 +637,7 @@ app.post('/api/getmentions', authenticateToken, async function (req, res) {
     }
 });
 
-app.post('/api/getailabels', authenticateToken, async function (req, res) {
+app.post('/api/getailabels', async function (req, res) {
     try {
         var returnData = await dataHandler.getAILabels(req.body);
 

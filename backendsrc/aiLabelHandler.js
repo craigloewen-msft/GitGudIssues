@@ -1,5 +1,6 @@
 const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 const { GetRepoLabels } = require('./helpers');
+const { Semaphore } = require("async-mutex");
 
 class aiLabelHandler {
 
@@ -31,13 +32,13 @@ Here is the list of labels that you have available to you.
 They are listed in priority order (So most used labels are at the top, least used are at the bottom).
 Each label has its name in bold, and then a description of when it should be applied afterwards.
 
-${labelsString}
+${labels}
 
 And here is the issue info:
 
 # Issue info:
 
-**Title:** ${issueTitle}
+**Title**: ${issueTitle}
 
 ${issueBody}
 

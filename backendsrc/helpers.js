@@ -9,7 +9,7 @@ module.exports = {
         });
     },
     GetRepoLabels(inputRepoName) {
-        const filePath = path.join(__dirname, 'label_lists', `${inputRepoName}.json`);
+        const filePath = path.join(process.cwd(), 'label_lists', `${inputRepoName}.json`);
         let labelsString = "# Available labels\n\n";
     
         try {
@@ -17,7 +17,7 @@ module.exports = {
             const labels = JSON.parse(data);
     
             for (let label of labels) {
-                labelsString += `- **${label.name}**: ${label.description}\n`;
+                labelsString += `- **${label.labelName}**: ${label.labelDescription}\n`;
             }
         } catch (error) {
             if (error.code === 'ENOENT') {
@@ -26,7 +26,7 @@ module.exports = {
                 labelsString += "An error occurred while reading the label file.\n";
             }
         }
-    
+
         return labelsString;
     },
     GetMentions(inputString) {

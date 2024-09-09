@@ -1,6 +1,7 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 const RepoScanner = require('./repoScanner')
 const embeddingsHandler = require('./embeddingsHandler')
+const aiLabelHandler = require('./aiLabelHandler')
 const axios = require('axios');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
