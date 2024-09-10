@@ -1,0 +1,82 @@
+[
+  {
+    "labelName": "ARM",
+    "labelDescription": "Issues related to ARM64. Should only be applied to issues that only affect ARM64 machines."
+  },
+  {
+    "labelName": "bug",
+    "labelDescription": "If WSL is not behaving as expected, and the error is in WSL itself, then it should be marked as a 'bug'."
+  },
+  {
+    "labelName": "console",
+    "labelDescription": "Issue related to the console output of WSL. This label should be applied to issues "
+  },
+  {
+    "labelName": "discussion",
+    "labelDescription": "Should only be applied to issues that are asking for feedback or opinions and are not filing a direct issues."
+  },
+  {
+    "labelName": "distro-mgmt",
+    "labelDescription": "Issues related to problems with managing WSL distros. This should include distro import, export, conversion, installation, or deletion."
+  },
+  {
+    "labelName": "documentation",
+    "labelDescription": "Issues related to the documentation for WSL, such as requests for documentation improvement, errors in docs, etc. "
+  },
+  {
+    "labelName": "external",
+    "labelDescription": "Issue exists outside of WSL components. Should only be applied to issues where the root cause of the issue is external to WSL."
+  },
+  {
+    "labelName": "failure-to-launch",
+    "labelDescription": "Issue is around WSL failing to launch. This should only be applied to issues where the WSL process itself (wsl.exe) is not starting up correctly, or is not launching correctly."
+  },
+  {
+    "labelName": "feature",
+    "labelDescription": "A feature request. This should only be applied to issues that are requesting a new feature or enhancement to an existing feature."
+  },
+  {
+    "labelName": "file system",
+    "labelDescription": "Issues related to the file system in WSL. This should include file system performance, file system compatibility, file system features, etc."
+  },
+  {
+    "labelName": "GPU",
+    "labelDescription": "Issues related to GPU access or support in WSL. This should include GPU passthrough, GPU compute, etc., and should only be applied to issues that are related to GPU support in WSL."
+  },
+  {
+    "labelName": "hypervisor-platform",
+    "labelDescription": "Issues related to Hyper-V, or hyper visor access in WSL. This should only be applied to issues that are related to virtualization support in WSL."
+  },
+  {
+    "labelName": "install",
+    "labelDescription": "Issues related to the installation of WSL. This should only be applied to issues where WSL can't be installed, or has errors during the install of WSL itself (AKA not the distro in WSL, but the actual WSL component itself)."
+  },
+  {
+    "labelName": "interop",
+    "labelDescription": "Issues related to the 'interop' feature in WSL. This feature allows for the launching of Windows executables from within WSL, and this label should only be applied to issues that are related to this feature."
+  },
+  {
+    "labelName": "kernel",
+    "labelDescription": "Issues related to the kernel in WSL. This should only be applied to issues that are related to the WSL kernel, and not the distro in WSL."
+  },
+  {
+    "labelName": "localization",
+    "labelDescription": "Issues related to localization in WSL. These issues should be around incorrect or missing translations."
+  },
+  {
+    "labelName": "network",
+    "labelDescription": "This label should only be applied to issues that are related to networking in WSL. This includes DNS, proxy, networking modes, NAT, mirrored networking mode, VPNs, and failure to access networking resources."
+  },
+  {
+    "labelName": "systemd",
+    "labelDescription": "This label should only be applied to issues related to 'systemd' in WSL."
+  },
+  {
+    "labelName": "wsl1",
+    "labelDescription": "This label should only be applied to issues that explicitly mention they are using WSL 1."
+  },
+  {
+    "labelName": "wsl2",
+    "labelDescription": "This label should onoly be applied to issues that explicitly mention they are using WSL 2."
+  }
+]
