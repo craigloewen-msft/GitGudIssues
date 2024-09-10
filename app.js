@@ -30,7 +30,7 @@ if (process.env.NODE_ENV == 'production') {
     config.azureOpenAIAPIKey = process.env.azureOpenAIAPIKey;
     config.azureEndpointURL = process.env.azureEndpointURL;
     config.debugDisableEmbeddings = false;
-    config.debugDisableAILabels - false;
+    config.debugDisableAILabels = false;
     hostPort = process.env.PORT ? process.env.PORT : 8080;
 } else {
     mongooseConnectionString = config.devMongoDBConnectionString;
@@ -641,7 +641,6 @@ app.post('/api/getailabels', async function (req, res) {
     try {
         var returnData = await dataHandler.getAILabels(req.body);
 
-        //let returnData = [{ name: "AI label 1", color: "000000" }, { name: "AI label 2", color: "AA0000" }, { name: "AI label 3", color: "00AA00" }];
         return res.json({ success: true, aiLabels: returnData });
     } catch (error) {
         let errorToString = error.toString();
