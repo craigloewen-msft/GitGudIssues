@@ -2179,13 +2179,38 @@ class WebDataHandler {
     }
 
     async getAILabels(queryData) {
-        const { organizationName, repoName, issueTitle, issueBody } = queryData;
 
-        const aiLabelsString = await this.aiLabelHandler.generateAILabels(repoName, issueTitle, issueBody);
+        const { issueID } = queryData;
 
-        const aiLabelsData = aiLabelsString.replace("Output Labels: ", "").split(", ");
+        let issue = await this.IssueDetails.findOne({ _id: issueID });
 
-        return aiLabelsData;
+        if (!issue) {
+            return [];
+        }
+
+        const repo = await this.RepoDetails.findOne({ _id: issue.repoRef });
+
+        if (!repo) {
+            return [];
+        }
+
+        let repoName = repo.shortURL.split("/").pop();
+
+        const aiLabelsString = await this.aiLabelHandler.generateAILabels(repoName, issue.title, issue.body);
+
+        const aiLabelsData = aiLabelsString.replace("Output Labels: ", "").split(",");
+
+        let returnLabels = [];
+
+        for (let i = 0; i < aiLabelsData.length; i++) {
+            let aiLabel = aiLabelsData[i];
+            returnLabels.push({
+                name: aiLabel,
+                color: "AA0000",
+            });
+        }
+
+        return returnLabels;
     }
 }
 
