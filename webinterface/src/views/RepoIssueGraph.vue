@@ -8,84 +8,23 @@
       <h2>{{ inputQuery.milestones }}</h2>
       <div>
         <div>
-          <b-button
-            v-b-toggle.collapse-1
-            variant="outline-secondary"
-            size="sm"
-            class="font-weight-bold"
-          >
+          <b-button v-b-toggle.collapse-1 variant="outline-secondary" size="sm" class="font-weight-bold">
             <b-icon icon="gear-fill" aria-hidden="true"></b-icon> Settings
           </b-button>
           <b-collapse id="collapse-1" class="mt-2">
-            <b-form-select
-              size="md"
-              class="text-center w-50"
-              variant="outline-secondary"
-              v-model="inputQuery.repos"
-              v-debounce:1s="refreshData"
-              @change="refreshData"
-              v-b-tooltip.hover.rightbottom.v-primary="'Change repo'"
-            >
+            <b-form-select size="md" class="text-center w-50" variant="outline-secondary" v-model="inputQuery.repos"
+              v-debounce:1s="refreshData" @change="refreshData" v-b-tooltip.hover.rightbottom.v-primary="'Change repo'">
               <b-form-select-option :value="null" disabled>
                 Select a repo:
               </b-form-select-option>
-              <b-form-select-option
-                v-for="repo in this.repoList"
-                :key="repo.id"
-                :value="repo.title"
-              >
+              <b-form-select-option v-for="repo in this.repoList" :key="repo.id" :value="repo.title">
                 {{ repo.title }}
               </b-form-select-option>
             </b-form-select>
-            <b-form-group
-              v-slot="{ ariaDescribedby }"
-              role="switch"
-              class="pt-2"
-            >
-              <b-form-checkbox-group
-                v-model="selected"
-                :options="options"
-                :aria-describedby="ariaDescribedby"
-                switches
-              >
+            <b-form-group v-slot="{ ariaDescribedby }" role="switch" class="pt-2">
+              <b-form-checkbox-group v-model="selected" :options="options" :aria-describedby="ariaDescribedby" switches>
               </b-form-checkbox-group>
             </b-form-group>
-            <b-row class="pb-2 mx-auto" style="width: 475px">
-              <b-col class="mx-auto">
-                <b-input-group>
-                  <b-form-input
-                    type="search"
-                    placeholder="Search labels"
-                  ></b-form-input>
-                  <b-input-group-append>
-                    <b-button
-                      size="sm"
-                      type="submit"
-                      variant="outline-secondary"
-                      ><b-icon-search
-                    /></b-button>
-                  </b-input-group-append>
-                </b-input-group>
-              </b-col>
-            </b-row>
-            <b-row class="pb-2 mx-auto" style="width: 475px">
-              <b-col class="mx-auto">
-                <b-input-group>
-                  <b-form-input
-                    type="search"
-                    placeholder="Search milestones"
-                  ></b-form-input>
-                  <b-input-group-append>
-                    <b-button
-                      size="sm"
-                      type="submit"
-                      variant="outline-secondary"
-                      ><b-icon-search
-                    /></b-button>
-                  </b-input-group-append>
-                </b-input-group>
-              </b-col>
-            </b-row>
           </b-collapse>
         </div>
       </div>
@@ -94,29 +33,15 @@
     <b-container>
       <b-row>
         <b-col>
-          <label for="graph-start-date" class="font-weight-bold"
-            >Start Date:</label
-          >
-          <b-form-datepicker
-            id="graph-start-date"
-            v-model="inputQuery.startDate"
-            class="mb-2"
-            @input="refreshData"
-            menu-class="w-100"
-            calendar-width="100%"
-          >
+          <label for="graph-start-date" class="font-weight-bold">Start Date:</label>
+          <b-form-datepicker id="graph-start-date" v-model="inputQuery.startDate" class="mb-2" @input="refreshData"
+            menu-class="w-100" calendar-width="100%">
           </b-form-datepicker>
         </b-col>
         <b-col>
           <label for="graph-end-date" class="font-weight-bold">End Date:</label>
-          <b-form-datepicker
-            id="graph-end-date"
-            v-model="inputQuery.endDate"
-            class="mb-2"
-            @input="refreshData"
-            menu-class="w-100"
-            calendar-width="100%"
-          >
+          <b-form-datepicker id="graph-end-date" v-model="inputQuery.endDate" class="mb-2" @input="refreshData"
+            menu-class="w-100" calendar-width="100%">
           </b-form-datepicker>
         </b-col>
       </b-row>
@@ -132,24 +57,20 @@
               hoverNode.totalVal
             }}</span>
             total interactions or
-            <span class="font-weight-bold text-info"
-              >{{
-                ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-              }}%</span
-            >
+            <span class="font-weight-bold text-info">{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+              }}%</span>
             of all during this time.<br />
             <span class="font-weight-bold text-info">{{
               getNodeWithLinkedIssuesSize(hoverNode)
             }}</span>
             total including directly linked issues or
-            <span class="font-weight-bold text-info"
-              >{{
-                (
-                  (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
-                  totalInteractions
-                ).toFixed(2)
-              }}%.</span
-            >
+            <span class="font-weight-bold text-info">{{
+              (
+                (getNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                totalInteractions
+              ).toFixed(2)
+            }}%.</span>
           </p>
         </div>
         <div v-else-if="hoverNode.group == 'label'">
@@ -159,24 +80,20 @@
               hoverNode.totalVal
             }}</span>
             total interactions or
-            <span class="font-weight-bold text-info"
-              >{{
-                ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-              }}%</span
-            >
+            <span class="font-weight-bold text-info">{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+              }}%</span>
             of all during this time.<br />
             <span class="font-weight-bold text-info">{{
               getLabelNodeWithLinkedIssuesSize(hoverNode)
             }}</span>
             total including directly linked issues or
-            <span class="font-weight-bold text-info"
-              >{{
-                (
-                  (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
-                  totalInteractions
-                ).toFixed(2)
-              }}%.</span
-            >
+            <span class="font-weight-bold text-info">{{
+              (
+                (getLabelNodeWithLinkedIssuesSize(hoverNode) * 100.0) /
+                totalInteractions
+              ).toFixed(2)
+            }}%.</span>
           </p>
         </div>
         <div v-else-if="hoverNode.group == 'comment'">
@@ -186,11 +103,9 @@
               hoverNode.totalVal
             }}</span>
             total interactions or
-            <span class="font-weight-bold text-info"
-              >{{
-                ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
-              }}%</span
-            >
+            <span class="font-weight-bold text-info">{{
+              ((hoverNode.totalVal * 100.0) / totalInteractions).toFixed(2)
+              }}%</span>
             of all during this time.
           </p>
         </div>
@@ -201,24 +116,32 @@
       </p>
     </b-container>
 
-    <div class="graphBox">
-      <div id="graph"></div>
-    </div>
+    <b-container>
+      <b-row>
+        <div class="col-md-3">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Interactions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in issueTableData" :key="item.name">
+                <td><a v-if="item.url" :href="item.url">{{ item.name }}</a><p v-else>{{ item.name }}</p></td>
+                <td>{{ item.totalVal }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-md-9">
+          <div class="graphBox">
+            <div id="graph"></div>
+          </div>
+        </div>
+      </b-row>
+    </b-container>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Interactions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in issueTableData" :key="item.name">
-          <td>{{ item.name }}</td>
-          <td>{{ item.totalVal }}</td>
-        </tr>
-      </tbody>
-    </table>
   </div>
 </template>
 
@@ -231,10 +154,7 @@ export default {
     return {
       selected: ["labels"],
       options: [
-        { text: "Labels", value: "labels" },
-        { text: "Comments", value: "comments" },
-        { text: "Reactions", value: "reactions" },
-        { text: "Milestones", value: "milestones" },
+        { text: "Include Labels", value: "labels" },
       ],
       loading: false,
       inputQuery: {

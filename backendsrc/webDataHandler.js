@@ -1,6 +1,7 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 const RepoScanner = require('./repoScanner')
 const embeddingsHandler = require('./embeddingsHandler')
+const aiLabelHandler = require('./aiLabelHandler')
 const axios = require('axios');
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
@@ -24,6 +25,7 @@ class WebDataHandler {
         this.configObject = inConfigObject;
 
         this.embeddingsHandler = new embeddingsHandler(this.configObject);
+        this.aiLabelHandler = new aiLabelHandler(this.configObject);
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails,
             this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails,
             this.ghToken, this.IssueLinkDetails, this.embeddingsHandler);
@@ -2069,7 +2071,8 @@ class WebDataHandler {
 
                     if (!addedLabelList.includes(labelVisitor.name)) {
                         addedLabelList.push(labelVisitor.name);
-                        let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, group: "label" };
+                        let labelURL = labelVisitor.url.replace("https://api.github.com/repos/", "https://github.com/").replace("labels/","issues/?q=label%3A");
+                        let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, url: labelURL, group: "label" };
                         nodeReturnDictionary[labelVisitor.name] = labelNode;
                     }
 
@@ -2143,7 +2146,7 @@ class WebDataHandler {
     async getSimilarIssues(queryData) {
         const { organizationName, repoName, issueTitle, issueBody } = queryData;
 
-        let issueDescription = GetDescription(issueTitle, issueBody) // to do rewrite to take in issue title and body 
+        let issueDescription = GetDescription(issueTitle, issueBody) 
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 
@@ -2173,6 +2176,41 @@ class WebDataHandler {
         });
 
         return returnArray;
+    }
+
+    async getAILabels(queryData) {
+
+        const { issueID } = queryData;
+
+        let issue = await this.IssueDetails.findOne({ _id: issueID });
+
+        if (!issue) {
+            return [];
+        }
+
+        const repo = await this.RepoDetails.findOne({ _id: issue.repoRef });
+
+        if (!repo) {
+            return [];
+        }
+
+        let repoName = repo.shortURL.split("/").pop();
+
+        const aiLabelsString = await this.aiLabelHandler.generateAILabels(repoName, issue.title, issue.body);
+
+        const aiLabelsData = aiLabelsString.replace("Output Labels: ", "").split(",");
+
+        let returnLabels = [];
+
+        for (let i = 0; i < aiLabelsData.length; i++) {
+            let aiLabel = aiLabelsData[i];
+            returnLabels.push({
+                name: aiLabel,
+                color: "AA0000",
+            });
+        }
+
+        return returnLabels;
     }
 }
 

@@ -1,10 +1,33 @@
 const { getEncoding } = require("js-tiktoken")
+const fs = require('fs');
+const path = require('path');
 
 module.exports = {
     PromiseTimeout(delayms) {
         return new Promise(function (resolve, reject) {
             setTimeout(resolve, delayms);
         });
+    },
+    GetRepoLabels(inputRepoName) {
+        const filePath = path.join(process.cwd(), 'label_lists', `${inputRepoName}.json`);
+        let labelsString = "# Available labels\n\n";
+    
+        try {
+            const data = fs.readFileSync(filePath, 'utf8');
+            const labels = JSON.parse(data);
+    
+            for (let label of labels) {
+                labelsString += `- **${label.labelName}**: ${label.labelDescription}\n`;
+            }
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                labelsString += "Label file not found.\n";
+            } else {
+                labelsString += "An error occurred while reading the label file.\n";
+            }
+        }
+
+        return labelsString;
     },
     GetMentions(inputString) {
         let mentionsPattern = /\B@[a-z0-9_-]+/gi;

@@ -1,0 +1,214 @@
+[
+  {
+    "labelName": "Area-Accessibility",
+    "labelDescription": "Issues related to accessibility. This means that the issue is about making the product usable for people with disabilities, and could relate to font size, color contrast, screen reader support, etc."
+  },
+  {
+    "labelName": "Area-App Compat",
+    "labelDescription": "Issues revolving around application compatibility across PowerToys. Should only be applied to issues who have compatibility issues with other applications."
+  },
+  {
+    "labelName": "Area-Build",
+    "labelDescription": "Issues pertaining to the build system, CI, infrastructure, etc. Should only be applied to issues that aren't directly affecting the product but are instead around the build system for the product."
+  },
+  {
+    "labelName": "Area-Context Menu",
+    "labelDescription": "Related to context menu bugs or enhancements. Usually this is the File Explorer context menu."
+  },
+  {
+    "labelName": "Area-Enterprise",
+    "labelDescription": "Issues relevant to large enterprises, such as:  SCCM, run as admin restrictions, group policy, etc. ..."
+  },
+  {
+    "labelName": "Area-Flyout",
+    "labelDescription": "Issues refering to the PowerToys flyout launched from the tray area"
+  },
+  {
+    "labelName": "Area-Localization",
+    "labelDescription": "issues regarding to localization, which means that a language is not supported or that the translation is not correct"
+  },
+  {
+    "labelName": "Area-Logging",
+    "labelDescription": "Issues regarding the PowerToys logging facility"
+  },
+  {
+    "labelName": "Area-OOBE",
+    "labelDescription": "Issues regarding the first time experience for PowerToys, or the out of box experience. "
+  },
+  {
+    "labelName": "Area-Setup/Install",
+    "labelDescription": "Issues regarding the set up or install of PowerToys"
+  },
+  {
+    "labelName": "Area-Telemetry",
+    "labelDescription": "Issues that relate to telemetry"
+  },
+  {
+    "labelName": "Area-Tests",
+    "labelDescription": "issues that relate to tests"
+  },
+  {
+    "labelName": "FancyZones-Dragging&UI",
+    "labelDescription": "FancyZone dragging / interaction issue. Should only be applied to issues that are related to the Fancy Zones feature."
+  },
+  {
+    "labelName": "FancyZones-Editor",
+    "labelDescription": "Issue revolving the FancyZone Editor. Should only be applied to issues that are related to the Fancy Zones feature."
+  },
+  {
+    "labelName": "FancyZones-Hotkeys",
+    "labelDescription": "Issue around shortcut keys in FancyZones. Should only be applied to issues that are related to the Fancy Zones feature."
+  },
+  {
+    "labelName": "FancyZones-Layouts",
+    "labelDescription": "Issue for layouts in FancyZones. Should only be applied to issues that are related to the Fancy Zones feature."
+  },
+  {
+    "labelName": "FancyZones-Settings",
+    "labelDescription": "FancyZone setting issue. Should only be applied to issues that are related to the Fancy Zones feature."
+  },
+  {
+    "labelName": "FancyZones-VirtualDesktop",
+    "labelDescription": "Issue that deal with FZ and VDs. Should only be applied to issues that are related to the Fancy Zones feature."
+  },
+  {
+    "labelName": "Idea-Enhancement",
+    "labelDescription": "New feature or request on an existing product"
+  },
+  {
+    "labelName": "Idea-New PowerToy",
+    "labelDescription": "Suggestion for a PowerToy"
+  },
+  {
+    "labelName": "Issue-Docs",
+    "labelDescription": "Documentation issue that needs to be improved"
+  },
+  {
+    "labelName": "Product-Advanced Paste",
+    "labelDescription": "Refers to the Advanced Paste module"
+  },
+  {
+    "labelName": "Product-Always On Top",
+    "labelDescription": "Refers to the idea of a Always on Top Powertoy"
+  },
+  {
+    "labelName": "Product-Awake",
+    "labelDescription": "Issues regarding the PowerToys Awake utility"
+  },
+  {
+    "labelName": "Product-Color Picker",
+    "labelDescription": "All things around the Color Picker utility"
+  },
+  {
+    "labelName": "Product-CommandNotFound",
+    "labelDescription": "Refers to Command Not Found PowerToy"
+  },
+  {
+    "labelName": "Product-CropAndLock",
+    "labelDescription": "Refers to the Crop and Lock PowerToys"
+  },
+  {
+    "labelName": "Product-Display management",
+    "labelDescription": "Refers to the idea of a display management utility power toy"
+  },
+  {
+    "labelName": "Product-Environment Variables",
+    "labelDescription": "Refers to Environment Variables PowerToys"
+  },
+  {
+    "labelName": "Product-FancyZones",
+    "labelDescription": "Refers to the FancyZones PowerToy"
+  },
+  {
+    "labelName": "Product-File Actions Menu",
+    "labelDescription": "Refers to the File Actions Menu module"
+  },
+  {
+    "labelName": "Product-File Explorer",
+    "labelDescription": "Power Toys that touch explorer like Preview Pane"
+  },
+  {
+    "labelName": "Product-File Locksmith",
+    "labelDescription": "Refers to the File Locksmith utility"
+  },
+  {
+    "labelName": "Product-Hosts File Editor",
+    "labelDescription": "Refers to the Hosts file editor"
+  },
+  {
+    "labelName": "Product-Image Resizer",
+    "labelDescription": "Things regarding image resizing module"
+  },
+  {
+    "labelName": "Product-Keyboard Shortcut Manager",
+    "labelDescription": "Issues regarding Keyboard Shortcut Manager"
+  },
+  {
+    "labelName": "Product-Mouse Utilities",
+    "labelDescription": "Refers to the Mouse Utilities PowerToy"
+  },
+  {
+    "labelName": "Product-Mouse Without Borders",
+    "labelDescription": "Refers to the Mouse Without Borders module"
+  },
+  {
+    "labelName": "Product-Peek",
+    "labelDescription": "Refers to Peek Powertoys"
+  },
+  {
+    "labelName": "Product-Power management",
+    "labelDescription": "Refers to the idea of an Power management PT"
+  },
+  {
+    "labelName": "Product-PowerRename",
+    "labelDescription": "Refers to the PowerRename PowerToy"
+  },
+  {
+    "labelName": "Product-PowerToys Run",
+    "labelDescription": "Improved app launch PT Run (Win+R) Window"
+  },
+  {
+    "labelName": "Product-Quick Accent",
+    "labelDescription": "Refers to the Quick Accent PowerToy"
+  },
+  {
+    "labelName": "Product-Registry Preview",
+    "labelDescription": "Refers to the Registry Preview PowerToy"
+  },
+  {
+    "labelName": "Product-Screen Ruler",
+    "labelDescription": "Refers to the Screen Ruler PowerToy"
+  },
+  {
+    "labelName": "Product-Settings",
+    "labelDescription": "The standalone PowerToys Settings application"
+  },
+  {
+    "labelName": "Product-Shortcut Guide",
+    "labelDescription": "Refers to the Shortcut Guide PowerToy"
+  },
+  {
+    "labelName": "Product-Text Extractor",
+    "labelDescription": "This refers to the Text Extractor PowerToy"
+  },
+  {
+    "labelName": "Product-Tweak UI Design",
+    "labelDescription": "Refers to the idea of a UI Design tweaker"
+  },
+  {
+    "labelName": "Product-Video Conference Mute",
+    "labelDescription": "Refers to the Video Conference muting tool"
+  },
+  {
+    "labelName": "Product-Virtual Desktop",
+    "labelDescription": "Refers to the idea of an Improved Virtual Desktop power toys"
+  },
+  {
+    "labelName": "Product-Window Manager",
+    "labelDescription": "Refers to the idea of a Window Manager PowerToy"
+  },
+  {
+    "labelName": "Product-Workspaces",
+    "labelDescription": "Refers to the Workspaces utility"
+  }
+]
