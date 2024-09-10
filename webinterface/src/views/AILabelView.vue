@@ -40,7 +40,7 @@ export default {
     this.issueQueryObjects.push({
       query: {
         title: "Newest Issues",
-        repos: "microsoftdocs/wsl",
+        repos: "microsoft/powertoys",
         state: "open",
         sort: "created",
         limit: 5,
