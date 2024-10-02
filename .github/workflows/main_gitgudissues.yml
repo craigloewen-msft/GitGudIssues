@@ -23,14 +23,14 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: https://craigsdevcontainers.azurecr.io/
-        username: ${{ secrets.AzureAppService_ContainerUsername_be14b0d1f2034d489bd7fa18b3ff4250 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_5210b9d0d1e4497888eed0e6a966a0d3 }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_0830216457ca45f2a53fa9c32f866b60 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_a70c465530a44e2f838a74ed11157d83 }}
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_be14b0d1f2034d489bd7fa18b3ff4250 }}/gitgudissues:latest
+        tags: craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_0830216457ca45f2a53fa9c32f866b60 }}/gitgudissues:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -47,5 +47,5 @@ jobs:
       with:
         app-name: 'gitgudissues'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_3518f3c1cc4f45338ce722d932f1f946 }}
-        images: 'craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_be14b0d1f2034d489bd7fa18b3ff4250 }}/gitgudissues:latest'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_7a968d463d734de9814ebd47b177caf0 }}
+        images: 'craigsdevcontainers.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_0830216457ca45f2a53fa9c32f866b60 }}/gitgudissues:${{ github.sha }}'
