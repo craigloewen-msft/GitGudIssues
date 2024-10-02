@@ -1891,6 +1891,7 @@ class WebDataHandler {
                     "labels": 1,
                     "url": 1,
                     "created_at": 1,
+                    "aiLabels": 1
                 }
             },
         ]);
@@ -2020,6 +2021,7 @@ class WebDataHandler {
                     "labels": 1,
                     "url": 1,
                     "created_at": 1,
+                    "aiLabels": 1
                 }
             },
         ]);
@@ -2071,13 +2073,51 @@ class WebDataHandler {
 
                     if (!addedLabelList.includes(labelVisitor.name)) {
                         addedLabelList.push(labelVisitor.name);
-                        let labelURL = labelVisitor.url.replace("https://api.github.com/repos/", "https://github.com/").replace("labels/","issues/?q=label%3A");
+                        let labelURL = labelVisitor.url.replace("https://api.github.com/repos/", "https://github.com/").replace("labels/", "issues/?q=label%3A");
                         let labelNode = { id: labelVisitor.name, name: labelVisitor.name, totalVal: 1, graphVal: 1, url: labelURL, group: "label" };
                         nodeReturnDictionary[labelVisitor.name] = labelNode;
                     }
 
                     // Add the total value of the issue to the label
                     nodeReturnDictionary[labelVisitor.name].totalVal += issueNode.totalVal;
+                }
+            }
+
+            // Add aiLabels to node list
+            if (nodeVisitor.aiLabels) {
+                for (let j = 0; j < nodeVisitor.aiLabels.length; j++) {
+                    let aiLabelVisitor = nodeVisitor.aiLabels[j];
+
+                    let shouldProcessLabel = false;
+
+                    // Check if we should process label by checking if it is in issueGraphLabelsToIncludeList
+                    if (issueGraphLabelsToIncludeList.length != 0) {
+                        for (let k = 0; k < issueGraphLabelsToIncludeList.length; k++) {
+                            if (aiLabelVisitor.name == issueGraphLabelsToIncludeList[k]) {
+                                shouldProcessLabel = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        // If no labels are specified then process all labels
+                        shouldProcessLabel = true;
+                    }
+
+                    if (shouldProcessLabel) {
+
+                        let aiLabelID = "aiLabel_" + aiLabelVisitor;
+
+                        linkReturnList.push({ "source": nodeVisitor._id.toString(), "target": aiLabelID });
+
+                        if (!addedLabelList.includes(aiLabelID)) {
+                            addedLabelList.push(aiLabelID);
+                            let labelNode = { id: aiLabelID, name: "✨ " + aiLabelVisitor, totalVal: 1, graphVal: 1, group: "aiLabel" };
+                            nodeReturnDictionary[aiLabelID] = labelNode;
+                        }
+
+                        // Add the total value of the issue to the label
+                        nodeReturnDictionary[aiLabelID].totalVal += issueNode.totalVal;
+                    }
                 }
             }
         }
@@ -2146,7 +2186,7 @@ class WebDataHandler {
     async getSimilarIssues(queryData) {
         const { organizationName, repoName, issueTitle, issueBody } = queryData;
 
-        let issueDescription = GetDescription(issueTitle, issueBody) 
+        let issueDescription = GetDescription(issueTitle, issueBody)
 
         let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
 

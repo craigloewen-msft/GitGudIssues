@@ -159,6 +159,7 @@ const IssueInfo = new Schema({
     body: String,
     userMentionsList: [String],
     userCommentsList: [String],
+    aiLabels: [String],
 }, { toJSON: { virtuals: true }, collation: { locale: "en_US", strength: 2 } });
 
 IssueInfo.index({ 'repository_url': 1 });

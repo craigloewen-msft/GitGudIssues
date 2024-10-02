@@ -4,10 +4,6 @@
     "labelDescription": "Issues related to ARM64. Should only be applied to issues that only affect ARM64 machines."
   },
   {
-    "labelName": "bug",
-    "labelDescription": "If WSL is not behaving as expected, and the error is in WSL itself, then it should be marked as a 'bug'."
-  },
-  {
     "labelName": "console",
     "labelDescription": "Issue related to the console output of WSL. This label should be applied to issues "
   },
@@ -74,9 +70,5 @@
   {
     "labelName": "wsl1",
     "labelDescription": "This label should only be applied to issues that explicitly mention they are using WSL 1."
-  },
-  {
-    "labelName": "wsl2",
-    "labelDescription": "This label should onoly be applied to issues that explicitly mention they are using WSL 2."
   }
 ]

@@ -158,6 +158,7 @@ const IssueInfo = new Schema({
     body: String,
     userMentionsList: [String],
     userCommentsList: [String],
+    aiLabels: [String],
 }, { toJSON: { virtuals: true }, collation: { locale: "en_US", strength: 2 } });
 
 IssueInfo.index({ 'repository_url': 1 });
@@ -339,12 +340,14 @@ const dataHandler = new WebDataHandler(RepoDetails, IssueDetails, UserDetails, s
 const teamDataHandler = new TeamsDataHandler(RepoDetails, IssueDetails, UserDetails, siteIssueLabelDetails, IssueCommentDetails, IssueCommentMentionDetails,
     IssueReadDetails, SearchQueryDetails, MentionQueryDetails, config.ghToken, TeamDetails, TeamTriageDetails, dataHandler);
 
-async function main() {
-    let inputDate = new Date('2024-05-01');
-    let response = await RepoDetails.updateMany({}, { lastIssuesCompleteUpdate: inputDate });
-    let response2 = await RepoDetails.updateMany({}, { lastCommentsCompleteUpdate: inputDate });
 
-    console.log(response);
+// Temp.js code only
+const scriptHelpers = require('./backendsrc/oneOffScriptHelpers');
+
+async function main() {
+    // await scriptHelpers.backFillAILabels(new Date('2024-07-20'), IssueDetails, RepoDetails, 'microsoft/powertoys', dataHandler.aiLabelHandler);
+    await scriptHelpers.getAILabelAccuracy(new Date('2024-08-01'), new Date('2024-09-01'), IssueDetails, RepoDetails, 'microsoft/powertoys');
+    console.log('Hello');
 }
 
 main()

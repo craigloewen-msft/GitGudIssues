@@ -152,9 +152,10 @@ export default {
   name: "RepoIssueGraph",
   data() {
     return {
-      selected: ["labels"],
+      selected: ["labels", "aiLabels"],
       options: [
         { text: "Include Labels", value: "labels" },
+        { text: "Include AI Labels", value: "aiLabels" },
       ],
       loading: false,
       inputQuery: {
@@ -239,11 +240,12 @@ export default {
       this.filteredData = JSON.parse(JSON.stringify(this.myData));
       this.nodeList = {};
       const isLabelsSelected = this.selected.includes("labels");
+      const isAILabelsSelected = this.selected.includes("aiLabels");
 
       // Get searchable node list
       for (let i = this.filteredData.nodes.length - 1; i >= 0; i--) {
         let nodeVisitor = this.filteredData.nodes[i];
-        if (!isLabelsSelected && nodeVisitor.group === "label") {
+        if ((!isLabelsSelected && nodeVisitor.group === "label") || (!isAILabelsSelected && nodeVisitor.group === "aiLabel")) {
           this.filteredData.nodes.splice(i, 1);
         } else {
           this.nodeList[nodeVisitor.id] = nodeVisitor;
@@ -261,13 +263,11 @@ export default {
         let source = this.nodeList[linkVisitor.source];
         let target = this.nodeList[linkVisitor.target];
 
-        if (
-          !isLabelsSelected &&
-          (source === undefined || target === undefined)
-        ) {
+        if (source === undefined || target === undefined) {
           this.filteredData.links.splice(i, 1);
           continue;
         }
+
 
         if (!source.neighbors) {
           source.neighbors = [];
@@ -301,11 +301,14 @@ export default {
       if (this.selected.includes("labels")) {
         issueTableNodeGroups.push("label");
       }
+      if (this.selected.includes("aiLabels")) {
+        issueTableNodeGroups.push("aiLabel");
+      }
 
       this.issueTableData = this.filteredData.nodes
         .filter((node) => issueTableNodeGroups.includes(node.group))
         .sort((a, b) => b.totalVal - a.totalVal)
-        .slice(0, 25);
+        .slice(0, 100);
     },
     renderGraph: function () {
       let linkColorFunction = function (link) {
