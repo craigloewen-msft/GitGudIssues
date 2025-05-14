@@ -155,14 +155,14 @@ class RefreshRepoTask {
                     },
                     params: {
                         page: pageNum, per_page: this.perPageResults,
-                        sort: 'updated', state: 'all', type: 'issue'
+                        sort: 'updated', state: 'all'
                     }
                 });
             } else {
                 response = await axios.get(this.repoIssuesUrl, {
                     params: {
                         page: pageNum, per_page: this.perPageResults,
-                        sort: 'updated', state: 'all', type: 'issue'
+                        sort: 'updated', state: 'all'
                     }
                 });
             }
