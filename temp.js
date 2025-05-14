@@ -26,7 +26,6 @@ if (process.env.NODE_ENV == 'production') {
     config.secret = process.env.secret;
     config.sessionSecret = process.env.sessionSecret;
     config.ghToken = process.env.ghToken;
-    config.pineconeAPIKey = process.env.pineconeAPIKey;
     config.azureOpenAIAPIKey = process.env.azureOpenAIAPIKey;
     config.azureEndpointURL = process.env.azureEndpointURL;
     config.debugDisableEmbeddings = false;

@@ -1,6 +1,5 @@
 const RefreshRepoHandler = require('./refreshRepoHandler')
 const RepoScanner = require('./repoScanner')
-const embeddingsHandler = require('./embeddingsHandler')
 const aiLabelHandler = require('./aiLabelHandler')
 const axios = require('axios');
 const mongoose = require('mongoose');
@@ -24,11 +23,10 @@ class WebDataHandler {
         this.IssueLinkDetails = inIssueLinkDetails;
         this.configObject = inConfigObject;
 
-        this.embeddingsHandler = new embeddingsHandler(this.configObject);
         this.aiLabelHandler = new aiLabelHandler(this.configObject);
         this.refreshRepoHandler = new RefreshRepoHandler(this.RepoDetails, this.IssueDetails,
             this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails,
-            this.ghToken, this.IssueLinkDetails, this.embeddingsHandler);
+            this.ghToken, this.IssueLinkDetails);
         this.repoScanner = new RepoScanner(this.RepoDetails, this.IssueDetails, this.IssueCommentDetails, this.UserDetails, this.IssueCommentMentionDetails, this.IssueReadDetails);
     }
 
@@ -707,8 +705,6 @@ class WebDataHandler {
                 await this.IssueCommentDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.IssueDetails.deleteMany({ repoRef: inputRepo._id })
                 await this.RepoDetails.deleteOne({ '_id': inputRepo._id })
-
-                await this.embeddingsHandler.removeRepo(inputRepo._id);
             }
         } else {
             return false;
@@ -2181,41 +2177,6 @@ class WebDataHandler {
         let queryResult = await this.getRepoConnectedGraphData(startDate, endDate, firstFindQuery, issueGraphLabelsToIncludeList);
 
         return queryResult;
-    }
-
-    async getSimilarIssues(queryData) {
-        const { organizationName, repoName, issueTitle, issueBody } = queryData;
-
-        let issueDescription = GetDescription(issueTitle, issueBody)
-
-        let dbRepoName = (organizationName + "/" + repoName).toLowerCase();
-
-        let repo = await this.RepoDetails.findOne({ shortURL: dbRepoName });
-
-        if (repo == null) {
-            throw "Repo not found";
-        }
-
-        let issue = await this.IssueDetails.findOne({ title: issueTitle, repoRef: repo._id });
-
-        let similarIssueIDArray = await this.embeddingsHandler.getSimilarIssueIDs(repo, issueDescription, issue);
-
-        // Make a new array that finds each issue with the id specified in the array above
-        let similarIssuesArray = await Promise.all(similarIssueIDArray.map(similarIssueIDObject => this.IssueDetails.findOne({ _id: similarIssueIDObject.id })));
-
-        let returnArray = similarIssueIDArray.map((similarIssueIDObject, index) => {
-            similarIssuesArray[index].body = "";
-            return {
-                score: similarIssueIDObject.score,
-                title: similarIssuesArray[index].title,
-                number: similarIssuesArray[index].number,
-                html_url: "https://github.com/" +
-                    similarIssuesArray[index].url.split("https://api.github.com/repos/").pop(),
-                state: similarIssuesArray[index].state,
-            }
-        });
-
-        return returnArray;
     }
 
     async getAILabels(queryData) {

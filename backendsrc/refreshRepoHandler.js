@@ -3,7 +3,7 @@ const helperFunctions = require('./helpers');
 
 class RefreshRepoTask {
     constructor(inRepo, inRepoDetails, inIssueDetails, inUserDetails, inIssueCommentDetails,
-        inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails, inEmbeddingsHandler) {
+        inIssueCommentMentionDetails, inIssueReadDetails, inGHToken, inIssueLinkDetails) {
         this.pageNum = 1;
         this.repoUrl = inRepo.url;
         this.repoIssuesUrl = inRepo.url;
@@ -17,7 +17,6 @@ class RefreshRepoTask {
         this.IssueCommentMentionDetails = inIssueCommentMentionDetails;
         this.IssueReadDetails = inIssueReadDetails;
         this.IssueLinkDetails = inIssueLinkDetails;
-        this.embeddingsHandler = inEmbeddingsHandler;
 
         this.maxUpdatedTime = new Date('1/1/1900');
         this.minUpdatedTime = new Date();
@@ -293,11 +292,6 @@ class RefreshRepoTask {
                     let finalAwaitPromiseArray = [];
 
                     // Add in await to the promise array for adding embedding title
-                    // Check if an issue was inserted 
-                    if (!updateResultRaw.lastErrorObject.updatedExisting) {
-                        // Add inserted issue to list
-                        await this.embeddingsHandler.addEmbedding(updateResult);
-                    }
 
                     if (updateResult.closed_by) {
                         if (updateResult.closed_by.login) {
@@ -576,7 +570,7 @@ class RefreshRepoCommentsTask extends RefreshRepoTask {
 
 class RefreshRepoHandler {
     constructor(inRepoDetails, inIssueDetails, inIssueCommentDetails, inUserDetails, inIssueCommentMentionDetails,
-        inIssueReadDetails, inGHToken, inIssueLinkDetails, inEmbeddingsHandler) {
+        inIssueReadDetails, inGHToken, inIssueLinkDetails) {
         this.RepoDetails = inRepoDetails;
         this.IssueDetails = inIssueDetails;
         this.IssueCommentDetails = inIssueCommentDetails;
@@ -585,7 +579,6 @@ class RefreshRepoHandler {
         this.IssueReadDetails = inIssueReadDetails;
         this.ghToken = inGHToken;
         this.IssueLinkDetails = inIssueLinkDetails;
-        this.embeddingsHandler = inEmbeddingsHandler;
 
         this.maxBulkWriteCount = 100; // This is trigger limit, absolute limit is maxBulkWriteCount + perPageResults
         this.bulkWriteDelayTimeout = 5000;
@@ -621,7 +614,7 @@ class RefreshRepoHandler {
         if (inputIndex == -1 && refreshRepoIndex == -1 && lastProcessedTime > 5) {
             let newRefreshRepoTask = new RefreshRepoTask(inRepo, this.RepoDetails, this.IssueDetails, this.UserDetails,
                 this.IssueCommentDetails, this.IssueCommentMentionDetails, this.IssueReadDetails, this.ghToken,
-                this.IssueLinkDetails, this.embeddingsHandler);
+                this.IssueLinkDetails);
             this.inputRefreshRepoList.push(newRefreshRepoTask);
         }
 

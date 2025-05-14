@@ -26,7 +26,6 @@ if (process.env.NODE_ENV == 'production') {
     config.secret = process.env.secret;
     config.sessionSecret = process.env.sessionSecret;
     config.ghToken = process.env.ghToken;
-    config.pineconeAPIKey = process.env.pineconeAPIKey;
     config.azureOpenAIAPIKey = process.env.azureOpenAIAPIKey;
     config.azureEndpointURL = process.env.azureEndpointURL;
     config.debugDisableEmbeddings = false;
@@ -1051,9 +1050,7 @@ app.post('/api/getrepoissuegraph', authenticateToken, async function (req, res) 
 
 app.post('/api/getsimilarissues', async function (req, res) {
     try {
-        var returnData = await dataHandler.getSimilarIssues(req.body);
-
-        return res.json({ success: true, similarIssues: returnData });
+        return res.json({ success: false, log: "Function no longer supported" });
     } catch (error) {
         return res.json(returnFailure(error));
     }
